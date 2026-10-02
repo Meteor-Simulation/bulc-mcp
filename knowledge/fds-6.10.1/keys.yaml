@@ -1,0 +1,670 @@
+# FDS 6.10.1 — frequently used namelist keys, for LLM agents driving BULC
+#
+# Scope: the keys BULC users touch most often, with type, unit, the FDS 6.10.1 reader default,
+# common mistakes and the BULC tool that writes the key. It is a quick reference, not the
+# User's Guide — for anything not listed, read the NIST FDS 6.10.1 User's Guide.
+#
+# Source: NIST Fire Dynamics Simulator 6.10.1 — User's Guide and the input reader of the
+# public FDS 6.10.1 release (US Government work, public domain). Defaults are the values the
+# 6.10.1 reader assigns when a key is omitted. "unset" means the reader has a sentinel value
+# and either derives the value from other keys or stops with the listed error.
+#
+# BULC note: BULC writes most of these keys for you through its tools. Prefer the tool listed in
+# `tools`; use add_raw_namelist only for groups no tool manages (SIM-006).
+#
+# 이 파일은 BULC 사용자가 자주 쓰는 FDS 6.10.1 키의 빠른 참조입니다. 값의 기본값은 6.10.1 입력
+# 판독기의 기본값입니다. 목록에 없는 키는 NIST FDS 6.10.1 사용자 안내서를 따릅니다.
+
+schema_version: 1
+fds_version: "6.10.1"
+source: "NIST FDS 6.10.1 User's Guide; FDS 6.10.1 input reader (public domain)"
+
+syntax:
+  en: >-
+    A namelist record starts with &GROUP and ends with '/'. Keys are KEY=value pairs separated by
+    commas; strings use single quotes; logicals are .TRUE./.FALSE. (or T/F); arrays are
+    comma-separated (XB=0,1,0,1,0,1). Text outside records is a comment. Key names are
+    case-insensitive but BULC writes them in upper case. Decimal separator is always '.'.
+  ko: >-
+    레코드는 &GROUP 으로 시작해 '/' 로 끝납니다. 키는 KEY=값 을 쉼표로 구분하고, 문자열은 작은따옴표,
+    논리값은 .TRUE./.FALSE.(또는 T/F), 배열은 쉼표 구분입니다(XB=0,1,0,1,0,1). 레코드 밖의 글은 주석입니다.
+  coordinates: "XB = x1,x2,y1,y2,z1,z2 (min,max per axis). XYZ = x,y,z. z is up. Units m."
+
+groups:
+
+  HEAD:
+    title: {en: Job identity, ko: 작업 이름}
+    tools: [set_chid]
+    keys:
+      CHID:
+        type: string
+        default: "input file name without extension"
+        en: "Prefix of every output file (<CHID>.smv, <CHID>_hrr.csv, <CHID>_devc.csv)."
+        ko: "모든 출력 파일 이름의 접두어입니다."
+        mistakes:
+          - "A period or space in CHID stops FDS (ERROR 108)."
+          - "BULC renames CHID to the saved file name (GEN-009)."
+        rules: [GEN-009]
+      TITLE:
+        type: string
+        en: "Free-text description shown in Smokeview."
+        ko: "설명 문구입니다."
+
+  TIME:
+    title: {en: Simulation time, ko: 해석 시간}
+    tools: [set_time]
+    keys:
+      T_END:
+        type: real
+        unit: s
+        default: 1.0
+        en: "End time. Omitting it runs only 1 s."
+        ko: "끝 시간입니다. 빠뜨리면 1 s 만 계산합니다."
+        mistakes: ["T_END shorter than fire growth plus the assessment window (FIRE-005)."]
+        rules: [FIRE-005, OUT-001]
+      T_BEGIN:
+        type: real
+        unit: s
+        default: 0.0
+        en: "Start time; also the origin of RAMP times."
+        ko: "시작 시간입니다."
+      DT:
+        type: real
+        unit: s
+        default: "unset (FDS estimates it from the cell size and a characteristic velocity)"
+        en: "Initial time step. The step is adjusted by the CFL limiter unless LOCK_TIME_STEP=.TRUE."
+        ko: "처음 시간 간격입니다. LOCK_TIME_STEP 이면 고정됩니다."
+        rules: [SIM-002]
+
+  MISC:
+    title: {en: Ambient conditions and global options, ko: 주변 조건·전역 옵션}
+    tools: [set_ambient, set_simulation_mode, set_turbulence_model, set_numerics]
+    keys:
+      TMPA:
+        type: real
+        unit: "°C"
+        default: 20.0
+        en: "Ambient temperature."
+        ko: "주변 온도(섭씨)입니다."
+        mistakes: ["Entering Kelvin (293) — FDS reads °C."]
+        rules: [GEN-001]
+      HUMIDITY:
+        type: real
+        unit: "%"
+        default: 40.0
+        en: "Relative humidity of the ambient air."
+        ko: "상대습도입니다."
+      SIMULATION_MODE:
+        type: string
+        values: [VLES, LES, DNS, SVLES]
+        default: VLES
+        en: "Overall model selection; it also changes default CFL limits, flux limiter and turbulence model."
+        ko: "해석 모드입니다. 기본 CFL·플럭스 제한자·난류 모델도 함께 바뀝니다."
+        mistakes: ["Assuming BULC and FDS share the same default mode — state it explicitly (SIM-001)."]
+        rules: [SIM-001]
+      TURBULENCE_MODEL:
+        type: string
+        default: "DEARDORFF in VLES, LES and SVLES (none in DNS)"
+        en: "Subgrid turbulence model."
+        ko: "아격자 난류 모델입니다."
+      MAXIMUM_VISIBILITY:
+        type: real
+        unit: m
+        default: 30.0
+        en: "Upper bound of the VISIBILITY output quantity."
+        ko: "가시거리 출력의 상한입니다."
+      VISIBILITY_FACTOR:
+        type: real
+        default: 3.0
+        en: "Constant C in visibility = C / K (3 for light-reflecting, 8 for light-emitting signs)."
+        ko: "가시거리 = C / 소광계수 의 C 입니다(반사형 3, 발광형 8)."
+        rules: [ASET-003]
+
+  MESH:
+    title: {en: Computational mesh, ko: 계산 격자}
+    tools: [set_mesh, set_mesh_cell_size, auto_fit_mesh, set_meshes, auto_multimesh, slice_mesh, merge_meshes]
+    keys:
+      IJK:
+        type: "integer[3]"
+        default: [10, 10, 10]
+        en: "Number of cells in x, y, z. Counts that factor into 2, 3 and 5 suit the FFT pressure solver."
+        ko: "x, y, z 방향 셀 수입니다. 2·3·5 의 곱이면 압력 계산이 빠릅니다."
+        mistakes:
+          - "Cells far from cubic (aspect ratio > 2) (MESH-003)."
+          - "Forgetting to change the 1 m default mesh (MESH-001)."
+        rules: [MESH-001, MESH-002, MESH-003, MESH-010]
+      XB:
+        type: "real[6]"
+        unit: m
+        default: [0, 1, 0, 1, 0, 1]
+        en: "Mesh bounds x1,x2,y1,y2,z1,z2."
+        ko: "격자 범위입니다."
+        mistakes: ["min >= max on an axis; objects outside every mesh are dropped (GEO-006)."]
+        rules: [GEN-003, GEO-006, MESH-008]
+      MULT_ID:
+        type: string
+        en: "Replicates the mesh with a &MULT record."
+        ko: "&MULT 로 격자를 복제합니다."
+
+  OBST:
+    title: {en: Solid obstruction, ko: 장애물}
+    tools: [add_obstacle, add_wall, add_floor, update_obstacle, transform_obstacle, assign_surface, set_fds_properties]
+    keys:
+      XB:
+        type: "real[6]"
+        unit: m
+        en: "Box x1,x2,y1,y2,z1,z2. FDS snaps faces to the nearest cell faces."
+        ko: "상자 범위입니다. 면은 가까운 셀 면에 맞춰집니다."
+        mistakes:
+          - "Writing [x1,y1,z1,x2,y2,z2] (GEN-003)."
+          - "Zero thickness or thinner than a cell — it may vanish or become a thin plate (GEO-005)."
+        rules: [GEN-003, GEO-003, GEO-005]
+      SURF_ID:
+        type: string
+        default: "INERT (or the SURF named by SURF_DEFAULT on &MISC)"
+        en: "One surface for all six faces."
+        ko: "여섯 면에 같은 표면을 씁니다."
+        rules: [SURF-001, SIM-011]
+      SURF_IDS:
+        type: "string[3]"
+        en: "Top, sides, bottom."
+        ko: "윗면, 옆면, 아랫면 순서입니다."
+      SURF_ID6:
+        type: "string[6]"
+        en: "Faces in the order -X, +X, -Y, +Y, -Z, +Z."
+        ko: "면 순서는 -X, +X, -Y, +Y, -Z, +Z 입니다."
+        rules: [FIRE-013]
+      PERMIT_HOLE:
+        type: logical
+        default: true
+        en: "Whether a &HOLE may cut this obstruction."
+        ko: "HOLE 이 이 장애물을 뚫을 수 있는지입니다."
+      THICKEN:
+        type: logical
+        default: false
+        en: "Force at least one cell of thickness."
+        ko: "최소 한 셀 두께로 만듭니다."
+
+  HOLE:
+    title: {en: Opening cut into obstructions, ko: 개구부}
+    tools: [add_hole, add_door, add_window, update_hole]
+    keys:
+      XB:
+        type: "real[6]"
+        unit: m
+        en: "Box removed from every obstruction it overlaps (that permits holes)."
+        ko: "겹치는 장애물에서 이 상자만큼 잘라 냅니다."
+        mistakes: ["The hole must span the full wall thickness (GEO-004); a hole is always open unless CTRL_ID/DEVC_ID closes it (GEO-013)."]
+        rules: [GEO-004, GEO-013, EVAC-003]
+      CTRL_ID:
+        type: string
+        en: "Opens/closes the hole from a control."
+        ko: "제어로 여닫습니다."
+      DEVC_ID:
+        type: string
+        en: "Opens/closes the hole from a device."
+        ko: "장치로 여닫습니다."
+
+  VENT:
+    title: {en: Boundary patch on a solid face or the domain boundary, ko: 경계면(벤트)}
+    tools: [add_vent, update_vent, set_open_boundary, set_all_boundaries_open]
+    keys:
+      XB:
+        type: "real[6]"
+        unit: m
+        en: "A plane: one axis must have min = max."
+        ko: "평면입니다. 한 축의 min = max 여야 합니다."
+        rules: [VENT-004]
+      MB:
+        type: string
+        values: [XMIN, XMAX, YMIN, YMAX, ZMIN, ZMAX]
+        en: "Shortcut for a whole mesh boundary face."
+        ko: "격자 경계 한 면 전체를 가리킵니다."
+        mistakes: ["Opening ZMIN under a floor burner removes the floor (VENT-002)."]
+        rules: [VENT-002, VENT-003]
+      SURF_ID:
+        type: string
+        en: "Boundary condition. OPEN = passive opening to ambient; MIRROR = symmetry; a user SURF for supply/exhaust or a burner."
+        ko: "경계 조건입니다. OPEN 은 외기로 열린 면입니다."
+        rules: [VENT-001, SIM-011]
+
+  SURF:
+    title: {en: Surface (boundary condition and wall make-up), ko: 표면}
+    tools: [add_surface, update_surface, add_surface_from_library, assign_surface, add_fire, update_fire]
+    keys:
+      HRRPUA:
+        type: real
+        unit: "kW/m²"
+        default: 0.0
+        en: "Heat release rate per unit area of a burner. Needs a &REAC line (ERROR 314)."
+        ko: "단위 면적당 열방출률입니다. &REAC 이 있어야 합니다."
+        mistakes:
+          - "Putting the total HRR (kW) here — HRRPUA = HRR / burning area (FIRE-001)."
+          - "The burning area is the grid-snapped area, which can differ from the drawn area."
+        rules: [FIRE-001, FIRE-003, FIRE-010]
+      MLRPUA:
+        type: real
+        unit: "kg/(m²·s)"
+        default: 0.0
+        en: "Fuel mass loss rate per unit area (alternative to HRRPUA)."
+        ko: "단위 면적당 연료 질량 감소율입니다."
+      RAMP_Q:
+        type: string
+        en: "RAMP id that scales HRRPUA/MLRPUA in time (F values 0–1)."
+        ko: "HRRPUA 를 시간에 따라 조정하는 RAMP 이름입니다."
+        rules: [FIRE-008, FIRE-014]
+      TAU_Q:
+        type: real
+        unit: s
+        default: 1.0
+        en: "Ramp-up time when no RAMP_Q is given: positive = tanh(t/τ), negative = t² growth reaching full HRR at |τ| s."
+        ko: "RAMP_Q 가 없을 때 상승 시간입니다. 양수 = tanh, 음수 = |τ| 초에 최대에 닿는 t² 성장."
+        rules: [FIRE-004]
+      TMP_FRONT:
+        type: real
+        unit: "°C"
+        default: "unset (ambient)"
+        en: "Fixed surface temperature of the front face."
+        ko: "앞면 고정 온도(섭씨)입니다."
+        rules: [FIRE-006]
+      VEL:
+        type: real
+        unit: m/s
+        default: 0.0
+        en: "Normal velocity. Negative = flow INTO the domain (supply), positive = out (exhaust)."
+        ko: "수직 속도입니다. 음수 = 영역 안으로(급기), 양수 = 밖으로(배기)."
+        mistakes: ["Sign reversed: supply needs a negative VEL or VOLUME_FLOW."]
+      VOLUME_FLOW:
+        type: real
+        unit: "m³/s"
+        default: 0.0
+        en: "Volume flow through the patch. Negative = into the domain."
+        ko: "체적 유량입니다. 음수 = 영역 안으로."
+        rules: [HVAC-001, HVAC-004]
+      MATL_ID:
+        type: "string[]"
+        en: "Material of each layer (with THICKNESS)."
+        ko: "층별 재료입니다(THICKNESS 와 함께)."
+        rules: [SURF-001]
+      THICKNESS:
+        type: "real[]"
+        unit: m
+        en: "Thickness of each layer."
+        ko: "층별 두께입니다."
+      BACKING:
+        type: string
+        values: [EXPOSED, VOID, INSULATED]
+        default: EXPOSED
+        en: "What the back of the wall sees: the gas on the other side, a void at ambient, or no heat loss."
+        ko: "벽 뒷면 조건입니다."
+      EMISSIVITY:
+        type: real
+        default: "0.9 when not given (layered surfaces may take it from their materials)"
+        en: "Surface emissivity."
+        ko: "방사율입니다."
+
+  MATL:
+    title: {en: Solid material, ko: 재료}
+    tools: [add_material, update_material, add_material_from_library]
+    keys:
+      CONDUCTIVITY:
+        type: real
+        unit: "W/(m·K)"
+        en: "Thermal conductivity (or RAMP_K)."
+        ko: "열전도율입니다."
+      SPECIFIC_HEAT:
+        type: real
+        unit: "kJ/(kg·K)"
+        en: "Specific heat (or RAMP_C_S). Note kJ, not J."
+        ko: "비열입니다. 단위는 kJ/(kg·K) 입니다."
+        mistakes: ["Entering J/(kg·K) (1000 instead of 1.0)."]
+        rules: [GEN-001]
+      DENSITY:
+        type: real
+        unit: "kg/m³"
+        en: "Density."
+        ko: "밀도입니다."
+      EMISSIVITY:
+        type: real
+        default: 0.9
+        en: "Emissivity."
+        ko: "방사율입니다."
+
+  REAC:
+    title: {en: Combustion reaction, ko: 연소 반응}
+    tools: [update_reaction, add_species]
+    keys:
+      FUEL:
+        type: string
+        en: "Fuel species, e.g. PROPANE, METHANE, POLYURETHANE (simple chemistry)."
+        ko: "연료 이름입니다."
+        mistakes: ["A HRRPUA burner without &REAC stops FDS (ERROR 314) (FIRE-003)."]
+        rules: [FIRE-003, FIRE-007]
+      SOOT_YIELD:
+        type: real
+        unit: kg/kg
+        default: 0.0
+        en: "Soot mass per unit fuel mass. 0 means no smoke and infinite visibility."
+        ko: "연료 질량당 그을음 질량입니다. 0 이면 연기가 생기지 않습니다."
+        rules: [FIRE-007]
+      CO_YIELD:
+        type: real
+        unit: kg/kg
+        default: 0.0
+        en: "CO mass per unit fuel mass."
+        ko: "연료 질량당 CO 질량입니다."
+        mistakes: ["Yields too large for the fuel's carbon (ERROR 171)."]
+        rules: [FIRE-007]
+      HEAT_OF_COMBUSTION:
+        type: real
+        unit: kJ/kg
+        default: "from the fuel's heat of formation"
+        en: "Heat release per unit fuel mass."
+        ko: "연료 질량당 발열량입니다."
+      RADIATIVE_FRACTION:
+        type: real
+        default: "tabulated per fuel (e.g. PROPANE 0.29, METHANE 0.20); 0.35 for fuels not in the table; 0 in DNS"
+        en: "Fraction of the HRR emitted as thermal radiation."
+        ko: "열방출 중 복사로 나가는 비율입니다."
+        rules: [FIRE-009]
+
+  RAMP:
+    title: {en: Time or temperature function, ko: 램프(시간 함수)}
+    tools: [add_ramp, update_ramp, remove_ramp]
+    keys:
+      ID:
+        type: string
+        en: "All rows of one ramp share the same ID."
+        ko: "한 램프의 모든 행이 같은 ID 를 씁니다."
+      T:
+        type: real
+        unit: s
+        en: "Time of the point; rows must be in increasing T."
+        ko: "시간입니다. 행은 시간 오름차순이어야 합니다."
+        rules: [FIRE-008]
+      F:
+        type: real
+        en: "Multiplier at T (0–1 for HRR ramps)."
+        ko: "그 시간의 배율입니다."
+
+  DEVC:
+    title: {en: Device (measurement point, detector, sprinkler head), ko: 장치}
+    tools: [add_device, add_thermocouple, add_heat_detector, add_smoke_detector, add_sprinkler, add_nozzle, update_device]
+    keys:
+      QUANTITY:
+        type: string
+        en: "Output quantity (TEMPERATURE, VISIBILITY, VOLUME FRACTION, LINK TEMPERATURE, SPRINKLER LINK TEMPERATURE, CHAMBER OBSCURATION, ...)."
+        ko: "측정 수량입니다."
+        mistakes:
+          - "Names FDS does not know stop the run (DEVC-003)."
+          - "LINK TEMPERATURE / SPRINKLER LINK TEMPERATURE need a PROP_ID (ERROR 933) whose PROP has ACTIVATION_TEMPERATURE (ERROR 934)."
+          - "CHAMBER OBSCURATION (smoke detector) needs a PROP_ID (ERROR 931)."
+        rules: [DEVC-002, DEVC-003, DEVC-005, DEVC-009]
+      XYZ:
+        type: "real[3]"
+        unit: m
+        en: "Point location. Must be in a gas cell inside a mesh (ERROR 937 if partly outside)."
+        ko: "위치입니다. 격자 안의 기체 셀이어야 합니다."
+        rules: [DEVC-001, GEO-006]
+      XB:
+        type: "real[6]"
+        unit: m
+        en: "Line, plane or volume for SPATIAL_STATISTIC devices."
+        ko: "공간 통계 장치의 범위입니다."
+      PROP_ID:
+        type: string
+        en: "Device properties (&PROP) for detectors and sprinklers."
+        ko: "감지기·헤드 속성(&PROP) 이름입니다."
+        rules: [DEVC-009, GEN-020]
+      SPEC_ID:
+        type: string
+        en: "Species for VOLUME FRACTION / MASS FRACTION (e.g. CARBON MONOXIDE, OXYGEN, CARBON DIOXIDE)."
+        ko: "VOLUME FRACTION 등의 화학종입니다."
+        rules: [DEVC-007]
+      SETPOINT:
+        type: real
+        en: "Value at which the device changes state (activation)."
+        ko: "상태가 바뀌는 값입니다."
+      CTRL_ID:
+        type: string
+        en: "For QUANTITY='CONTROL': the control whose state is recorded (ERROR 938 if missing)."
+        ko: "QUANTITY='CONTROL' 일 때 기록할 제어 이름입니다."
+        rules: [DEVC-004]
+      LATCH:
+        type: logical
+        default: true
+        en: "Once activated the device stays activated."
+        ko: "한 번 작동하면 계속 작동 상태로 남습니다."
+      INITIAL_STATE:
+        type: logical
+        default: false
+        en: "State before activation."
+        ko: "작동 전 상태입니다."
+
+  PROP:
+    title: {en: Device properties (sprinkler, nozzle, detector), ko: 장치 속성}
+    tools: [add_prop, update_prop, add_sprinkler, add_nozzle, spr_upsert_spray_profile, spr_set_head_spray]
+    keys:
+      ACTIVATION_TEMPERATURE:
+        type: real
+        unit: "°C"
+        default: "unset — required for link-temperature devices (ERROR 934)"
+        en: "Activation temperature of a heat detector or sprinkler link."
+        ko: "열감지기·헤드 감열체의 작동 온도입니다(필수)."
+        rules: [DEVC-009]
+      RTI:
+        type: real
+        unit: "(m·s)^½"
+        default: 100.0
+        en: "Response time index."
+        ko: "반응시간지수입니다."
+        mistakes: ["Entering (ft·s)^½ values without conversion (× 0.552)."]
+      C_FACTOR:
+        type: real
+        unit: "(m/s)^½"
+        default: 0.0
+        en: "Conduction factor of the link."
+        ko: "전도 계수입니다."
+      K_FACTOR:
+        type: real
+        unit: "L/(min·bar^½)"
+        en: "Flow coefficient, Q = K·√P. Metric K = US K × 14.41."
+        ko: "방출계수입니다. Q = K·√P, 미터 K = 미국 K × 14.41."
+        rules: [SPR-010]
+      OPERATING_PRESSURE:
+        type: real
+        unit: bar
+        en: "Head pressure. FDS uses bar; BULC pipe-network tools use MPa."
+        ko: "방사압입니다. FDS 는 bar, BULC 배관망 도구는 MPa 입니다."
+        rules: [SPR-011]
+      FLOW_RATE:
+        type: real
+        unit: L/min
+        en: "Water flow. With PART_ID, give at least two of FLOW_RATE, K_FACTOR, OPERATING_PRESSURE (ERROR 238)."
+        ko: "물 유량입니다. PART_ID 가 있으면 FLOW_RATE, K_FACTOR, OPERATING_PRESSURE 중 둘 이상이 필요합니다."
+        rules: [SPR-012]
+      PART_ID:
+        type: string
+        en: "Droplet class (&PART) the head sprays."
+        ko: "분무하는 물방울 종류(&PART)입니다."
+        rules: [DEVC-005, SPR-012]
+      PARTICLE_VELOCITY:
+        type: real
+        unit: m/s
+        default: 0.0
+        en: "Initial droplet speed. Without it (and without ORIFICE_DIAMETER or a spray table) FDS warns that the velocity is undefined."
+        ko: "물방울 초기 속도입니다."
+        rules: [SPR-013]
+      SPRAY_ANGLE:
+        type: "real[2]"
+        unit: degree
+        default: [60, 75]
+        en: "Inner and outer cone half-angles from the nozzle axis; they must differ (ERROR 231)."
+        ko: "분무 원뿔 안·바깥 반각입니다. 두 값이 같으면 안 됩니다."
+      OFFSET:
+        type: real
+        unit: m
+        default: 0.05
+        en: "Distance from the head at which droplets are introduced."
+        ko: "물방울을 넣는 헤드로부터의 거리입니다."
+
+  CTRL:
+    title: {en: Control logic, ko: 제어}
+    tools: [add_control, update_control, remove_control]
+    keys:
+      FUNCTION_TYPE:
+        type: string
+        en: "ANY, ALL, ONLY, AT_LEAST, TIME_DELAY, CUSTOM, ... "
+        ko: "제어 함수 종류입니다."
+      INPUT_ID:
+        type: "string[]"
+        en: "Existing DEVC or CTRL ids feeding the function."
+        ko: "입력이 되는 기존 DEVC·CTRL 이름 목록입니다."
+        mistakes: ["A single string instead of an array in the BULC tool, or ids that do not exist (DEVC-006)."]
+        rules: [DEVC-006]
+      DELAY:
+        type: real
+        unit: s
+        default: 0.0
+        en: "Delay before the output changes."
+        ko: "출력이 바뀌기 전 지연입니다."
+      LATCH:
+        type: logical
+        default: true
+        en: "Once changed, the output stays changed."
+        ko: "한 번 바뀌면 그대로 유지합니다."
+
+  SLCF:
+    title: {en: Slice output, ko: 단면(슬라이스) 출력}
+    tools: [add_slcf, update_slcf, remove_slcf]
+    keys:
+      QUANTITY:
+        type: string
+        en: "TEMPERATURE, VISIBILITY, VELOCITY, VOLUME FRACTION (+SPEC_ID), ..."
+        ko: "출력 수량입니다."
+        rules: [OUT-002, OUT-003]
+      PBX:
+        type: real
+        unit: m
+        en: "Plane x = value (likewise PBY, PBZ)."
+        ko: "x = 값 평면입니다(PBY, PBZ 도 같음)."
+        rules: [OUT-006, ASET-001]
+      XB:
+        type: "real[6]"
+        unit: m
+        en: "Limited plane (one axis min = max) or a 3D block."
+        ko: "제한된 평면 또는 3차원 영역입니다."
+      SPEC_ID:
+        type: string
+        en: "Species for VOLUME FRACTION / MASS FRACTION / DENSITY."
+        ko: "화학종 이름입니다."
+      VECTOR:
+        type: logical
+        default: false
+        en: "Also write velocity vectors."
+        ko: "속도 벡터도 씁니다."
+      CELL_CENTERED:
+        type: logical
+        default: false
+        en: "Write cell-centred instead of node-interpolated values."
+        ko: "셀 중심 값을 그대로 씁니다."
+
+  BNDF:
+    title: {en: Boundary (surface) output, ko: 경계면 출력}
+    tools: [add_bndf, remove_bndf]
+    keys:
+      QUANTITY:
+        type: string
+        en: "WALL TEMPERATURE, NET HEAT FLUX, INCIDENT HEAT FLUX, ..."
+        ko: "벽면 출력 수량입니다."
+        rules: [OUT-005]
+      CELL_CENTERED:
+        type: logical
+        default: false
+        en: "Write face-centred values."
+        ko: "면 중심 값을 씁니다."
+
+  DUMP:
+    title: {en: Output intervals and Plot3D, ko: 출력 주기}
+    tools: [update_dump_config, set_plot3d_outputs]
+    keys:
+      NFRAMES:
+        type: integer
+        default: 1000
+        en: "Default number of output frames; DT_* defaults to (T_END − T_BEGIN) / NFRAMES."
+        ko: "기본 프레임 수입니다. DT_* 기본값 = (T_END − T_BEGIN) / NFRAMES."
+        rules: [OUT-007]
+      DT_SLCF:
+        type: real
+        unit: s
+        default: "(T_END − T_BEGIN) / NFRAMES"
+        en: "Slice interval (likewise DT_BNDF, DT_DEVC, DT_HRR, DT_SMOKE3D)."
+        ko: "슬라이스 출력 주기입니다(DT_BNDF, DT_DEVC, DT_HRR, DT_SMOKE3D 도 같음)."
+        mistakes: ["An interval >= T_END stores only the t = 0 frame (OUT-001)."]
+        rules: [OUT-001, TRB-001]
+      DT_PL3D:
+        type: real
+        unit: s
+        default: "never (no Plot3D unless set)"
+        en: "Plot3D interval. ASET reports and FED coupling read Plot3D, so set it (OUT-004)."
+        ko: "Plot3D 출력 주기입니다. 정하지 않으면 Plot3D 가 나오지 않습니다."
+        rules: [OUT-004, EVAC-008]
+      PLOT3D_QUANTITY:
+        type: "string[5]"
+        en: "The five Plot3D quantities (with PLOT3D_SPEC_ID for species)."
+        ko: "Plot3D 다섯 칸의 수량입니다."
+        rules: [OUT-004]
+      DT_RESTART:
+        type: real
+        unit: s
+        default: "never"
+        en: "Checkpoint interval."
+        ko: "재시작 파일 주기입니다."
+
+  RADI:
+    title: {en: Radiation solver, ko: 복사}
+    tools: [add_raw_namelist]
+    keys:
+      NUMBER_RADIATION_ANGLES:
+        type: integer
+        default: 100
+        en: "Number of discrete radiation directions (60 for two-dimensional cases)."
+        ko: "복사 방향 수입니다."
+      TIME_STEP_INCREMENT:
+        type: integer
+        default: 3
+        en: "Radiation is updated every N time steps (2 for two-dimensional cases)."
+        ko: "몇 시간 간격마다 복사를 갱신하는지입니다."
+
+  HVAC:
+    title: {en: Duct network, ko: 덕트망}
+    tools: [hvac_apply_to_fds]
+    keys:
+      TYPE_ID:
+        type: string
+        values: [NODE, DUCT, FAN, FILTER, AIRCOIL, LEAK]
+        en: "Kind of HVAC record."
+        ko: "HVAC 레코드 종류입니다."
+        rules: [SIM-008]
+      VOLUME_FLOW:
+        type: real
+        unit: "m³/s"
+        en: "Fixed duct flow. BULC's HVAC module takes CFM and converts (HVAC-001)."
+        ko: "덕트 유량(m³/s)입니다. BULC HVAC 모듈은 CFM 으로 받아 변환합니다."
+        rules: [HVAC-001]
+
+errors:
+  - {code: 101, en: "Problem reading a namelist line (unknown key, wrong type, missing quote).", ko: "namelist 줄을 읽지 못함(없는 키·형식 오류·따옴표 누락).", rules: [SIM-006, SIM-010]}
+  - {code: 108, en: "No periods allowed in CHID.", ko: "CHID 에 마침표가 있음.", rules: [GEN-009]}
+  - {code: 171, en: "REAC: not enough carbon for the CO/soot/HCN yields.", ko: "수율에 비해 연료 탄소가 부족함.", rules: [FIRE-007]}
+  - {code: 231, en: "PROP: the two SPRAY_ANGLE values cannot be the same.", ko: "분무각 두 값이 같음.", rules: [SPR-012]}
+  - {code: 237, en: "PROP: PARTICLE_VELOCITY is required with MASS_FLOW_RATE.", ko: "MASS_FLOW_RATE 에는 PARTICLE_VELOCITY 가 필요함.", rules: [SPR-012]}
+  - {code: 238, en: "PROP: too few flow parameters (need two of FLOW_RATE, K_FACTOR, OPERATING_PRESSURE).", ko: "유량 키가 부족함.", rules: [SPR-012]}
+  - {code: 314, en: "SURF with HRRPUA or MLRPUA needs a REAC line.", ko: "HRRPUA 화원에 &REAC 이 없음.", rules: [FIRE-003]}
+  - {code: 931, en: "Smoke detector DEVC (CHAMBER OBSCURATION) needs a PROP_ID.", ko: "연기감지기에 PROP_ID 가 없음.", rules: [DEVC-009]}
+  - {code: 933, en: "Link-temperature DEVC needs a PROP_ID.", ko: "감열체 장치에 PROP_ID 가 없음.", rules: [DEVC-009]}
+  - {code: 934, en: "The PROP of a link-temperature DEVC needs ACTIVATION_TEMPERATURE.", ko: "PROP 에 작동 온도가 없음.", rules: [DEVC-009]}
+  - {code: 937, en: "DEVC is partially outside of the domain.", ko: "장치가 영역 밖에 걸침.", rules: [GEO-006, DEVC-001]}
+  - {code: 938, en: "DEVC CTRL_ID does not exist.", ko: "장치가 가리키는 CTRL 이 없음.", rules: [DEVC-004]}
+  - {code: 1020, en: "Output QUANTITY requires a PART_ID.", ko: "입자 수량에 PART_ID 가 필요함.", rules: [DEVC-005]}
+  - {code: 1021, en: "Output QUANTITY's PART_ID not found.", ko: "PART_ID 를 찾지 못함.", rules: [DEVC-005]}

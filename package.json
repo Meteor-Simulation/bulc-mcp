@@ -1,0 +1,70 @@
+{
+  "name": "@meteor-simulation/bulc-mcp",
+  "version": "4.0.0",
+  "description": "MCP server for the BULC desktop app (fire/smoke CFD on FDS 6.10.1, evacuation, HVAC smoke control, sprinkler and water-spray hydraulics) with a bundled ontology, rule set and playbooks that keep LLM agents from making modelling mistakes.",
+  "type": "module",
+  "main": "build/server.js",
+  "bin": {
+    "bulc-mcp": "build/server.js"
+  },
+  "files": [
+    "build/",
+    "knowledge/",
+    "prompts/",
+    "examples/",
+    "README.md",
+    "LICENSE",
+    "NOTICE.md",
+    "PRIVACY_POLICY.md",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json && node scripts/build-knowledge.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "start": "node build/server.js",
+    "test": "node --test --test-reporter=spec",
+    "lint:knowledge": "node scripts/lint-knowledge.mjs",
+    "scan:public": "node scripts/scan-public.mjs",
+    "check:licenses": "node scripts/check-licenses.mjs",
+    "check:pack": "node scripts/check-pack.mjs",
+    "gen:examples": "node scripts/gen-example-drawings.mjs",
+    "import:snapshot": "node scripts/import-snapshot.mjs",
+    "check": "npm run typecheck && npm run build && npm test && npm run lint:knowledge && npm run scan:public && npm run check:licenses && npm run check:pack",
+    "prepare": "npm run build"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.31.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "typescript": "^5.9.3",
+    "yaml": "^2.9.1"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT",
+  "author": "Meteor Simulation Inc.",
+  "homepage": "https://github.com/Meteor-Simulation/bulc-mcp#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Meteor-Simulation/bulc-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Meteor-Simulation/bulc-mcp/issues"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "bulc",
+    "fds",
+    "fire-dynamics-simulator",
+    "fire-simulation",
+    "evacuation",
+    "hvac",
+    "sprinkler",
+    "water-spray",
+    "cfd",
+    "ontology"
+  ]
+}

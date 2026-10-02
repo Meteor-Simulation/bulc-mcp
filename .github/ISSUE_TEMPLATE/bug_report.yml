@@ -1,0 +1,34 @@
+name: Bug report / 버그 신고
+description: Something does not work as described / 설명대로 동작하지 않습니다
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Do not attach customer drawings, project files (.bulc/.fds), results or screenshots that identify a project, site or person.**
+        Reproduce with the synthetic files in `examples/` if you can.
+        **고객 도면·프로젝트 파일·결과·현장이 드러나는 화면을 첨부하지 마십시오.** 가능하면 `examples/` 의 합성 파일로 재현해 주십시오.
+        Security problems: use *Security → Report a vulnerability* instead. / 보안 문제는 비공개 신고를 이용해 주십시오.
+  - type: input
+    id: versions
+    attributes:
+      label: Versions / 버전
+      description: "bulc-mcp version (bulc_connection_status), BULC app version, MCP client, OS, Node.js"
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened / 무엇이 일어났나
+      description: Steps, the tool call (name and arguments with synthetic values) and the reply.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected / 기대한 동작
+  - type: textarea
+    id: status
+    attributes:
+      label: bulc_connection_status output
+      render: text

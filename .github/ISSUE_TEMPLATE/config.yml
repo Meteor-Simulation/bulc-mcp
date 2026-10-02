@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: BULC app downloads / 앱 내려받기
+    url: https://github.com/Meteor-Simulation/bulc-releases/releases/latest
+    about: Installer of the BULC desktop app (licence required).

@@ -1,0 +1,22 @@
+Synthetic example deck with deliberate mistakes, for bulc_check_deck demonstrations and tests.
+It is not meant to run. Each line below that carries a mistake names the rule it breaks.
+
+&HEAD CHID='broken.deck' /                                   GEN-009: period in CHID (FDS ERROR 108)
+&TIME T_END=10.0 /
+&MESH IJK=97,40,30, XB=0.0,10.0,0.0,4.0,0.0,1.5 /           MESH-003 aspect ratio > 2, MESH-010 97 is prime
+
+&SURF ID='FIRE', HRRPUA=3000.0 /                             FIRE-001 very high HRRPUA, FIRE-003 no &REAC
+&VENT ID='BURNER', XB=4.0,4.5,1.0,1.5,0.0,0.0, SURF_ID='FIRE' /
+&VENT ID='FLOOR_OPEN', MB='ZMIN', SURF_ID='OPEN' /           VENT-002 the floor under the burner is open
+
+&OBST ID='BOX', XB=2.0,1.0,0.0,1.0,0.0,1.0, SURF_ID='STEEL' / GEN-003 x1 > x2, SURF-001 STEEL undefined
+&OBST ID='OUTSIDE', XB=20.0,21.0,0.0,1.0,0.0,1.0 /           GEO-006 outside every mesh
+
+&DEVC ID='SPK_1', XYZ=4.2,1.2,1.4, QUANTITY='SPRINKLER LINK TEMPERATURE', PROP_ID='K80' /   DEVC-009 PROP K80 undefined
+&PROP ID='HEAT', RTI=50.0 /                                   DEVC-009 no ACTIVATION_TEMPERATURE (ERROR 934)
+&DEVC ID='HD_1', XYZ=6.0,2.0,1.4, QUANTITY='LINK TEMPERATURE', PROP_ID='HEAT' /
+&CTRL ID='ALARM', FUNCTION_TYPE='ANY', INPUT_ID='HD_1','SD_9' /                             DEVC-006 SD_9 does not exist
+
+&DUMP DT_SLCF=20.0 /                                          OUT-001 interval >= T_END; OUT-008 no &SLCF at all
+
+&TAIL /

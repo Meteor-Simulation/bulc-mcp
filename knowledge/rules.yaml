@@ -1,0 +1,1935 @@
+# BULC MCP — machine-readable modelling rules for LLM agents
+#
+# 각 규칙은 "이런 상태면 틀렸다(condition) → 이 도구로 확인한다(check) → 이렇게 고친다(fix)" 형식입니다.
+# 도구 이름은 BULC MCP 서버 기준이며, 최종 기준은 서버의 tools/list 입니다.
+#
+# severity
+#   error   : 덱이 만들어지지 않거나 FDS/엔진이 시작하지 못하거나, 결과가 명백히 틀립니다.
+#   warning : 실행은 되지만 결과가 의도와 다를 가능성이 큽니다.
+#   info    : 알아 두면 오류를 줄이는 규약·제약입니다.
+# confidence
+#   verified          : BULC 도구·점검 로직 또는 FDS 6.10.1 실행으로 확인한 사실
+#   convention        : BULC 의 작업 규약
+#   guidance          : 일반 공학 지침(FDS 사용자 안내서 등) — 사례에 맞게 판단
+#   regulatory_verify : 법규·기준 힌트 — 적용 시점의 원문과 발주처 요구로 반드시 확인
+#   engine_snapshot   : 엔진 지원 범위(2026-10 기준). 엔진 업데이트로 바뀔 수 있으므로 실행 로그 경고를 함께 확인
+
+schema_version: 1
+updated: "2026-10-02"
+fds_version: "6.10.1"
+
+rules:
+
+  # ═════════════════════════ GENERAL ═════════════════════════
+  - id: GEN-001
+    domain: general
+    severity: error
+    confidence: verified
+    applies_to: [all]
+    title: "모든 값은 도구 스키마에 적힌 단위로 넣습니다"
+    title_en: "Use the unit stated in each tool schema"
+    condition: "도면 단위(mm)나 미국 단위(ft, gpm, psi)를 변환하지 않고 넣었습니다. 도구마다 단위가 다릅니다: 길이 m, 덕트·배관 지름 mm, HVAC 풍량 CFM, 배관망 압력 MPa, FDS 스프링클러 압력 bar, 온도 °C, HRRPUA kW/m²."
+    check: {tools: [get_object_properties, preview_fds], how: "덱에서 XB 가 수천 단위면 mm 를 그대로 넣은 것입니다. 1층 높이가 3000 이면 오류입니다."}
+    fix: {how: "ontology.yaml conventions.units 표대로 변환한 뒤 다시 입력합니다. 1 ft = 0.3048 m, 1 gpm = 3.785 L/min, 1 psi = 0.06895 bar, US K × 14.41 = 미터 K."}
+
+  - id: GEN-002
+    domain: general
+    severity: error
+    confidence: verified
+    applies_to: [Obstacle, Vent, Device, Fire]
+    title: "z 가 연직축입니다"
+    title_en: "z is vertical"
+    condition: "도면의 세로 방향(y)을 높이(z)로 넣었거나, 높이를 y 에 넣었습니다."
+    check: {tools: [list_obstacles, preview_fds], how: "벽 XB 의 z 범위가 층고(약 3 m)와 맞는지, y 범위가 평면 치수와 맞는지 봅니다."}
+    fix: {how: "평면 좌표 → (x, y), 높이 → z. 이미지 픽셀 y 는 아래로 증가하므로 뒤집습니다(ontology conventions.coordinates.image_y_flip)."}
+
+  - id: GEN-003
+    domain: general
+    severity: error
+    confidence: verified
+    applies_to: [Obstacle, Vent, Hole, Fire, Mesh, Device]
+    title: "XB 는 [x1, x2, y1, y2, z1, z2] 순서이고 각 쌍은 작은 값이 먼저입니다"
+    title_en: "XB is [x1,x2,y1,y2,z1,z2] with min before max"
+    condition: "XB 를 [x1, y1, z1, x2, y2, z2] 순서로 넣었거나 min > max 입니다."
+    check: {tools: [validate_project, preview_fds], how: "메시는 min ≥ max 이면 오류로 잡힙니다. 장애물은 엉뚱한 자리에 생기므로 preview_fds 로 확인합니다."}
+    fix: {tools: [update_obstacle, update_vent, update_hole], how: "축별 (min, max) 쌍으로 다시 씁니다."}
+
+  - id: GEN-004
+    domain: general
+    severity: error
+    confidence: verified
+    applies_to: [all]
+    title: "ID 는 그룹 안에서 유일해야 합니다"
+    title_en: "IDs must be unique within a namelist group"
+    condition: "같은 ID 로 두 번 만들었습니다. 도구는 'already exists' 로 거절하거나, 가져온 덱이면 validate_project 가 'ID 중복' 오류를 냅니다."
+    check: {tools: [validate_project, list_obstacles, list_vents, list_devices]}
+    fix: {how: "규칙적인 접두어로 ID 를 만듭니다(예: W_1F_01, Door_E1, SD_2F_03)."}
+
+  - id: GEN-005
+    domain: general
+    severity: error
+    confidence: verified
+    applies_to: [all]
+    title: "목록에 없는 도구나 인자를 가정하지 않습니다"
+    title_en: "Never assume a tool or argument exists"
+    condition: "tools/list 에 없는 도구(예: evac_add_exit, aset_report, import_architecture_drawing, start_simulation)를 부르거나 스키마에 없는 인자를 넣었습니다. 인자 검증기가 필수 누락·형식 오류·오타 키를 거절합니다. 앱 버전마다 도구가 다릅니다 — BULC 0.89 부터 project_*, sim_*, evac_run, fire_*, arch_*, capture_view 가 있고 그 이전 앱에는 없습니다."
+    check: {tools: [bulc_find_tools, bulc_connection_status], how: "작업 시작 시 tools/list(또는 bulc_find_tools)로 실제 도구를 확인하고, 거절 메시지가 제안하는 인자 이름을 따릅니다. bulc_plan_check 가 없는 도구를 실제 도구로 안내합니다."}
+    fix: {how: "있는 도구로 바꿉니다(출구 → add_door id='Door_…', ASET → fire_compute_aset, 건축 도면 → arch_analyze_drawing). 그 앱 버전에 도구가 없으면 사용자에게 앱 화면에서 할 일을 안내하고, 도구로 했다고 말하지 않습니다."}
+
+  - id: GEN-006
+    domain: general
+    severity: error
+    confidence: verified
+    applies_to: [Project]
+    title: "편집을 마칠 때마다, 그리고 저장·실행 전에는 반드시 validate_project 를 돌립니다"
+    title_en: "Run validate_project after each batch of edits and before export/run"
+    condition: "도구가 '성공'이라고 답해도 덱 생성이 깨져 있거나(예: CTRL 의 INPUT_ID 누락), FDS 가 입력 단계에서 멈추는 조합(ERROR 314, 1020, 1021, 938)이 남아 있을 수 있습니다."
+    check: {tools: [validate_project], how: "[오류] 가 0 건이어야 하고, [경고] 는 하나씩 의도한 것인지 판단합니다."}
+    fix: {how: "오류 문구가 가리키는 도구로 고친 뒤 다시 validate_project 를 돌립니다."}
+
+  - id: GEN-007
+    domain: general
+    severity: info
+    confidence: verified
+    applies_to: [Project]
+    title: "덱 텍스트로 결과를 확인합니다"
+    title_en: "Confirm changes in the deck text"
+    condition: "변경이 덱에 어떻게 들어갔는지 확인하지 않고 다음 단계로 넘어갔습니다."
+    check: {tools: [preview_fds], how: "namelist 인자로 한 그룹만 봅니다(예: MESH, OBST, VENT, SURF, DEVC, DUMP)."}
+
+  - id: GEN-008
+    domain: general
+    severity: warning
+    confidence: verified
+    applies_to: [PipeNode, HvacNode, Agent, Stair, Waypoint, Journey]
+    title: "스토어가 만드는 id 는 만든 뒤 목록 도구로 읽습니다"
+    title_en: "Read generated ids back with the summary tools"
+    condition: "배관 노드·HVAC 노드·피난 객체의 id 를 짐작해서 다음 호출(spr_add_pipe, hvac_add_duct 등)에 넣었습니다."
+    check: {tools: [spr_list_summary, hvac_list_summary, evac_list_summary]}
+    fix: {how: "노드를 몇 개 만든 뒤 요약 도구로 id 를 읽고 연결합니다. 대량이면 spr_import_network(손으로 쓴 network 페이로드의 ref)를 씁니다."}
+
+  - id: GEN-009
+    domain: general
+    severity: warning
+    confidence: verified
+    applies_to: [Project]
+    title: "CHID 는 저장 파일 이름으로 정해집니다"
+    title_en: "CHID follows the saved file name"
+    condition: "set_chid 로 정한 CHID 가 결과 파일 이름이 될 것이라고 가정했습니다. 앱이 저장할 때 CHID 는 파일 이름(확장자 제외, 문자·숫자·_·- 만)으로 바뀌고, 결과는 <CHID>.smv, <CHID>_hrr.csv 로 나옵니다."
+    fix: {tools: [project_save, set_chid, sim_start], how: "원하는 CHID 를 파일 이름으로 씁니다(예: project_save {path: '…/office_fire_A.bulc'} → CHID office_fire_A). 마침표·공백은 쓰지 않습니다(FDS ERROR 108). sim_start 는 저장한 프로젝트 옆에 같은 이름의 .fds 를 쓰고 실행합니다. 구버전 앱은 사용자에게 같은 이름으로 저장하도록 안내합니다."}
+
+  - id: GEN-010
+    domain: general
+    severity: error
+    confidence: verified
+    applies_to: [Simulation]
+    title: "실행은 BULC 앱이 연결된 라이브 모드에서만 됩니다 — 실행하지 않은 결과를 말하지 않습니다"
+    title_en: "Runs need the connected app (live mode); never report results you did not obtain"
+    condition: "앱이 연결되지 않은 상태(스냅샷 모드)에서 해석이 실행된 것처럼 답했거나, 결과 파일·지표를 보지 않고 온도·HRR·ASET·RSET 값을 지어냈습니다. 결과 도구가 '결과가 없습니다'라고 답했는데 값을 보고했습니다."
+    check: {tools: [bulc_connection_status, sim_status, results_detect, get_simulation_metrics], how: "sim_status 로 실행 중·종료·건강 지표(nan=0, Tmax ≤ 2500 K, |u| < 50 m/s)를 봅니다. results_detect 가 결과 파일 목록을 돌려줍니다. 연결되지 않았으면 사용자에게 앱 실행을 요청합니다."}
+    fix: {tools: [sim_preflight, sim_start, sim_status, fire_results_summary, fire_timeseries, fire_compute_aset, evac_get_results, run_simulation], how: "BULC 0.89 이상: sim_preflight → 조건 요약·사용자 확인 → sim_start {confirm: true} → sim_status 를 주기적으로 → 끝나면 fire_results_summary · fire_timeseries · fire_compute_aset 이 돌려준 값만 보고합니다. 피난은 evac_get_results. 구버전 앱(이 도구들이 없음): run_simulation(이 서버가 validate_project 뒤 실행) 후 앱 결과 화면에서 사용자가 확인합니다."}
+
+  - id: GEN-011
+    domain: general
+    severity: warning
+    confidence: convention
+    applies_to: [Fire, Reaction, Nozzle, WaterSource, AsetCriteria]
+    title: "설계값을 지어내지 않습니다 — 근거를 묻거나 가정으로 표시합니다"
+    title_en: "Do not invent design values; ask or label assumptions"
+    condition: "화원 크기, 연료 수율, 노즐 K, 요구 방사압, 수원 압력, 재실자 수를 근거 없이 정했습니다."
+    fix: {how: "사용자·도면·사양서에서 값을 받습니다. 없으면 출처 있는 대표값을 쓰고 '가정'으로 보고서·응답에 명시합니다."}
+
+  - id: GEN-012
+    domain: general
+    severity: error
+    confidence: convention
+    applies_to: [Drawing]
+    title: "고객 도면과 결과는 로컬에서만 다룹니다"
+    title_en: "Keep customer drawings and results local"
+    condition: "도면 파일이나 그 내용(라인 번호·태그·치수)을 외부 서비스나 공개 저장소로 보냈습니다."
+    fix: {how: "도면은 절대 경로로 도구에 넘기고, 공유가 필요하면 사용자가 직접 판단하게 합니다. 예시가 필요하면 합성 예제를 만듭니다."}
+
+  - id: GEN-013
+    domain: general
+    severity: warning
+    confidence: verified
+    applies_to: [all]
+    title: "도구 응답의 경고(⚠, Warning)를 읽고 처리합니다"
+    title_en: "Act on warnings inside tool replies"
+    condition: "도구가 성공 문구 뒤에 경고(예: 'no reaction fuel is set', '유량 0', 무시된 인자)를 붙였는데 다음 단계로 넘어갔습니다."
+    fix: {how: "경고가 가리키는 도구를 바로 호출해 해소합니다."}
+
+  - id: GEN-014
+    domain: general
+    severity: warning
+    confidence: verified
+    applies_to: [Project]
+    title: "프로젝트 열기·저장은 project_* 도구로 합니다 — 다른 서버의 파일 도구 이름을 쓰지 않습니다"
+    title_en: "Open and save projects with the project_* tools; do not use other servers' file-tool names"
+    condition: "new_project / open_project / save_project / export_fds / import_fds 를 불렀습니다. 이 이름은 앱과 연결되지 않은 별도 세션(비공개 헤드리스 서버)의 도구라, 앱에서 고친 내용이 아닌 다른 프로젝트를 저장할 수 있습니다. BULC 앱(0.89 이상)의 파일 도구는 project_new / project_open / project_save / project_export_fds 이며 실행 중인 앱의 현재 프로젝트에 작용합니다. 0.88 이하 앱에는 파일 도구가 없습니다(Unknown tool). 저장되지 않은 편집을 버리는 discard_unsaved, 기존 파일을 바꾸는 overwrite 는 사용자 확인 없이 쓰면 작업을 잃습니다."
+    check: {tools: [project_info, bulc_connection_status], how: "project_info 가 현재 파일 경로·저장되지 않은 변경(isDirty)·층·덱 경로를 돌려줍니다. tools/list 에 project_* 가 있는지 먼저 봅니다."}
+    fix: {tools: [project_open, project_save, project_export_fds, project_new], how: "열기: project_open {path: 절대 경로(.bulc 또는 .fds)}. 저장: project_save {path?: '….bulc'} — 덱만 필요하면 project_export_fds {path: '….fds'}. 저장하지 않은 변경이 있으면 먼저 사용자에게 저장할지 묻고, discard_unsaved·overwrite 는 사용자가 동의한 뒤에만 true 로 줍니다. 구버전 앱(project_* 없음): 사용자에게 앱의 파일 메뉴에서 열기·저장을 요청합니다. run_simulation 은 프로젝트 저장과 별개로 문서 폴더의 bulc_<folder_name> 에 .fds 를 씁니다."}
+
+  - id: GEN-015
+    domain: general
+    severity: warning
+    confidence: convention
+    applies_to: [Fire]
+    title: "사용자가 지시하지 않으면 화원을 만들지 않습니다"
+    title_en: "Add a fire source only when the user asks for one"
+    condition: "사용자가 화재 시나리오(위치·크기·성장)를 말하지 않았는데 add_fire 나 화재 프리셋 가구·is_fire_source 로 화원을 만들었습니다. 화원 하나가 결과 전체를 결정합니다."
+    check: {tools: [get_project_summary, list_obstacles], how: "요약의 fireSources 수와 사용자 지시를 대조합니다."}
+    fix: {tools: [remove_fire], how: "화원 위치·최대 HRR·성장 곡선·연료를 사용자에게 묻고, 받은 값으로만 만듭니다. 예시가 필요하면 '가정' 이라고 밝히고 승인을 받습니다."}
+
+  - id: GEN-016
+    domain: general
+    severity: error
+    confidence: convention
+    applies_to: [Simulation, Project]
+    title: "실행 전: 점검 → 수정 → 조건 요약 → 사용자 확인 → 실행"
+    title_en: "Before running: validate, fix, summarize the conditions, get the user's go-ahead, then run"
+    condition: "sim_preflight(또는 validate_project)를 돌리지 않았거나 오류가 남은 채로, 또는 사용자에게 해석 조건(격자·화원·시간·출력·엔진)을 알리지 않은 채 sim_start / run_simulation 을 불렀습니다. 사용자가 동의하지 않았는데 sim_start 에 confirm=true 를 넣었거나, 점검 오류를 force=true 로 무시했습니다. 해석은 몇 분에서 몇 시간 GPU 를 점유합니다."
+    check: {tools: [sim_preflight, validate_project, get_config_summary, get_simulation_settings], how: "sim_preflight 는 validate_project 에 출력 주기·덱 참조·화원 위치·격자 해상도 점검을 더한 구조화 결과(규칙 ID 포함)를 돌려줍니다. ok=false 면 실행하지 않습니다."}
+    fix: {tools: [sim_preflight, sim_start, sim_status, run_simulation], how: "BULC 0.89 이상: sim_preflight 의 오류를 0 건으로 만든 뒤 조건(셀 수·화원·T_END·출력·엔진)을 요약해 사용자 확인을 받고 sim_start {confirm: true} 를 부릅니다. sim_start 는 직전에 점검을 다시 돌려 오류가 있으면 실행하지 않으며, force=true 는 사용자가 오류를 알고도 실행하겠다고 할 때만 씁니다. 진행은 sim_status. 구버전 앱: validate_project → 확인 → run_simulation(이 서버가 validate_project 를 다시 돌려 오류가 있으면 실행하지 않음)."}
+
+  - id: GEN-017
+    domain: general
+    severity: warning
+    confidence: convention
+    applies_to: [Project]
+    title: "전용 도구를 먼저 쓰고, 덱 원문 편집은 preview_fds → fds_apply_text(dryRun) 로 합니다"
+    title_en: "Prefer dedicated tools; edit raw deck text with preview_fds → fds_apply_text (dryRun first)"
+    condition: "전용 도구(add_*, update_*, set_*)로 할 수 있는 편집을 덱 원문 통째 교체로 했거나, fds_apply_text 를 dryRun 없이 바로 적용해 앱 메타데이터(층·화원 짝·배관망 연결)가 사라졌습니다. 구버전 앱의 rewrite_fds_via_ai 는 덱 전체를 앱에 설정된 AI 공급자로 보내 다시 쓰게 하므로 결과가 결정적이지 않고 덱 내용이 외부로 나갑니다(0.89 부터는 앱 안 어시스턴트 전용이라 MCP 목록에 없습니다)."
+    check: {tools: [preview_fds, validate_project, fds_apply_text], how: "fds_apply_text 의 기본 dryRun 이 바뀌는 섹션 목록을 돌려줍니다 — 의도한 섹션만 바뀌는지 봅니다."}
+    fix: {tools: [add_raw_namelist, fds_apply_text], how: "전용 도구가 없는 namelist 는 add_raw_namelist(SIM-006)를 먼저 검토합니다. 원문 편집이 꼭 필요하면 preview_fds 로 받은 덱을 고쳐 fds_apply_text {fdsText, dryRun: true} 로 확인한 뒤 sections 를 좁혀 dryRun:false 로 적용하고, validate_project 로 점검합니다(되돌리기: project_undo). rewrite_fds_via_ai 가 보이는 구버전 앱에서는 사용자에게 외부 전송 사실을 알리고 동의를 받은 뒤에만 씁니다."}
+
+  - id: GEN-018
+    domain: general
+    severity: error
+    confidence: verified
+    applies_to: [all]
+    title: "앱이 연결되지 않았으면 편집·실행이 됐다고 말하지 않습니다"
+    title_en: "If the app is not connected, never claim an edit or run happened"
+    condition: "도구가 'BULC 앱에 연결할 수 없습니다' 또는 '포트에서 BULC 가 아닌 프로그램이 응답합니다' 로 실패했는데 작업을 계속하거나 완료라고 보고했습니다."
+    check: {tools: [bulc_connection_status], how: "연결 주소, BULC 식별 결과, 도구 수를 봅니다."}
+    fix: {how: "사용자에게 BULC 앱 실행을 요청합니다(앱이 켜지면 서버가 앱의 발견 파일로 주소·토큰을 찾습니다. 구버전 앱이 다른 포트에서 돌면 MCP 설정의 BULC_BRIDGE_URL 을 맞춥니다). 그동안은 지식 도구(bulc_plan_check, bulc_check_deck 등)로 계획만 세웁니다."}
+
+  - id: GEN-019
+    domain: general
+    severity: info
+    confidence: convention
+    applies_to: [Fire, Simulation]
+    title: "화재 시나리오를 바꾸면 새 실행 폴더로 실행합니다"
+    title_en: "Run a changed fire scenario in a new run folder"
+    condition: "화원 위치·크기·성장 곡선을 바꾼 뒤 같은 프로젝트 파일(sim_start 는 저장한 .bulc 옆에 덱과 결과를 씁니다)이나 같은 folder_name 으로 실행해 이전 결과를 덮어썼습니다."
+    fix: {tools: [project_save, sim_start, run_simulation], how: "시나리오마다 다른 이름으로 저장하고(project_save {path: '…/office_fire_B.bulc'}) 실행합니다. 저장하지 않은 프로젝트나 run_simulation 은 시나리오마다 다른 folder_name(예: office_fire_A, office_fire_B)을 씁니다. CHID 도 함께 구분합니다(GEN-009)."}
+
+  - id: GEN-020
+    domain: general
+    severity: error
+    confidence: verified
+    applies_to: [all]
+    title: "덱에서 가리키는 ID 는 모두 정의돼 있어야 합니다"
+    title_en: "Every ID a deck refers to must be defined"
+    condition: "PROP_ID, PART_ID, RAMP_Q·RAMP_V 같은 RAMP 이름, CTRL_ID, DEVC_ID, SPEC_ID 가 덱에 없는 이름을 가리킵니다. FDS 는 입력 단계에서 멈추거나 그 기능을 빼고 계산합니다."
+    check: {tools: [validate_project, preview_fds, bulc_check_deck]}
+    fix: {how: "참조 대상을 먼저 만들거나(add_ramp, add_prop, add_control …) 참조를 실제 이름으로 고칩니다. 이름은 목록 도구로 읽습니다(GEN-008)."}
+
+  - id: GEN-021
+    domain: general
+    severity: warning
+    confidence: verified
+    applies_to: [PipeNode, Nozzle, HvacNode, HvacTerminal]
+    title: "스프링클러 헤드·HVAC 단말 노드에는 겹치지 않는 label 을 줍니다"
+    title_en: "Give sprinkler heads and HVAC terminals unique labels"
+    condition: "spr_add_node(type=sprinkler)·hvac_add_node(type=supply_diffuser|exhaust_grille)를 label 없이 연달아 만들었습니다. *_apply_to_fds 가 노드의 FDS ID(&DEVC·&PROP, HVAC &OBST·&SURF)를 label 로, label 이 없으면 'SPR_'/'HVAC_' + 노드 id 앞부분으로 정합니다. 노드 id 앞부분은 만든 시각이라 BULC 0.88 이하에서는 약 1.3 초 안에 만든 노드가 같은 ID 를 받아 덱에 'ID 중복'이 생기고 HVAC 면(SURF)이 하나로 합쳐졌습니다. 0.89 부터는 앱이 겹치는 이름을 늘려 고유하게 만들지만, 사람이 읽기 어려운 ID 가 됩니다. 같은 label 을 두 노드에 주는 것도 같은 문제를 만듭니다."
+    check: {tools: [validate_project, preview_fds, spr_list_summary, hvac_list_summary], how: "validate_project 의 '디바이스(&DEVC) ID 중복', preview_fds {namelist: 'DEVC'} / {namelist: 'OBST'} 에서 SPR_·HVAC_ 이름이 겹치는지 봅니다."}
+    fix: {tools: [spr_add_node, hvac_add_node, spr_update_node, hvac_update_node, spr_apply_to_fds, hvac_apply_to_fds], how: "헤드·단말마다 label 을 줍니다(예: 1F_H01, 1F_H02 … / EX1, SA1 …). 이미 만든 노드는 spr_update_node / hvac_update_node 로 label 을 고친 뒤 spr_apply_to_fds / hvac_apply_to_fds 를 다시 부릅니다(다시 적용하면 이전 이름의 항목을 지웁니다)."}
+
+  # ═════════════════════════ GEOMETRY ═════════════════════════
+  - id: GEO-001
+    domain: geometry
+    severity: warning
+    confidence: verified
+    applies_to: [Slab]
+    title: "add_floor 의 z 는 슬래브 윗면이고 아래로 두께만큼 생깁니다"
+    title_en: "add_floor z is the slab top; the slab extends downward"
+    condition: "지상층 바닥에 add_floor(z=0) 를 넣었습니다. 메시 z_min 이 0 이면 슬래브 [−0.2, 0] 은 영역 밖이라 계산에서 빠집니다(영역 바닥은 원래 벽입니다)."
+    check: {tools: [validate_project], how: "'도메인 밖' 경고를 봅니다."}
+    fix: {how: "지상층 바닥 슬래브는 생략하거나, 지하·하부 공간이 있으면 메시를 아래로 넓힙니다. 윗층 바닥은 z = 그 층 zMin, thickness = 층간 슬래브 두께로 넣습니다."}
+
+  - id: GEO-002
+    domain: geometry
+    severity: error
+    confidence: verified
+    applies_to: [Wall, Story]
+    title: "윗층 객체는 그 층의 zMin 위에 놓습니다"
+    title_en: "Upper-story objects start at that story's zMin"
+    condition: "2층 벽을 z_base=0 으로 만들었거나, 층 높이를 층고 × 층 번호로 어림했습니다. 기본 규칙에서 2F zMin = 1F zMin + 층고 + 층간 슬래브(0 + 3.0 + 0.2 = 3.2 m)입니다."
+    check: {tools: [draw_list_stories], how: "각 층의 zMin, H 를 읽습니다."}
+    fix: {tools: [add_wall, transform_obstacle], how: "add_wall(z_base = 그 층 zMin, height ≤ 층고). 이미 잘못 만든 것은 transform_obstacle(move=[0,0,dz])."}
+
+  - id: GEO-003
+    domain: geometry
+    severity: warning
+    confidence: guidance
+    applies_to: [Obstacle, Wall, Hole]
+    title: "장애물·개구부는 셀 격자에 맞춰집니다"
+    title_en: "Obstructions and holes snap to the grid"
+    condition: "셀보다 얇은 벽, 셀 1개보다 좁은 문·틈을 만들었습니다. 벽은 1셀 두께나 두께 0 판으로 바뀌고, 셀보다 좁은 HOLE 은 사라져 문이 막힐 수 있습니다."
+    check: {tools: [list_meshes, preview_fds]}
+    fix: {how: "문·개구부 폭은 셀 2개 이상이 되게 셀 크기를 정하거나 auto_multimesh 로 좁은 곳을 촘촘히 합니다. 벽 위치는 셀 경계에 맞춥니다."}
+
+  - id: GEO-004
+    domain: geometry
+    severity: error
+    confidence: verified
+    applies_to: [Hole, Door, Window]
+    title: "HOLE 은 벽 두께 전체를 관통해야 합니다"
+    title_en: "Holes must cut through the full wall thickness"
+    condition: "add_hole 의 XB 가 벽 두께보다 얇아 벽이 뚫리지 않았습니다."
+    fix: {tools: [add_door, add_window, update_hole], how: "가능하면 add_door/add_window(벽 id 기준, 두께 방향 여유 자동)를 씁니다. add_hole 은 벽 두께보다 양쪽으로 0.01 m 이상 크게 잡습니다."}
+
+  - id: GEO-005
+    domain: geometry
+    severity: warning
+    confidence: guidance
+    applies_to: [Obstacle]
+    title: "두께 0 장애물을 일부러 만들지 않습니다"
+    title_en: "Avoid zero-thickness obstructions unless intended"
+    condition: "XB 의 한 축이 min = max 인 OBST 를 만들었습니다. 얇은 판은 셀 면으로 잡혀 의도치 않은 차단·누설이 생깁니다. 면 경계조건이 목적이면 VENT 를 씁니다."
+    fix: {tools: [add_vent, update_obstacle], how: "판이 필요하면 1셀 두께로, 면 조건이면 VENT 로 만듭니다."}
+
+  - id: GEO-006
+    domain: geometry
+    severity: warning
+    confidence: verified
+    applies_to: [Obstacle, Device, Fire]
+    title: "메시 밖 객체는 계산에서 조용히 빠집니다"
+    title_en: "Objects outside the mesh are silently dropped"
+    condition: "건물이나 화원·장치가 메시 범위를 벗어났습니다. FDS 는 오류 없이 무시하므로 불 없는 해석, 빈 장치 열이 생깁니다."
+    check: {tools: [validate_project], how: "'도메인 밖', '화원이 메시 밖' 경고."}
+    fix: {tools: [auto_fit_mesh, set_mesh, auto_multimesh], how: "메시를 넓히거나 객체를 옮깁니다. auto_fit_mesh 는 다중 메시를 단일 메시로 되돌리므로 주의합니다(MESH-004)."}
+
+  - id: GEO-007
+    domain: geometry
+    severity: warning
+    confidence: verified
+    applies_to: [Story, Slab]
+    title: "층을 쌓을 때는 층간 슬래브를 함께 만듭니다"
+    title_en: "Add inter-story slabs when stacking stories"
+    condition: "MCP 로 2층 이상을 만들면서 층 사이 슬래브를 넣지 않아 연기가 층 사이로 막힘없이 퍼집니다. (앱 화면에서 층을 추가하면 자동 슬래브가 생기지만, 도구로 벽만 쌓으면 슬래브는 직접 넣어야 합니다.)"
+    fix: {tools: [add_floor], how: "윗층마다 add_floor(z = 윗층 zMin, thickness = 층간 두께, 범위 = 건물 외곽)."}
+
+  - id: GEO-008
+    domain: geometry
+    severity: info
+    confidence: guidance
+    applies_to: [Slab, Hole]
+    title: "계단실·샤프트·아트리움은 슬래브에 개구부를 냅니다"
+    title_en: "Open the slab at stairs, shafts and atria"
+    condition: "수직 연기 확산 경로(계단·에스컬레이터·샤프트)를 슬래브가 막고 있습니다."
+    fix: {tools: [add_hole], how: "슬래브 두께를 관통하는 HOLE 을 계단 평면 범위로 만듭니다. 계단실 문은 Door 로 둡니다."}
+
+  - id: GEO-009
+    domain: geometry
+    severity: info
+    confidence: verified
+    applies_to: [Shape]
+    title: "형상 스튜디오 → OBST 는 메시 정렬로 내보냅니다"
+    title_en: "Export Shape Studio solids aligned to the mesh"
+    condition: "shape_export_obst 를 임의 복셀 크기로 내보내 ±1셀 어긋남이 생겼습니다."
+    fix: {tools: [shape_export_obst, shape_preview_voxels], how: "align_to_mesh=true. 덕트·후드처럼 속이 빈 형상은 voxel_mode='shell'."}
+
+  - id: GEO-010
+    domain: geometry
+    severity: info
+    confidence: guidance
+    applies_to: [Geom]
+    title: "일반 건물은 OBST 로, 곡면 정밀도가 중요할 때만 GEOM 을 검토합니다"
+    title_en: "Prefer OBST for ordinary buildings; consider GEOM only for curved geometry"
+    condition: "직교 건물에 GEOM 을 써서 메시 요구·검증 부담만 늘었습니다. GEOM 은 수밀 삼각망이어야 하고 해석 경로가 다릅니다."
+    fix: {tools: [shape_export_obst, shape_export_geom, auto_cutcell_mesh], how: "아치·돔 터널 등 곡면이 결과를 좌우할 때만 shape_export_geom + auto_cutcell_mesh 를 쓰고, OBST 근사와 비교해 봅니다."}
+
+  - id: GEO-011
+    domain: geometry
+    severity: warning
+    confidence: verified
+    applies_to: [FurnitureItem, Fire]
+    title: "화재 데이터가 있는 가구는 배치만으로 화원이 될 수 있습니다"
+    title_en: "Furniture with fire data can become a fire source on placement"
+    condition: "place_furniture 로 소파 등을 놓았더니 의도치 않은 화원이 생겼거나, 그 위에 add_fire 를 또 넣어 화원이 이중이 되었습니다."
+    check: {tools: [get_object_properties, list_obstacles], how: "is_fire_source, fds_override 를 봅니다."}
+    fix: {tools: [set_fds_properties], how: "화원이 아니어야 하면 is_fire_source=false. 화원은 한 경로로만 만듭니다."}
+
+  - id: GEO-012
+    domain: geometry
+    severity: info
+    confidence: verified
+    applies_to: [FurnitureItem, Door, Window]
+    title: "문·창 품목은 가까운 벽에 붙고 HOLE 을 만듭니다"
+    title_en: "Door/window catalogue items snap to the nearest wall and cut a hole"
+    condition: "벽이 없는 곳에 문 품목을 놓아 엉뚱한 벽에 붙었습니다."
+    fix: {how: "벽을 먼저 만들고 문 위치를 벽 중심선 근처로 줍니다. 벽 id 를 알면 add_door 가 더 확실합니다."}
+
+  - id: GEO-013
+    domain: geometry
+    severity: warning
+    confidence: guidance
+    applies_to: [Window, Hole]
+    title: "HOLE 은 항상 열린 개구부입니다"
+    title_en: "A hole is always open"
+    condition: "닫힌 창·방화문까지 HOLE 로 만들어 연기 배출·급기 경로가 과대해졌습니다."
+    fix: {how: "화재 시 닫혀 있다고 가정하는 창·문은 HOLE 을 만들지 않습니다. 시간에 따라 열리는 개구부는 덱 수준의 제어(DEVC/CTRL 연동 HOLE)가 필요하므로 preview_fds 로 확인하거나 사용자와 정합니다."}
+
+  - id: GEO-014
+    domain: geometry
+    severity: warning
+    confidence: verified
+    applies_to: [Wall]
+    title: "대각 벽은 경계 상자 하나가 됩니다"
+    title_en: "A diagonal wall becomes one bounding box"
+    condition: "add_wall 로 비스듬한 벽을 한 번에 만들어 공간 하나를 통째로 막는 큰 직육면체가 생겼습니다."
+    fix: {how: "대각 벽은 셀 크기 정도의 짧은 직교 벽 여러 개(계단 모양)로 나눠 넣거나, shape_add_polygon_prism + shape_export_obst(align_to_mesh=true) 로 복셀화합니다."}
+
+  # ═════════════════════════ MESH ═════════════════════════
+  - id: MESH-001
+    domain: mesh
+    severity: error
+    confidence: verified
+    applies_to: [Mesh]
+    title: "새 프로젝트의 기본 메시는 1 m 정육면체입니다 — 반드시 다시 정합니다"
+    title_en: "The default mesh is a 1 m cube; always set it"
+    condition: "새 프로젝트의 기본 메시(XB 0–1 m, 10×10×10)를 그대로 두고 건물을 그렸습니다. list_meshes 로 확인하지 않고 메시가 맞다고 가정했습니다."
+    fix: {tools: [set_mesh, auto_fit_mesh, auto_multimesh], how: "건물 외곽 + 여유(개구부 밖으로 몇 셀)로 영역을 정하고 셀 크기를 MESH-002 로 정합니다. list_meshes 로 확인합니다."}
+
+  - id: MESH-002
+    domain: mesh
+    severity: warning
+    confidence: guidance
+    applies_to: [Mesh, Fire]
+    title: "셀 크기는 화원 특성 직경 D* 의 1/16 ~ 1/4 로 정합니다"
+    title_en: "Cell size between D*/16 and D*/4"
+    condition: "화원 크기와 무관하게 셀 크기를 정했습니다. D* = (Q / (ρ∞ cp T∞ √g))^(2/5), Q 는 kW."
+    check: {tools: [list_meshes]}
+    fix: {tools: [set_mesh_cell_size, auto_multimesh], how: "참고 값(공기 20 °C): 500 kW D*=0.73 m → 0.045–0.18 m, 1 MW D*=0.96 m → 0.06–0.24 m, 2 MW D*=1.27 m → 0.08–0.32 m, 5 MW D*=1.83 m → 0.11–0.46 m. 성능위주설계 보고서에는 D*/dx 값을 적습니다. 화원·개구부 주변만 촘촘히 하려면 auto_multimesh."}
+
+  - id: MESH-003
+    domain: mesh
+    severity: warning
+    confidence: verified
+    applies_to: [Mesh]
+    title: "셀은 정육면체에 가깝게 합니다"
+    title_en: "Keep cells near-cubic"
+    condition: "dx, dy, dz 의 최대/최소 비가 2 를 넘습니다(validate_project 경고)."
+    fix: {tools: [set_mesh, set_mesh_cell_size], how: "IJK 를 영역 치수에 비례해 다시 계산합니다. set_mesh_cell_size 는 자동으로 정육면체 셀을 만듭니다."}
+
+  - id: MESH-004
+    domain: mesh
+    severity: warning
+    confidence: verified
+    applies_to: [Mesh]
+    title: "set_mesh, set_mesh_cell_size, auto_fit_mesh 는 다중 메시를 단일 메시로 되돌립니다"
+    title_en: "Single-mesh tools reset a multi-mesh deck"
+    condition: "auto_multimesh 로 만든 다중 메시 뒤에 set_mesh_cell_size 를 불러 다중 메시가 사라졌습니다."
+    fix: {tools: [list_meshes, set_meshes, auto_multimesh], how: "다중 메시를 유지하려면 set_meshes / slice_mesh / merge_meshes / auto_multimesh 만 씁니다."}
+
+  - id: MESH-005
+    domain: mesh
+    severity: error
+    confidence: verified
+    applies_to: [Mesh]
+    title: "다중 메시는 엔진 조건을 지켜야 합니다"
+    title_en: "Multi-mesh decks must satisfy engine constraints"
+    condition: "손으로 만든 다중 메시가 (1) 정육면체 셀, (2) 셀 크기 = 최세 셀 × 2^k, (3) 모든 메시 경계가 사용한 최대 비율의 배수인 세밀 격자선 위, (4) 겹침·빈틈 없이 영역을 채움 — 중 하나를 어겼습니다."
+    check: {tools: [list_meshes], how: "자기 점검(overlap / gap / non-cubic)을 봅니다."}
+    fix: {tools: [auto_multimesh, auto_cutcell_mesh], how: "가능하면 auto_multimesh(min_cell, max_cell) 로 만듭니다. 1:4 이상 비율은 실험 기능 경고가 나옵니다."}
+
+  - id: MESH-006
+    domain: mesh
+    severity: warning
+    confidence: engine_snapshot
+    applies_to: [Mesh]
+    title: "다중 메시의 빈 공간도 계산 비용이 들 수 있습니다 — 실행 로그의 메시 경고를 확인합니다"
+    title_en: "Empty space in a multi-mesh layout can still cost memory and time; read the run log's mesh warnings"
+    condition: "ㄱ자·ㄷ자 건물을 다중 메시로 덮으면서 빈 공간이 크게 남았거나, 손으로 만든 다중 메시가 MESH-005 조건을 어겨 엔진이 격자를 조정했다는 경고가 실행 로그에 남았는데 확인하지 않았습니다."
+    fix: {how: "auto_multimesh 결과를 쓰고, 실행 로그의 메시 조정·메모리 경고를 확인합니다. 빈 공간이 크면 영역을 나눠 해석할지 사용자와 정합니다."}
+
+  - id: MESH-007
+    domain: mesh
+    severity: warning
+    confidence: engine_snapshot
+    applies_to: [Mesh, Simulation]
+    title: "셀 수는 GPU 메모리에 맞춥니다"
+    title_en: "Fit the cell count to GPU memory"
+    condition: "셀 수가 GPU 메모리를 넘어 엔진이 시작 전에 'VRAM 부족'으로 멈춥니다. 필요한 메모리는 셀 수와 켠 물리 모델(복사·입자 등)에 따라 늘어납니다."
+    check: {tools: [list_meshes, get_config_summary, get_simulation_metrics], how: "총 셀 수를 보고, 실행 로그의 메모리 예상 값과 get_simulation_metrics 의 GPU VRAM 을 확인합니다. 수백만 셀이 넘으면 사용자에게 GPU 메모리를 확인합니다."}
+    fix: {tools: [set_mesh_cell_size, auto_multimesh], how: "셀 크기를 키우거나 촘촘한 영역을 화원 주변으로 한정합니다. 셀 크기 2배 = 셀 수 1/8."}
+
+  - id: MESH-008
+    domain: mesh
+    severity: warning
+    confidence: guidance
+    applies_to: [Mesh, OpenBoundary]
+    title: "외기로 열린 개구부 밖으로 영역을 몇 셀 넓힙니다"
+    title_en: "Extend the domain a few cells beyond openings to the outside"
+    condition: "외벽 문·창 바로 위에 영역 경계(OPEN)를 두어 개구부 유출입이 경계조건에 눌립니다."
+    fix: {how: "외벽 개구부 밖으로 0.5–1 m(또는 셀 몇 개) 영역을 넓히고 그 면을 OPEN 으로 둡니다."}
+
+  - id: MESH-009
+    domain: mesh
+    severity: info
+    confidence: engine_snapshot
+    applies_to: [Mesh]
+    title: "비균일 격자(TRNX/TRNY/TRNZ)는 GPU 엔진에서 균일 격자가 됩니다"
+    title_en: "Stretched grids are not supported by the GPU engine"
+    condition: "가져온 덱의 TRNX/Y/Z 늘림 격자를 기대했습니다. GPU 엔진은 경고 후 균일 격자로 계산합니다."
+    fix: {how: "늘림 대신 해상도가 다른 다중 메시(auto_multimesh)로 바꿉니다."}
+
+  - id: MESH-010
+    domain: mesh
+    severity: info
+    confidence: guidance
+    applies_to: [Mesh]
+    title: "축별 셀 수는 2, 3, 5 의 곱으로 맞추면 압력 계산이 빠릅니다"
+    title_en: "Cell counts that factor into 2, 3 and 5 suit the FFT pressure solver"
+    condition: "IJK 에 7, 11, 13 같은 큰 소인수가 들어 있습니다(예: 97, 143). FDS 의 FFT 기반 압력 해법은 2·3·5 의 곱(예: 64, 72, 80, 90, 96, 100, 120)에서 효율이 좋습니다."
+    check: {tools: [list_meshes, bulc_check_deck, bulc_mesh_advisor]}
+    fix: {tools: [set_mesh, bulc_mesh_advisor], how: "bulc_mesh_advisor 가 영역에 맞는 2·3·5 셀 수를 제안합니다. 셀 크기가 조금 바뀌면 영역을 그만큼 조정합니다."}
+
+  # ═════════════════════════ BOUNDARIES / VENTS ═════════════════════════
+  - id: VENT-001
+    domain: boundary
+    severity: warning
+    confidence: verified
+    applies_to: [OpenBoundary]
+    title: "OPEN 경계가 하나는 있어야 합니다"
+    title_en: "Provide at least one OPEN boundary"
+    condition: "OPEN 벤트가 없는 밀폐 영역입니다. 압력이 갇히고 산소가 떨어져 화원이 곧 꺼집니다(validate_project 경고)."
+    fix: {tools: [set_open_boundary, set_all_boundaries_open], how: "외기와 실제로 통하는 면만 엽니다."}
+
+  - id: VENT-002
+    domain: boundary
+    severity: error
+    confidence: verified
+    applies_to: [OpenBoundary, Fire]
+    title: "set_all_boundaries_open 은 인자가 없으면 바닥(ZMIN)까지 엽니다"
+    title_en: "set_all_boundaries_open opens ZMIN unless faces are given"
+    condition: "인자 없이 set_all_boundaries_open 을 불렀습니다. 바닥이 OPEN 이 되고, 바닥 위 화원 벤트와 겹치면 먼저 쓰인 OPEN 벤트가 이겨 화원이 사라질 수 있습니다. 지상 건물에서 바닥이 열린 경우는 거의 없습니다."
+    check: {tools: [list_vents, preview_fds], how: "OPEN_ZMIN 벤트가 있는지 봅니다."}
+    fix: {tools: [set_open_boundary, set_all_boundaries_open], how: "set_all_boundaries_open(faces=[XMIN, XMAX, YMIN, YMAX, ZMAX]) 처럼 바닥을 빼고, 이미 열었으면 set_open_boundary(face=ZMIN, open=false)."}
+
+  - id: VENT-003
+    domain: boundary
+    severity: warning
+    confidence: guidance
+    applies_to: [OpenBoundary]
+    title: "실내 해석에서 영역 면을 다 열면 벽 없는 방이 됩니다"
+    title_en: "Opening every face of an indoor domain removes the walls"
+    condition: "영역이 건물 외벽과 같은데 6면(또는 5면)을 다 열었습니다. 외벽 장애물이 없으면 연기가 바로 빠져 ASET 이 과대평가됩니다."
+    fix: {how: "외벽을 장애물로 만들고, 영역은 외벽 밖으로 넓혀 그 바깥 면만 엽니다(MESH-008). 또는 실제 개구부 위치에만 OPEN 벤트를 둡니다."}
+
+  - id: VENT-004
+    domain: boundary
+    severity: error
+    confidence: guidance
+    applies_to: [Vent]
+    title: "VENT 는 평면이고 고체 면이나 영역 경계에 붙어야 합니다"
+    title_en: "A vent is a plane attached to a solid face or the domain boundary"
+    condition: "VENT XB 가 부피를 가지거나, 공중(기체 셀 사이)에 떠 있습니다."
+    fix: {tools: [update_vent], how: "한 축을 min = max 로 하고, 그 면이 장애물 표면이나 영역 경계와 일치하게 합니다."}
+
+  - id: VENT-005
+    domain: boundary
+    severity: warning
+    confidence: verified
+    applies_to: [Vent, SupplyExhaustVent]
+    title: "add_vent 의 mass_flux 는 CPU FDS 6.10.1 이 거부하는 키로 나갑니다"
+    title_en: "add_vent mass_flux is rejected by CPU FDS 6.10.1"
+    condition: "add_vent(mass_flux) 로 만든 덱을 CPU FDS 로 대조하려 합니다. &VENT MASS_FLUX 는 6.10.1 에 없는 키라 ERROR(101) 로 멈춥니다(GPU 엔진은 받습니다)."
+    fix: {tools: [add_surface, hvac_apply_to_fds, set_fds_properties], how: "CPU 대조가 필요하면 유량을 표면(SURF) 쪽 조건으로 주는 방식(HVAC 단말, 표면 분출)을 씁니다."}
+
+  - id: VENT-006
+    domain: boundary
+    severity: info
+    confidence: engine_snapshot
+    applies_to: [Vent]
+    title: "VENT 의 T_BEGIN/T_END·RAMP_V 는 GPU 전용입니다"
+    title_en: "VENT T_BEGIN/T_END/RAMP_V are GPU-only"
+    condition: "시간창이 있는 벤트를 CPU FDS 로도 돌리려 합니다(6.10.1 ERROR 101)."
+    fix: {how: "CPU 덱이 필요하면 장치(DEVC TIME)·제어(CTRL)로 개구부를 여닫는 FDS 표준 방식을 씁니다."}
+
+  - id: VENT-007
+    domain: boundary
+    severity: warning
+    confidence: engine_snapshot
+    applies_to: [Vent]
+    title: "MIRROR·PERIODIC 경계는 GPU 엔진에서 벽으로 남습니다"
+    title_en: "MIRROR/PERIODIC are treated as walls by the GPU engine"
+    condition: "대칭면(MIRROR)으로 영역을 반으로 줄였는데 GPU 엔진은 그 면을 벽으로 계산합니다."
+    fix: {how: "GPU 로는 전체 영역을 계산합니다. 대칭 조건이 꼭 필요하면 solver_type=cpu_openmp 를 사용자와 검토합니다."}
+
+  # ═════════════════════════ FIRE / REACTION ═════════════════════════
+  - id: FIRE-001
+    domain: fire
+    severity: error
+    confidence: verified
+    applies_to: [Fire]
+    title: "HRRPUA = 목표 HRR ÷ 화원 면적"
+    title_en: "HRRPUA equals target HRR divided by burner area"
+    condition: "목표 HRR(kW)을 hrrpua 에 그대로 넣었습니다. 예: 1 MW 화원을 2 m × 1 m 면에 hrrpua=1000 으로 넣으면 2 MW 가 됩니다."
+    check: {tools: [add_fire], how: "add_fire 응답의 total HRR 을 목표와 비교합니다. 실행 후 <CHID>_hrr.csv 와도 비교합니다."}
+    fix: {tools: [update_fire], how: "hrrpua = Q_target / ((x2−x1)(y2−y1)). 면적은 셀 격자에 맞춰지므로 면 치수를 셀 크기의 배수로 합니다."}
+
+  - id: FIRE-002
+    domain: fire
+    severity: error
+    confidence: guidance
+    applies_to: [Fire]
+    title: "화원 면은 고체 윗면(바닥·물체 위)에 놓습니다"
+    title_en: "Place the burner on a solid top surface"
+    condition: "add_fire XB 의 z1 = z2 가 바닥(영역 바닥 또는 슬래브 윗면)이나 물체 윗면과 일치하지 않아 공중에 떠 있습니다."
+    fix: {tools: [update_fire], how: "지상층은 z=영역 바닥(보통 0), 윗층은 그 층 zMin, 물체 위 화원은 물체 윗면 z."}
+
+  - id: FIRE-003
+    domain: fire
+    severity: error
+    confidence: verified
+    applies_to: [Fire, Reaction]
+    title: "HRRPUA 화원이 있으면 반응(&REAC FUEL)을 지정합니다"
+    title_en: "A HRRPUA fire needs a reaction fuel"
+    condition: "연료를 지정하지 않아 덱에 &REAC 이 없습니다. FDS 6.10.1 은 ERROR(314) 로 멈춥니다."
+    check: {tools: [validate_project]}
+    fix: {tools: [update_reaction], how: "update_reaction(fuel='PROPANE') 등. 실제 연소물을 대표하는 연료·수율을 씁니다(FIRE-007)."}
+
+  - id: FIRE-004
+    domain: fire
+    severity: warning
+    confidence: verified
+    applies_to: [Fire, Ramp]
+    title: "t² 성장 프리셋은 '이 화원의 최대치'에 time_to_peak 에 닿습니다"
+    title_en: "The t-squared preset reaches this fire's peak at time_to_peak"
+    condition: "growth='fast' 만 주고 기본 time_to_peak(slow 600, medium 300, fast 150, ultrafast 75 s)를 그대로 썼습니다. 이 기본값은 1,055 kW 에 닿는 NFPA 시간이므로, 최대 HRR 이 다르면 성장 계수 α 가 달라집니다."
+    fix: {tools: [add_fire, update_fire], how: "t_peak = √(Q_peak / α), α = slow 0.00293, medium 0.01172, fast 0.0469, ultrafast 0.1876 kW/s². 예: fast 3 MW → 253 s, fast 5 MW → 327 s, medium 2 MW → 413 s."}
+
+  - id: FIRE-005
+    domain: fire
+    severity: warning
+    confidence: guidance
+    applies_to: [Simulation, Fire]
+    title: "T_END 는 화원 성장과 판정 시간을 덮어야 합니다"
+    title_en: "T_END must cover fire growth and the assessment window"
+    condition: "기본 T_END(10 s)를 두었거나, 성장 시간(t_peak)·예상 RSET 보다 짧게 정했습니다."
+    fix: {tools: [set_time], how: "ASET 판정이면 예상 RSET 의 1.5배 이상 또는 사용자·기준이 요구하는 시간(예: 600 s, 1,200 s). 스프링클러 작동을 볼 때도 작동 예상 시각 이후까지."}
+
+  - id: FIRE-006
+    domain: fire
+    severity: warning
+    confidence: verified
+    applies_to: [Fire]
+    title: "화원 면 온도(TMP_FRONT) 기본값 300 을 의식적으로 정합니다"
+    title_en: "Decide the burner TMP_FRONT deliberately (default 300)"
+    condition: "add_fire 에 tmp_front 를 주지 않으면 300 이 덱의 TMP_FRONT(FDS 단위 °C)로 쓰여 버너 면이 300 °C 로 고정됩니다(스키마 설명은 'K, 기본 300' 이라 적혀 있어 혼동됩니다). 장애물 화재 프리셋(set_fds_properties)도 기본 TMP_FRONT 300 °C 를 씁니다. 고정된 300 °C 면은 복사를 내므로 결과에 영향을 줍니다."
+    check: {tools: [preview_fds], how: "namelist=SURF 에서 화원 SURF 의 TMP_FRONT 를 봅니다."}
+    fix: {tools: [add_fire, update_fire, set_fds_properties], how: "의도가 아니면 add_fire(tmp_front=20) 또는 set_fds_properties(fds_override={tmp_front:20}) — 20 이면 TMP_FRONT 가 덱에서 빠집니다(FDS 기본). 어떤 값을 썼는지 보고서에 적습니다."}
+
+  - id: FIRE-007
+    domain: fire
+    severity: warning
+    confidence: guidance
+    applies_to: [Reaction]
+    title: "그을음·CO 수율은 연소물에 맞춰 정하고 근거를 남깁니다"
+    title_en: "Set soot and CO yields for the actual fuel and record the source"
+    condition: "연료만 바꾸고 수율은 기본값으로 두어 가시거리·CO 기준 판정이 근거 없이 나옵니다. 가시거리 ASET 는 그을음 수율에 가장 민감합니다."
+    fix: {tools: [update_reaction], how: "SFPE 핸드북 등 출처 있는 값을 쓰고 보고서에 적습니다. 측정하지 않은 수율을 가져올 때 BULC 규약은 0.01 이며 가정으로 표시합니다."}
+
+  - id: FIRE-008
+    domain: fire
+    severity: info
+    confidence: convention
+    applies_to: [Ramp, Fire]
+    title: "실측 HRR 곡선을 램프로 넣는 규약"
+    title_en: "Convention for measured HRR curves"
+    condition: "실측 HRR CSV 를 그대로 수천 점 램프로 넣었거나, 점화 전 음수·잡음 구간을 남겼습니다."
+    fix: {tools: [add_ramp, add_fire], how: "점 500개 이하(넘으면 점 골라내기가 아니라 시간 구간 평균), 음수 제거, HRR 이 양수로 오르기 시작한 시각을 t=0, 시간에 따라 변하는 수율은 최대 HRR 시점 값. 평균으로 최대치가 낮아지면 hrrpua 를 그 비율만큼 보정합니다."}
+
+  - id: FIRE-009
+    domain: fire
+    severity: warning
+    confidence: verified
+    applies_to: [Reaction]
+    title: "복사 분율은 update_reaction 으로 넣습니다"
+    title_en: "Set the radiative fraction via update_reaction"
+    condition: "add_raw_namelist('&RADI RADIATIVE_FRACTION=…') 로 넣었습니다. 6.10.1 에서 RADIATIVE_FRACTION 은 &REAC 키라 CPU FDS 는 ERROR(101) 로 멈춥니다."
+    fix: {tools: [update_reaction, remove_raw_namelist], how: "update_reaction(radiative_fraction=0.35 등)."}
+
+  - id: FIRE-010
+    domain: fire
+    severity: info
+    confidence: guidance
+    applies_to: [Fire, Mesh]
+    title: "화원 면은 셀 여러 개를 덮게 합니다"
+    title_en: "Let the burner cover several cells"
+    condition: "화원 면이 셀 1–2개뿐이라 체적 발열이 한두 셀에 몰려 불안정하거나 HRR 이 격자에 민감합니다."
+    fix: {how: "화원 면이 한 변에 셀 3–4개 이상이 되게 셀 크기를 줄이거나 면적을 실제 연소 면적에 맞춥니다. HRRPUA 가 수천 kW/m² 를 넘으면 면적을 다시 봅니다."}
+
+  - id: FIRE-011
+    domain: fire
+    severity: warning
+    confidence: verified
+    applies_to: [Fire, Obstacle]
+    title: "is_fire_source 만 켜서는 타는 면이 생기지 않을 수 있습니다"
+    title_en: "Flagging is_fire_source alone may not create a burning face"
+    condition: "장애물에 is_fire_source/hrrpua 만 주고 화재 프리셋·면 지정이 없어 덱에 HRRPUA 면이 없습니다(validate_project 경고)."
+    fix: {tools: [set_fds_properties, add_fire], how: "set_fds_properties(id, is_fire_source=true, hrrpua=…) 는 화재 프리셋을 자동으로 붙입니다. 타는 면은 fds_override.fire_faces(FIRE-013)로 정합니다. 또는 물체 윗면에 add_fire 로 화원을 둡니다."}
+
+  - id: FIRE-013
+    domain: fire
+    severity: error
+    confidence: verified
+    applies_to: [Fire, Obstacle]
+    title: "set_fds_properties 의 fire_faces 는 불린 6개입니다"
+    title_en: "set_fds_properties fire_faces takes six booleans"
+    condition: "fire_faces 에 면 이름(['+Z'], ['top'])을 넣었습니다. 이 도구는 불린 배열로 읽으므로 첫 칸(−X 면)이 타는 면이 되고 나머지는 INERT 가 됩니다. (면 이름 문자열은 shape_edit_node 에서만 받습니다.)"
+    check: {tools: [preview_fds], how: "namelist=OBST 의 SURF_ID6 가 [-X,+X,-Y,+Y,-Z,+Z] 순서로 의도한 면에 화원 SURF 를 두는지 봅니다."}
+    fix: {tools: [set_fds_properties], how: "윗면만 탈 때 fire_faces=[false,false,false,false,false,true]."}
+
+  - id: FIRE-014
+    domain: fire
+    severity: warning
+    confidence: verified
+    applies_to: [Fire, Ramp]
+    title: "장애물 화원의 ramp_points 는 ramp_id 와 함께 줍니다"
+    title_en: "Give ramp_id together with ramp_points on obstacle fires"
+    condition: "set_fds_properties(fds_override={ramp_points:[…]}) 만 주어 RAMP_Q 가 덱에 없고, 화원이 처음부터 최대 HRR 로 탑니다."
+    check: {tools: [preview_fds], how: "화원 SURF 에 RAMP_Q 가 있는지 봅니다."}
+    fix: {tools: [set_fds_properties], how: "fds_override={ramp_id:'SOFA_RAMP', ramp_points:[[0,0],[120,1],[600,1]]}. add_fire 는 ramp_points·growth 만 줘도 램프를 자동으로 만듭니다."}
+
+  - id: FIRE-012
+    domain: fire
+    severity: warning
+    confidence: convention
+    applies_to: [Fire]
+    title: "화원은 한 경로로만 만듭니다"
+    title_en: "Create each fire through one path only"
+    condition: "같은 자리에 add_fire 와 가구 화원(place_furniture as_fire_source)·set_fds_properties 화원을 겹쳐 HRR 이 더해졌습니다."
+    check: {tools: [list_obstacles, preview_fds], how: "HRRPUA 를 가진 SURF 를 가리키는 OBST/VENT 를 셉니다."}
+
+  # ═════════════════════════ SURFACES ═════════════════════════
+  - id: SURF-001
+    domain: surface
+    severity: error
+    confidence: verified
+    applies_to: [Surface, Material]
+    title: "참조하는 SURF_ID·MATL_ID 는 먼저 만들어 둡니다"
+    title_en: "Define referenced SURF_ID and MATL_ID first"
+    condition: "장애물·벤트가 없는 SURF_ID 를 가리키거나, SURF 층이 없는 MATL_ID 를 가리킵니다(FDS 입력 오류)."
+    check: {tools: [validate_project]}
+    fix: {tools: [add_surface_from_library, add_material_from_library, add_surface, add_material, assign_surface]}
+
+  - id: SURF-002
+    domain: surface
+    severity: info
+    confidence: engine_snapshot
+    applies_to: [Surface]
+    title: "GPU 엔진이 반영하지 않는 SURF 키가 있습니다"
+    title_en: "Some SURF keys are ignored by the GPU engine"
+    condition: "NET_HEAT_FLUX, CONVECTIVE_HEAT_FLUX, EXTERNAL_FLUX(열유속 경계), MASS_FRACTION(질량분율 경계), PART_ID·PARTICLE_MASS_FLUX(표면 입자 주입), PROFILE, VEL_T 에 결과가 달려 있습니다. GPU 엔진은 이 키를 쓰지 않습니다."
+    fix: {how: "이 조건이 결과를 좌우하면 solver_type=cpu_openmp 로 FDS 6.10.1 대조를 검토합니다. 모르면 사용자에게 알립니다."}
+
+  # ═════════════════════════ DEVICES / CONTROLS ═════════════════════════
+  - id: DEVC-001
+    domain: device
+    severity: error
+    confidence: guidance
+    applies_to: [Device, SprinklerDevice, HeatDetector, SmokeDetector]
+    title: "감지기·헤드·열전대는 고체 셀이 아닌 기체 셀 안에 둡니다"
+    title_en: "Put detectors, heads and thermocouples in gas cells"
+    condition: "천장 슬래브 높이(예: z=3.0)에 감지기·헤드를 두어 고체 셀 안에 들어갔습니다. 기체 온도·속도를 못 읽어 작동하지 않습니다."
+    fix: {tools: [update_device, transform_obstacle, spr_update_node], how: "천장 아랫면에서 반 셀 ~ 0.1 m 아래(예: 천장 3.0 m, 셀 0.1 m → z=2.95)에 둡니다."}
+
+  - id: DEVC-002
+    domain: device
+    severity: warning
+    confidence: engine_snapshot
+    applies_to: [Device]
+    title: "GPU 엔진이 지원하는 DEVC 수량만 씁니다"
+    title_en: "Use DEVC quantities the GPU engine supports"
+    condition: "지원 밖 수량을 쓰면 GPU 엔진은 경고 후 그 열을 0 으로 씁니다. 지원 수량(2026-10): TEMPERATURE, VISIBILITY, DENSITY, PRESSURE, U/V/W-VELOCITY, VELOCITY, HRRPUV, MASS FRACTION, VOLUME FRACTION, THERMOCOUPLE, CHAMBER OBSCURATION, LINK TEMPERATURE, SPRINKLER LINK TEMPERATURE, PATH OBSCURATION, TRANSMISSION, ASPIRATION, LAYER HEIGHT, UPPER/LOWER TEMPERATURE, WALL TEMPERATURE, BACK WALL TEMPERATURE, NET/RADIATIVE/CONVECTIVE/TOTAL/GAUGE/INCIDENT HEAT FLUX, ADIABATIC SURFACE TEMPERATURE, RADIATIVE HEAT FLUX GAS, GAUGE HEAT FLUX GAS, MASS FLUX X/Y/Z, ENTHALPY FLUX X/Y/Z, FED, OPTICAL DENSITY, EXTINCTION COEFFICIENT, AEROSOL VOLUME FRACTION, BACKGROUND PRESSURE, TIME, TIME STEP, CONTROL, CONTROL VALUE, OPEN NOZZLES, ACTUATED SPRINKLERS, DUCT/NODE 수량 일부, 그리고 HRR·VOLUME FLOW·MASS FLOW·HEAT FLOW(±) 같은 FDS 표준 별칭."
+    fix: {how: "필요한 수량이 목록에 없으면 실행 로그의 'unsupported' 경고를 확인하고, CPU FDS 실행을 검토합니다."}
+
+  - id: DEVC-003
+    domain: device
+    severity: error
+    confidence: verified
+    applies_to: [Device, BoundaryOutput]
+    title: "FDS 6.10.1 에 없는 수량 이름을 쓰지 않습니다"
+    title_en: "Do not use quantity names FDS 6.10.1 does not know"
+    condition: "DEVC 'DYNAMIC PRESSURE', 'EQUIVALENCE RATIO', 'SOOT DENSITY', 'SOOT VOLUME FRACTION', BNDF 'FLUX TIME PRODUCT', 'INSIDE AVERAGE TEMPERATURE', 'TANGENTIAL VELOCITY', 'WALL HEAT FLUX' 는 CPU FDS 6.10.1 이 ERROR(1042) 로 멈춥니다(일부는 GPU 엔진만 받습니다)."
+    fix: {how: "CPU 와 호환되게 하려면 표준 이름을 씁니다. 예: 경계면 열유속은 NET HEAT FLUX."}
+
+  - id: DEVC-004
+    domain: device
+    severity: error
+    confidence: verified
+    applies_to: [Device, Control]
+    title: "QUANTITY='CONTROL' 장치는 존재하는 CTRL_ID 를 가리켜야 합니다"
+    title_en: "A CONTROL device must reference an existing CTRL"
+    condition: "CTRL_ID 가 없거나 덱에 없는 &CTRL 을 가리킵니다(FDS ERROR 938)."
+    check: {tools: [validate_project]}
+    fix: {tools: [add_control, update_device]}
+
+  - id: DEVC-005
+    domain: device
+    severity: error
+    confidence: verified
+    applies_to: [Device, Slice]
+    title: "입자 수량에는 덱의 실제 &PART ID 를 씁니다"
+    title_en: "Particle quantities need the deck's actual PART ID"
+    condition: "MPUV, ADD, ADT, ADA, QABS, QSCA, DROPLET VOLUME FRACTION, MPUA, CPUA, AMPUA 에 PART_ID 가 없거나(ERROR 1020) 덱에 없는 ID 입니다(ERROR 1021). 헤드의 &PART ID 는 덱 생성기가 정하므로 짐작하면 틀립니다."
+    check: {tools: [validate_project, preview_fds], how: "preview_fds(namelist=PART) 로 실제 ID 를 봅니다."}
+    fix: {tools: [update_device]}
+
+  - id: DEVC-006
+    domain: device
+    severity: error
+    confidence: verified
+    applies_to: [Control]
+    title: "add_control 의 input_id 는 문자열 배열입니다"
+    title_en: "add_control input_id is an array of strings"
+    condition: "input_id 를 빠뜨리거나 문자열 하나로 넣었습니다. INPUT_ID 가 없으면 .fds 생성 전체가 실패합니다."
+    check: {tools: [validate_project]}
+    fix: {tools: [update_control], how: "input_id=['SD_1','SD_2'] 형식. 상수는 'CONSTANT'."}
+
+  - id: DEVC-007
+    domain: device
+    severity: warning
+    confidence: engine_snapshot
+    applies_to: [Device, Species]
+    title: "GPU DEVC 의 SPEC_ID 는 O₂, CO₂, CO, 그을음, 수증기, 연료만 구분합니다"
+    title_en: "GPU DEVC SPEC_ID covers O2, CO2, CO, soot, water vapour and fuel"
+    condition: "다른 종(HCN, N₂ 등)을 지정했습니다. GPU 엔진은 경고 후 연료 질량분율로 대체합니다."
+    fix: {how: "독성 판정은 CO·CO₂·O₂ 와 FED 로 하고, 다른 종이 필요하면 CPU FDS 를 검토합니다."}
+
+  - id: DEVC-008
+    domain: device
+    severity: info
+    confidence: engine_snapshot
+    applies_to: [Device]
+    title: "GPU 엔진의 공간 통계는 일부 수량만 진짜 통계입니다"
+    title_en: "GPU spatial statistics are exact only for some quantities"
+    condition: "XB + spatial_statistic(MEAN/MAX/…) 로 측정했는데, TEMPERATURE·DENSITY·HRRPUV·VISIBILITY(및 유속·질량유속·엔탈피유속의 AREA INTEGRAL, HRRPUV VOLUME INTEGRAL) 밖의 수량은 XB 중심 점값으로 나옵니다."
+    fix: {how: "그 밖의 수량은 여러 점 장치(points/xbp)로 나눠 측정합니다."}
+
+  - id: DEVC-009
+    domain: device
+    severity: error
+    confidence: verified
+    applies_to: [HeatDetector, SmokeDetector, SprinklerDevice, Prop]
+    title: "감지기·헤드 장치에는 PROP 과 작동 조건이 있어야 합니다"
+    title_en: "Detector and sprinkler devices need a PROP with their activation data"
+    condition: "QUANTITY 가 LINK TEMPERATURE / SPRINKLER LINK TEMPERATURE 인 DEVC 에 PROP_ID 가 없거나(FDS ERROR 933), 그 PROP 에 ACTIVATION_TEMPERATURE 가 없습니다(ERROR 934 — 6.10.1 에는 기본값이 없음). CHAMBER OBSCURATION(연기감지기)에 PROP_ID 가 없습니다(ERROR 931). 또는 PROP_ID 가 정의되지 않은 PROP 을 가리킵니다."
+    check: {tools: [list_devices, preview_fds, bulc_check_deck]}
+    fix: {tools: [add_heat_detector, add_smoke_detector, add_sprinkler, add_prop, update_prop], how: "전용 도구(add_heat_detector, add_sprinkler 등)로 만들면 PROP 이 함께 생깁니다. 작동 온도·RTI 는 제품 사양에서 받습니다(GEN-011)."}
+
+  # ═════════════════════════ OUTPUTS ═════════════════════════
+  - id: OUT-001
+    domain: output
+    severity: warning
+    confidence: verified
+    applies_to: [DumpSettings]
+    title: "출력 주기(DT_*)는 T_END 보다 작아야 합니다"
+    title_en: "Dump intervals must be smaller than T_END"
+    condition: "DT_SLCF·DT_PL3D·DT_SMOKE3D·DT_BNDF·DT_DEVC·DT_HRR 중 하나가 T_END 이상이라 t=0 한 장만 저장되고 결과가 초기 상태(20 °C)로만 보입니다."
+    check: {tools: [validate_project]}
+    fix: {tools: [update_dump_config], how: "보통 DT_SLCF·DT_DEVC·DT_HRR 1–5 s, DT_PL3D 는 FED·ASET 에 쓰면 2–10 s."}
+
+  - id: OUT-002
+    domain: output
+    severity: warning
+    confidence: engine_snapshot
+    applies_to: [Slice]
+    title: "GPU 엔진이 지원하는 SLCF 수량만 씁니다"
+    title_en: "Use SLCF quantities the GPU engine supports"
+    condition: "지원 밖 수량은 경고 한 줄 뒤 TEMPERATURE 라벨·값으로 기록됩니다(엉뚱한 결과가 정상처럼 보입니다). 지원(2026-10): TEMPERATURE, VISIBILITY, VELOCITY, U/V/W-VELOCITY, PRESSURE, MASS FLUX X/Y/Z, DENSITY(+SOOT), HRRPUV, VOLUME FRACTION, MASS FRACTION."
+    fix: {tools: [add_slcf, update_slcf]}
+
+  - id: OUT-003
+    domain: output
+    severity: warning
+    confidence: engine_snapshot
+    applies_to: [Slice, Plot3D, Species]
+    title: "종 슬라이스의 SPEC_ID 는 CO₂, CO, O₂, H₂O(WATER VAPOR), SOOT 로 한정합니다"
+    title_en: "Species slices: CO2, CO, O2, water vapour, soot"
+    condition: "VOLUME FRACTION/DENSITY 에 다른 종(AIR, NITROGEN, HYDROGEN CYANIDE, PRODUCTS)을 쓰면 0 이 되고, MASS FRACTION 에 모르는 종을 쓰면 경고 없이 연료 질량분율이 나옵니다."
+    fix: {tools: [add_slcf, set_plot3d_outputs]}
+
+  - id: OUT-004
+    domain: output
+    severity: warning
+    confidence: verified
+    applies_to: [Plot3D, AsetResult, FedCoupling]
+    title: "ASET·FED 에 쓸 Plot3D 는 5칸을 판정 수량으로 채웁니다"
+    title_en: "Fill the five Plot3D slots with the assessment quantities"
+    condition: "기본 Plot3D(VOLUME FRACTION CO₂, VOLUME FRACTION O₂, TEMPERATURE, VELOCITY, HRRPUV)에는 CO 와 VISIBILITY 가 없어 ASET 보고서·FED 위험장이 그 기준을 다른 자료에서 찾거나 빠뜨립니다."
+    fix: {tools: [set_plot3d_outputs, update_dump_config], how: "quantities=['VOLUME FRACTION','VOLUME FRACTION','VOLUME FRACTION','TEMPERATURE','VISIBILITY'], spec_ids=['CARBON MONOXIDE','CARBON DIOXIDE','OXYGEN'] — VOLUME FRACTION 칸을 앞에서부터 연속으로 두면 GPU·CPU 가 같은 종을 씁니다. DT_PL3D 는 FED frameInterval(기본 2 s) 이하가 바람직합니다."}
+
+  - id: OUT-005
+    domain: output
+    severity: info
+    confidence: engine_snapshot
+    applies_to: [BoundaryOutput]
+    title: "GPU 엔진의 BNDF 수량은 7종입니다"
+    title_en: "The GPU engine writes seven BNDF quantities"
+    condition: "WALL TEMPERATURE, NET HEAT FLUX, RADIATIVE HEAT FLUX, CONVECTIVE HEAT FLUX, INCIDENT HEAT FLUX, BACK WALL TEMPERATURE, (GPU 전용 이름) WALL HEAT FLUX 밖의 수량은 생략되고, 전부 미지원이면 WALL HEAT FLUX 하나로 대체됩니다. BNDF 의 SPEC_ID·PART_ID 도 GPU 는 읽지 않습니다."
+    fix: {tools: [add_bndf], how: "CPU 와 같이 쓸 덱이면 WALL HEAT FLUX 대신 NET HEAT FLUX."}
+
+  - id: OUT-006
+    domain: output
+    severity: warning
+    confidence: convention
+    applies_to: [Slice, Story]
+    title: "피난 판정 단면은 층마다 바닥 + 1.8 m 에 둡니다"
+    title_en: "Assessment slices at floor + 1.8 m on every story"
+    condition: "호흡선 슬라이스를 영역 기준 z=1.8 하나만 두어 윗층이 판정되지 않습니다."
+    fix: {tools: [add_slcf], how: "층마다 pbz = zMin + 1.8 에 TEMPERATURE, VISIBILITY, VOLUME FRACTION(CO, CO₂, O₂) 슬라이스."}
+
+  - id: OUT-007
+    domain: output
+    severity: info
+    confidence: verified
+    applies_to: [DumpSettings]
+    title: "긴 해석은 NFRAMES 나 DT_* 로 디스크 사용을 줄입니다"
+    title_en: "Limit frames on long runs"
+    condition: "미지정 DT_* 는 (T_END − T_BEGIN) / NFRAMES(기본 1000)로 채워져 긴 해석에서 파일이 매우 커집니다."
+    fix: {tools: [update_dump_config], how: "nframes 를 낮추거나 DT_* 를 명시합니다."}
+
+  - id: OUT-008
+    domain: output
+    severity: warning
+    confidence: verified
+    applies_to: [Slice]
+    title: "SLCF 가 하나도 없으면 결과 뷰어에서 볼 단면이 없습니다"
+    title_en: "Without any SLCF there is nothing to view"
+    condition: "validate_project 가 'SLCF 출력이 없습니다' 경고를 냈습니다."
+    fix: {tools: [add_slcf]}
+
+  # ═════════════════════════ SIMULATION / ENGINE ═════════════════════════
+  - id: SIM-001
+    domain: simulation
+    severity: info
+    confidence: engine_snapshot
+    applies_to: [Simulation]
+    title: "해석 모드를 명시합니다(BULC 는 LES, FDS 6.10.1 기본은 VLES)"
+    title_en: "State the simulation mode explicitly"
+    condition: "CPU FDS 와 대조하면서 모드를 지정하지 않았습니다. 기본값이 서로 다릅니다."
+    fix: {tools: [set_simulation_mode]}
+
+  - id: SIM-002
+    domain: simulation
+    severity: error
+    confidence: verified
+    applies_to: [Simulation]
+    title: "LOCK_TIME_STEP 은 DT 와 함께 줍니다"
+    title_en: "LOCK_TIME_STEP requires DT"
+    condition: "set_numerics(lock_time_step=true) 만 주고 dt 를 주지 않았습니다(validate_project 오류)."
+    fix: {tools: [set_numerics]}
+
+  - id: SIM-003
+    domain: simulation
+    severity: warning
+    confidence: guidance
+    applies_to: [Simulation]
+    title: "발산(NaN)·속도 폭주에는 원인부터 찾고 수치 설정을 조입니다"
+    title_en: "On divergence, find the cause first, then tighten numerics"
+    condition: "실행 지표 nan > 0, |u| > 50 m/s, Tmax > 2500 K 입니다."
+    check: {tools: [get_simulation_metrics, validate_project]}
+    fix: {tools: [set_numerics], how: "먼저 작은 면적의 과대 HRRPUA, 셀보다 좁은 개구부, 과대 급배기 유속(HVAC-004), 밀폐 영역을 고칩니다. 그래도 발산하면 cfl_max=0.5 또는 dt 고정(lock_time_step+dt)."}
+
+  - id: SIM-004
+    domain: simulation
+    severity: info
+    confidence: engine_snapshot
+    applies_to: [Simulation]
+    title: "GPU 엔진에서 바꿀 수 없는 물리 설정"
+    title_en: "Settings fixed in the GPU engine"
+    condition: "다음을 덱으로 바꾸려 했습니다: &MISC RADIATION=.FALSE.(무시되어 복사 계산), P_INF(101,325 Pa 고정), GVEC(중력 고정), VISIBILITY_FACTOR(C=3 고정), MAXIMUM_VISIBILITY(30 m 고정), STRATIFICATION(끌 수 없음)."
+    fix: {how: "결과가 이 설정에 달려 있으면 CPU FDS 실행을 검토합니다."}
+
+  - id: SIM-005
+    domain: simulation
+    severity: info
+    confidence: engine_snapshot
+    applies_to: [Simulation]
+    title: "GPU 엔진이 처리하지 않는 namelist 그룹"
+    title_en: "Namelist groups the GPU engine does not handle"
+    condition: "TRNX/TRNY/TRNZ, MOVE, CSVF, WIND, ISOF, SM3D, RADF, BACK 이 결과에 필요합니다(경고 후 무시)."
+    fix: {how: "필요하면 CPU FDS(solver_type=cpu_openmp)."}
+
+  - id: SIM-006
+    domain: simulation
+    severity: warning
+    confidence: verified
+    applies_to: [Simulation]
+    title: "add_raw_namelist 로 도구가 다루는 그룹을 중복해 넣지 않습니다"
+    title_en: "Do not duplicate tool-managed groups with add_raw_namelist"
+    condition: "&MESH, &OBST, &VENT, &SURF, &REAC, &DEVC, &CTRL, &SLCF, &BNDF, &DUMP, &TIME, &MISC 를 원문으로 또 넣었습니다(중복 namelist 오류). 또는 6.10.1 에 없는 키를 넣었습니다(ERROR 101)."
+    fix: {tools: [list_raw_namelists, remove_raw_namelist], how: "원문은 &RADI, &PRES, &COMB, &ZONE, &MULT 처럼 도구가 없는 그룹에만 씁니다."}
+
+  - id: SIM-007
+    domain: simulation
+    severity: info
+    confidence: convention
+    applies_to: [RuntimeMetrics]
+    title: "건전한 실행의 기준"
+    title_en: "What a healthy run looks like"
+    condition: "실행 중 지표가 nan=0, Tmax ≤ 2500 K, |u| < 50 m/s 를 벗어났습니다."
+    check: {tools: [get_simulation_metrics], how: "라이브 모드에서 주기적으로 읽습니다. HRR(qdot)이 설계 곡선을 따라가는지도 봅니다."}
+    fix: {how: "SIM-003 과 playbooks/troubleshooting.md 를 따릅니다."}
+
+  - id: SIM-008
+    domain: simulation
+    severity: info
+    confidence: engine_snapshot
+    applies_to: [HvacNetwork]
+    title: "FDS &HVAC 덕트망 일부 기능은 GPU 엔진에서 무시됩니다"
+    title_en: "Some FDS &HVAC features are ignored by the GPU engine"
+    condition: "가져온 덱의 &HVAC MASS_FLOW(경고 없이 무시 — 덕트 유량 0), LEAK·FILTER 유형에 결과가 달려 있습니다."
+    fix: {how: "BULC 에서는 HVAC 모듈 단말 방식(hvac_apply_to_fds)을 쓰거나 CPU FDS 를 검토합니다."}
+
+  - id: SIM-009
+    domain: simulation
+    severity: info
+    confidence: engine_snapshot
+    applies_to: [Simulation]
+    title: "엔진 선택: gpu(기본), gpu_cutcell(베타), cpu_openmp(FDS 6.10.1)"
+    title_en: "Solver choice"
+    condition: "gpu_cutcell 을 일반 해석에 썼습니다. 컷셀 엔진은 베타 기능으로, 제어(CTRL)·스프링클러 연동·입자 물리처럼 일반 엔진과 같은 결과를 보장하지 않는 항목이 있습니다. 설치된 앱 판에 따라 이 엔진이 없을 수도 있습니다."
+    fix: {tools: [set_run_options], how: "일반 건물 화재는 gpu, 기준 대조는 cpu_openmp, 곡면 GEOM 형상 연구에만 gpu_cutcell."}
+
+  - id: SIM-010
+    domain: simulation
+    severity: warning
+    confidence: engine_snapshot
+    applies_to: [Project]
+    title: "CPU FDS 로 대조할 덱에는 GPU 전용 키를 쓰지 않습니다"
+    title_en: "Avoid GPU-only keys in decks meant for CPU FDS"
+    condition: "다음 키가 들어간 덱은 CPU FDS 6.10.1 이 ERROR(101) 로 멈춥니다: VENT MASS_FLUX, VENT RAMP_V, VENT T_BEGIN/T_END, INIT VELOCITY, MATL NU_FUEL, REAC MW_FUEL, REAC SOOT_H_FRACTION, SURF MIRROR/PERIODIC, RADI RADIATIVE_FRACTION, MISC TURB_PR/U0, PROP DROPLETS_PER_SECOND."
+    check: {tools: [preview_fds]}
+    fix: {how: "표준형으로 바꿉니다(예: INIT UVW, REAC RADIATIVE_FRACTION, VENT SURF_ID='MIRROR', PROP PARTICLES_PER_SECOND). 앱이 내는 키이면 사용자에게 알리고 CPU 대조 여부를 정합니다."}
+
+  - id: SIM-011
+    domain: simulation
+    severity: info
+    confidence: verified
+    applies_to: [Surface]
+    title: "INERT, OPEN, MIRROR, PERIODIC 은 예약 SURF_ID 입니다"
+    title_en: "Reserved SURF_IDs"
+    condition: "사용자 SURF 를 'INERT' 같은 예약 이름으로 만들어 예약 동작을 덮었습니다."
+    fix: {how: "사용자 표면은 다른 이름(예: CONCRETE_200)을 씁니다."}
+
+  # ═════════════════════════ EVACUATION ═════════════════════════
+  - id: EVAC-001
+    domain: evacuation
+    severity: error
+    confidence: verified
+    applies_to: [Agent, Stair, HvacNode, PipeNode, Story]
+    title: "floorIndex 는 도구마다 뜻이 다릅니다"
+    title_en: "floorIndex means different things in different tools"
+    condition: "evac_*·hvac_* 의 floorIndex 는 0부터의 층 순번(1F = 0, 2F = 1)이고, spr_*(spr_add_node, spr_auto_layout, spr_add_drain, spr_add_riser targetFloorIndex)과 draw_update_story 의 id 는 층 id(1F = 1)입니다. 섞으면 피난자·노드가 한 층씩 어긋납니다."
+    check: {tools: [draw_list_stories, evac_list_summary, spr_list_summary]}
+    fix: {how: "draw_list_stories 로 층을 읽고, EVAC/HVAC 에는 (정렬 순번), SPR 에는 (층 id)를 넣습니다. spr_add_node 는 floorIndex 를 생략하면 z 가 든 층으로 정해지므로 z 를 정확히 주는 편이 안전합니다."}
+
+  - id: EVAC-002
+    domain: evacuation
+    severity: error
+    confidence: verified
+    applies_to: [Exit, Door, OpenBoundary]
+    title: "피난 출구는 자동으로 정해지므로 출구가 될 객체를 확실히 만듭니다"
+    title_en: "Exits are derived automatically — make sure exit objects exist"
+    condition: "출구 도구가 없다고 출구를 빠뜨렸습니다. 피난 입력 조립 시 출구 = 그 층 높이와 겹치는 OPEN 벤트 + 문 품목 + ID 가 'Door_'(또는 'Window_')로 시작하는 HOLE 입니다(arch_import_building 이 만든 문은 'Door_…' 라 출구가 되고, 창은 'Win_…' 라 출구가 아닙니다). 출구가 하나도 없으면 evac_run 이 거절하고, allowNoExits=true 를 주면 영역 가장자리 임시 출구로 계산합니다(실제 건물과 무관)."
+    check: {tools: [project_info, evac_list_summary], how: "project_info 의 counts.exitHoles·openVents 로 출구 후보 수를 봅니다."}
+    fix: {tools: [add_door, place_furniture, add_vent, arch_import_building], how: "최종 출구(외부·피난계단 출입문)는 add_door(id='Door_EXIT_1', …)로 만들고, 외부와 통하는 면에 OPEN 벤트가 있으면 그것도 출구가 됨을 고려합니다. allowNoExits 는 사용자가 임시 출구를 알고 받아들일 때만 씁니다."}
+
+  - id: EVAC-003
+    domain: evacuation
+    severity: warning
+    confidence: verified
+    applies_to: [Exit, Door, Window]
+    title: "'Door_'·'Window_' HOLE 은 모두 출구가 됩니다 — 내부 문·창도 포함"
+    title_en: "Every Door_/Window_ hole becomes an exit, including interior ones"
+    condition: "피난자는 가장 가까운 출구로 갑니다. 실내 문이나 창을 'Door_'/'Window_' 로 만들면 피난자가 실내 문에서 '탈출'한 것으로 처리되어 RSET 이 짧게 나옵니다(앱 2D 편집기로 그린 창은 'Window_' 라 출구가 됩니다). 반대로 접두어가 없는 HOLE 은 피난 계산에서 벽이 뚫리지 않아 통행이 막힙니다(FDS 에서는 열려 있음). fire_compute_aset 의 기본 판정 위치도 같은 출구 목록입니다."
+    check: {tools: [list_obstacles, project_info], how: "구멍 id 접두어를 봅니다. arch_import_building 은 문을 'Door_…', 창을 'Win_…' 로 만듭니다(BULC 0.89+; 그 이전 개발판은 'Window_')."}
+    fix: {how: "창은 'Win_' 처럼 다른 접두어로 만듭니다. 최종 출구가 아닌 실내 문이 통행에 필요하면 사용자에게 이 제약을 알리고, 앱의 피난 실행 창에서 출구 목록을 확인하게 합니다. 실내 구획이 단순하면 실내 문 없이 개구부를 크게 두는 단순화도 검토합니다."}
+
+  - id: EVAC-004
+    domain: evacuation
+    severity: info
+    confidence: verified
+    applies_to: [EvacSetup]
+    title: "피난 실행은 evac_run → evac_status → evac_get_results 로, FED 연계·경보 설정은 앱 화면에서 합니다"
+    title_en: "Run evacuation with evac_run → evac_status → evac_get_results; FED coupling and alarms are set in the app"
+    condition: "사용자 동의 없이 evac_run 을 confirm=true 로 불렀거나, evac_status 가 끝났다고 하기 전에 evac_get_results 를 읽어 이전 결과를 보고했습니다. 또는 FED 연계·경보 연동을 도구로 켰다고 말했습니다 — 이 설정 도구는 없습니다(evac_update_setup 은 모델·시간·dt 만). 0.88 이하 앱에는 evac_run·evac_status·evac_get_results 도 없습니다."
+    check: {tools: [evac_list_summary, evac_status, evac_get_results], how: "evac_list_summary 로 피난자·계단·여정을, evac_status 로 실행 상태를, evac_get_results 로 RSET(마지막 탈출)·출구별 통계·FED 사상자를 봅니다."}
+    fix: {tools: [evac_run, evac_status, evac_get_results], how: "피난자·출구를 확인하고 조건을 요약해 동의를 받은 뒤 evac_run {confirm: true} → evac_status 를 끝날 때까지 → evac_get_results. FED 연계(호흡선 1.8 m, 화재 결과 .smv)·경보 연동은 사용자에게 앱 EVAC 탭에서 켜 달라고 요청하고, 켠 뒤 evac_run 을 부르면 그 설정이 입력에 들어갑니다. 구버전 앱: 사용자에게 앱에서 저장·실행하도록 안내합니다."}
+
+  - id: EVAC-005
+    domain: evacuation
+    severity: warning
+    confidence: verified
+    applies_to: [Agent]
+    title: "evac_add_agents_batch 는 사각형 안에 무작위로 놓습니다(장애물 회피 없음)"
+    title_en: "Batch placement is uniform random with no obstacle avoidance"
+    condition: "벽·가구를 포함한 큰 사각형에 한 번에 배치해 피난자가 벽 속·가구 위에 놓였습니다."
+    fix: {tools: [evac_add_agents_batch, evac_remove_agent], how: "실(room)마다 벽에서 0.3 m 이상 안쪽 사각형으로 나눠 배치하고, 밀도는 바닥 1 m² 당 2명 이하로 합니다. 앱의 피난자 배치 대화상자는 장애물을 피하므로 큰 배치는 사용자에게 권할 수 있습니다."}
+
+  - id: EVAC-006
+    domain: evacuation
+    severity: warning
+    confidence: verified
+    applies_to: [Stair]
+    title: "계단은 층 순번 쌍으로 연결하고 여정 단계로 넣지 않습니다"
+    title_en: "Stairs connect floor indices and are not journey stages"
+    condition: "계단을 여정 단계로 넣었거나 층 id(1부터)로 연결했습니다."
+    fix: {tools: [evac_add_stair, evac_add_journey], how: "evac_add_stair(fromFloorIndex=1, toFloorIndex=0, …)처럼 위층 → 아래층. 층 이동은 계단이 자동으로 처리합니다."}
+
+  - id: EVAC-007
+    domain: evacuation
+    severity: warning
+    confidence: verified
+    applies_to: [Journey]
+    title: "여정은 WAYPOINT/WAITING_SET/QUEUE 단계 후 EXIT 로 끝납니다"
+    title_en: "Journeys end with EXIT"
+    condition: "단계 종류를 소문자나 'stair' 로 넣었거나, EXIT 이 없습니다."
+    fix: {tools: [evac_add_journey, evac_list_summary], how: "stages=[{type:'WAYPOINT', targetId:'<id>'}, {type:'EXIT'}]. 경유점 id 는 evac_list_summary 로 읽습니다."}
+
+  - id: EVAC-008
+    domain: evacuation
+    severity: warning
+    confidence: verified
+    applies_to: [FedCoupling, Plot3D, Smoke3D]
+    title: "FED 연계에는 3D 화재 자료가 필요합니다"
+    title_en: "FED coupling needs 3D fire data"
+    condition: "2D 슬라이스만 있어 위험장을 만들 수 없거나 CO 를 수율로 추정합니다. FED 위험장은 Smoke3D(그을음)·3D 슬라이스·Plot3D 에서 호흡선 높이 평면을 뽑습니다."
+    fix: {tools: [set_plot3d_outputs, update_dump_config], how: "OUT-004 의 Plot3D 5칸 + DT_PL3D ≤ 2 s, DT_SMOKE3D 유지."}
+
+  # ═════════════════════════ HVAC / SMOKE CONTROL ═════════════════════════
+  - id: HVAC-001
+    domain: hvac
+    severity: error
+    confidence: verified
+    applies_to: [SupplyDiffuser, ExhaustGrille, AirHandler]
+    title: "HVAC 모듈의 풍량 단위는 CFM 입니다"
+    title_en: "HVAC module airflow is in CFM"
+    condition: "m³/h 나 m³/min 값을 airflowCFM 에 그대로 넣었습니다."
+    fix: {how: "CFM = m³/h × 0.5886 = m³/min × 35.31 = m³/s × 2118.9. 예: 5,000 m³/h = 2,943 CFM."}
+
+  - id: HVAC-002
+    domain: hvac
+    severity: warning
+    confidence: verified
+    applies_to: [HvacNode]
+    title: "단말 노드 높이는 천장 아래 기체 셀에 둡니다"
+    title_en: "Place terminal nodes in the gas just below the ceiling"
+    condition: "hvac_add_node 의 기본 z=3.0 을 그대로 써서 단말 장애물(노드 중심 ±0.1 m)이 천장 슬래브나 영역 밖으로 들어갔습니다."
+    fix: {tools: [hvac_update_node], how: "z = 천장 아랫면 − 0.1 m 이하(아랫면이 기체 쪽을 향해야 합니다). 윗층은 그 층 zMin + 층고 − 0.1."}
+
+  - id: HVAC-003
+    domain: hvac
+    severity: warning
+    confidence: verified
+    applies_to: [HvacTerminal]
+    title: "hvac_apply_to_fds 는 hvac_run_calc 결과 또는 단말 설계 풍량을 씁니다"
+    title_en: "hvac_apply_to_fds uses calculated or design terminal flow"
+    condition: "풍량을 넣지 않은 단말을 반영해 유량 0 단말이 생겼습니다(응답에 ⚠ 유량 0)."
+    fix: {tools: [hvac_update_supply_diffuser, hvac_update_exhaust_grille, hvac_run_calc, hvac_apply_to_fds], how: "단말 풍량을 넣고 hvac_run_calc → hvac_apply_to_fds 를 다시 부릅니다(이전 단말을 교체합니다)."}
+
+  - id: HVAC-004
+    domain: hvac
+    severity: warning
+    confidence: verified
+    applies_to: [HvacTerminal]
+    title: "단말 면적이 작으면 유속이 비현실적으로 커집니다"
+    title_en: "Small terminal faces give unrealistic velocities"
+    condition: "단말 장애물은 기본 0.2 m 정육면체(아랫면 0.04 m²)이고 덱에는 유량 ÷ 면적 = 유속으로 쓰입니다. 5,000 m³/h(1.39 m³/s) 배기가 약 35 m/s 가 되어 수치가 불안정해집니다."
+    fix: {tools: [update_obstacle, transform_obstacle, get_object_properties, preview_fds], how: "단말을 실제 그릴 크기로 키웁니다 — update_obstacle(id, xb=[…]) 로 아랫면 크기를 직접 주거나 transform_obstacle(scale=[3,3,1]; 1 = 그대로, 원래 크기에 곱하는 배율). 덱 유속(VEL)은 면적에 맞춰 다시 계산되므로 preview_fds(namelist=SURF)로 확인합니다. 예: 0.6 m × 0.6 m 면, 1.39 m³/s → 3.9 m/s. hvac_apply_to_fds 를 다시 부르면 단말이 새로 만들어져 손으로 고친 크기·램프가 사라지므로 그 뒤에 다시 고칩니다."}
+
+  - id: HVAC-005
+    domain: hvac
+    severity: info
+    confidence: engine_snapshot
+    applies_to: [SupplyDiffuser]
+    title: "GPU 엔진은 급기 온도(TMP_FRONT)를 유입 공기에 반영하지 않습니다"
+    title_en: "Supply air temperature is not applied by the GPU engine"
+    condition: "냉·난방 급기 온도가 결과에 중요합니다."
+    fix: {how: "급기 온도 효과가 중요하면 CPU FDS 대조를 검토합니다."}
+
+  - id: HVAC-006
+    domain: hvac
+    severity: warning
+    confidence: guidance
+    applies_to: [HvacTerminal, Control]
+    title: "제연 기동 시점을 정합니다"
+    title_en: "Decide when smoke control starts"
+    condition: "제연 배기·급기가 t=0 부터 돌고 있어 감지 지연이 반영되지 않았습니다."
+    fix: {tools: [set_fds_properties, get_object_properties, preview_fds], how: "HVAC 단말의 fds_override 램프로 기동 시각을 줍니다. 예: set_fds_properties(id, fds_override={ramp_up_mode:'custom', ramp_up_points:[[0,0],[60,0],[75,1]]}) → 60 s 까지 정지, 75 s 에 전량(덱에 RAMP_V 로 들어감). 기동 시각은 감지기 작동 시각 + 연동 지연으로 정하고 근거를 적습니다. 감지기와 직접 연동하는 제어가 꼭 필요하면 사용자와 정하고 preview_fds 로 확인합니다."}
+
+  # ═════════════════════════ SPRINKLER / WATER SPRAY ═════════════════════════
+  - id: SPR-001
+    domain: sprinkler
+    severity: error
+    confidence: verified
+    applies_to: [WaterSource, PipeNode]
+    title: "수원 노드와 수원 데이터가 있어야 계산됩니다"
+    title_en: "A source node with water-source data is required"
+    condition: "type='source' 노드가 없거나, 있어도 spr_add_water_source 를 붙이지 않았습니다(설계 검토 no_source / source_no_data 오류)."
+    fix: {tools: [spr_add_node, spr_add_water_source]}
+
+  - id: SPR-002
+    domain: sprinkler
+    severity: error
+    confidence: verified
+    applies_to: [PipeNetwork]
+    title: "모든 헤드가 수원과 이어져야 합니다"
+    title_en: "Every head must be connected to the source"
+    condition: "끊긴 관 묶음, 노드 없는 관·헤드, 같은 자리 겹친 노드(관으로 이어지지 않음), 길이 0 관이 있습니다."
+    check: {tools: [spr_design_review], how: "disconnected, orphan_node, coincident_nodes, zero_length_pipe, pipe_no_node, head_no_node."}
+    fix: {tools: [spr_add_pipe, spr_remove_node, spr_update_node]}
+
+  - id: SPR-003
+    domain: sprinkler
+    severity: error
+    confidence: verified
+    applies_to: [DesignScenario]
+    title: "설계 계산이 수렴하고 수원이 충분해야 합니다"
+    title_en: "The design calculation must converge with sufficient supply"
+    condition: "spr_get_results/spr_design_review 에 not_converged, supply_insufficient, nozzle_below_required 가 있습니다."
+    fix: {tools: [spr_update_water_source, spr_set_pipes, spr_pump_sizing], how: "수원 압력·유량을 바꾸거나 지배 경로 관경을 키우고, 펌프는 spr_pump_sizing 으로 정한 뒤 spr_run_calc 를 다시 돌립니다."}
+
+  - id: SPR-004
+    domain: sprinkler
+    severity: error
+    confidence: verified
+    applies_to: [PipeNetwork]
+    title: "배관망을 고쳤으면 계산을 다시 돌리고 FDS 에 다시 반영합니다"
+    title_en: "Re-run the calculation and re-apply to FDS after edits"
+    condition: "관경·K·수원·밸브를 고친 뒤 spr_run_calc 없이 결과·내보내기·spr_apply_to_fds 를 했습니다. 이전 결과로 헤드 유량이 들어갑니다."
+    fix: {how: "편집 → spr_run_calc → spr_get_results → (FDS 연계면) spr_apply_to_fds → validate_project 순서를 지킵니다."}
+
+  - id: SPR-005
+    domain: sprinkler
+    severity: warning
+    confidence: verified
+    applies_to: [Pipe]
+    title: "관 규격 id 는 스케줄까지 포함한 목록 값만 씁니다"
+    title_en: "Use only listed pipe-standard ids"
+    condition: "'SCH40', 'steel' 같은 임의 문자열을 material 에 넣었거나, 그 규격에 없는 호칭경을 썼습니다(pipe_material_unknown 오류, pipe_size_not_in_spec 경고)."
+    fix: {tools: [spr_set_pipes, spr_update_pipe], how: "건축: KSD3507, CPVC, STS304, ASTM_SCH40. 선박·플랜트: JIS_G3454_STPG_SCH40/SCH80, KS_D3562_SPPS_SCH40/SCH80, JIS_G3452_SGP, JIS_G3459_SUS_SCH10S/SCH40, ASTM_A53_A106_SCH40/SCH80, DIN86019_CUNI10FE 등(스키마 enum)."}
+
+  - id: SPR-006
+    domain: sprinkler
+    severity: warning
+    confidence: guidance
+    applies_to: [Pipe]
+    title: "Hazen-Williams C 는 규격 기본값을 따르고, 바꿀 때 근거를 남깁니다"
+    title_en: "Keep the standard C unless you have a reason"
+    condition: "C 가 60 미만이거나 160 초과입니다(c_factor_unusual)."
+    fix: {how: "대표값: 습식 강관 120, 건식·해수 강관 100, 스테인리스·동·동니켈·GRE·CPVC 150. 규격을 바꾸면 C 가 규격 기본으로 돌아가므로 필요하면 keepC."}
+
+  - id: SPR-007
+    domain: sprinkler
+    severity: info
+    confidence: verified
+    applies_to: [Fitting]
+    title: "부속 손실은 노드 부속 판정에 달려 있습니다"
+    title_en: "Minor losses depend on node fitting detection"
+    condition: "꺾임·분기에 부속이 잘못 판정되어 마찰이 과소·과대합니다. 기본 'auto' 는 연결 관 수·각도·관경으로 판정합니다."
+    fix: {tools: [spr_insert_fitting, spr_update_node, spr_set_defaults], how: "도면에 있는 엘보·티·레듀서를 명시하고, 국내 교재식 티 직류 손실이 필요하면 conservativeRunLoss, 테이퍼 레듀서면 taperedReducer."}
+
+  - id: SPR-008
+    domain: sprinkler
+    severity: error
+    confidence: verified
+    applies_to: [Valve]
+    title: "닫힌 밸브가 노즐을 고립시키지 않는지 봅니다"
+    title_en: "Check that closed valves do not isolate nozzles"
+    condition: "spr_set_valves(open=false) 뒤 하류 노즐이 물을 못 받습니다(valve_closed_isolates)."
+    fix: {tools: [spr_set_valves, spr_design_review]}
+
+  - id: SPR-009
+    domain: sprinkler
+    severity: warning
+    confidence: verified
+    applies_to: [Riser]
+    title: "층간 연결은 spr_add_riser 로 정확히 수직으로 만듭니다"
+    title_en: "Connect floors with an exactly vertical riser"
+    condition: "다른 층 노드를 spr_add_pipe 로 비스듬히 이었습니다(riser_slanted). 정수두와 엘보가 틀어집니다."
+    fix: {tools: [spr_add_riser], how: "spr_add_riser(nodeId, targetStory='2F') → 새 정션 id 를 spr_list_summary 로 읽어 윗층 배관을 잇습니다. 같은 층 낙차는 sameFloor=true, dz."}
+
+  - id: SPR-010
+    domain: sprinkler
+    severity: error
+    confidence: verified
+    applies_to: [Nozzle, SprinklerDevice]
+    title: "K 는 미터 단위 L/(min·bar^½) 입니다"
+    title_en: "K is metric L/(min·bar^½)"
+    condition: "미국 K(gpm/psi^½, 예: 5.6)를 그대로 넣었습니다(k_unusual 경고: K < 5 또는 > 600)."
+    fix: {how: "US K × 14.41. K5.6 ≈ 80, K8.0 ≈ 115, K11.2 ≈ 161, K14.0 ≈ 202, K16.8 ≈ 242, K25.2 ≈ 363."}
+
+  - id: SPR-011
+    domain: sprinkler
+    severity: error
+    confidence: verified
+    applies_to: [Nozzle, SprinklerDevice]
+    title: "배관망 압력은 MPa, FDS 헤드 압력은 bar 입니다"
+    title_en: "Pipe-network pressure in MPa; FDS head pressure in bar"
+    condition: "요구 방사압 0.1 MPa 를 1(bar 값)로, 또는 FDS operating_pressure 1 bar 를 0.1 로 넣었습니다(required_suspect: 요구압 ≥ 2 MPa)."
+    fix: {how: "0.1 MPa = 1 bar. 노즐 유량 Q[L/min] = K √(P[bar]) = K √(10 · P[MPa])."}
+
+  - id: SPR-012
+    domain: sprinkler
+    severity: error
+    confidence: verified
+    applies_to: [SprayProfile, SprinklerDevice]
+    title: "분무 유량 키 조합 규칙(FDS 6.10.1)"
+    title_en: "FDS 6.10.1 spray flow-key combinations"
+    condition: "K_FACTOR 만 또는 OPERATING_PRESSURE 만(ERROR 238), MASS_FLOW_RATE 에 PARTICLE_VELOCITY 없음(ERROR 237), 같은 SPRAY_ANGLE 두 값(ERROR 231), DIAMETER 없는 물방울(ERROR 214), 잘못된 EVAP_MODEL(ERROR 224), 감열 헤드에 ACTIVATION_TEMPERATURE 없음(ERROR 934), ADHERE_TO_SOLID 논리값(정수 1/−1 이어야 함, ERROR 101), DRAG_COEFFICIENT + DRAG_LAW SPHERE/CYLINDER(ERROR 219)."
+    check: {tools: [validate_project], how: "분무 프로파일 도구는 잘못된 조합을 적용 전에 거절합니다."}
+    fix: {tools: [spr_upsert_spray_profile, spr_set_head_spray]}
+
+  - id: SPR-013
+    domain: sprinkler
+    severity: warning
+    confidence: verified
+    applies_to: [SprayProfile]
+    title: "분무 품질 경고"
+    title_en: "Spray quality warnings"
+    condition: "PARTICLES_PER_SECOND < 1000(비물리 증발·불안정), AGE < 600 s(벽 수막 냉각 조기 소멸), 다분산에 KILL_DIAMETER(6.10.1 이 멈춤), PRESSURE_RAMP 에 PARTICLE_VELOCITY 없음(0 m/s), ORIENTATION 이 위를 향함."
+    fix: {tools: [spr_upsert_spray_profile, spr_set_head_spray]}
+
+  - id: SPR-014
+    domain: sprinkler
+    severity: info
+    confidence: verified
+    applies_to: [SprayProfile]
+    title: "프리셋에서 시작합니다"
+    title_en: "Start from a preset"
+    condition: "분무 키를 처음부터 손으로 다 정해 오류가 잦습니다."
+    fix: {tools: [spr_upsert_spray_profile, spr_list_summary], how: "표준(std_pendant_k80 …), 조기반응(qr-*), ESFR(esfr-k200/k240/k360), 주거(res-k80), 미분무(mist-low-12bar, mist-mid-21bar, mist-high-70/100bar). spr_list_summary(include_presets=true)."}
+
+  - id: SPR-015
+    domain: sprinkler
+    severity: info
+    confidence: verified
+    applies_to: [SprinklerDevice]
+    title: "상향형 헤드도 아래로 분사합니다"
+    title_en: "Upright heads also spray downward"
+    condition: "upright 를 골라 물이 위로 간다고 가정했습니다. 차이는 Smokeview 표시뿐입니다. 측벽형은 orientation 을 수평으로 줍니다."
+    fix: {tools: [add_sprinkler, spr_set_head_spray]}
+
+  - id: SPR-016
+    domain: sprinkler
+    severity: warning
+    confidence: verified
+    applies_to: [PipeNetwork, Pipe, WaterSource]
+    title: "spr_auto_layout 은 배치·연결만 하고 관경과 수원은 설계하지 않습니다"
+    title_en: "spr_auto_layout does not size pipes or the water source"
+    condition: "자동 배치 결과(기본 관경, 기본 시수 0.5 MPa 정압 / 0.3 MPa 잔압 @ 1,000 L/min)를 그대로 계산해 유속 초과·요구압 미달·관 압력 등급 초과가 나왔는데 그대로 보고했습니다."
+    fix: {tools: [spr_design_review, spr_update_pipe, spr_update_water_source, spr_run_calc], how: "검토의 velocity_fail·velocity_warn 관(where 목록)을 spr_update_pipe(diameter) 로 키우고, 수원을 실제 조건으로 바꾼 뒤 다시 계산합니다. 오류가 0 이 될 때까지 반복합니다."}
+
+  - id: SPR-017
+    domain: sprinkler
+    severity: warning
+    confidence: regulatory_verify
+    applies_to: [DesignScenario, Nozzle]
+    title: "폐쇄형 습식 설비는 설계 개방 헤드 수(기준개수·설계면적)로 계산합니다"
+    title_en: "Wet closed-head systems are calculated for the design number of open heads"
+    condition: "'all' 시나리오(폐쇄형 헤드 전부 개방)로 펌프를 정해 과대 설계가 되었습니다. 국내 기준은 용도별 기준개수(예: 10·20·30개 — 원문 확인), NFPA 13 은 설계면적·밀도 방식입니다."
+    fix: {tools: [spr_set_nozzles, spr_set_defaults, spr_run_calc], how: "수리적으로 가장 먼 기준개수 헤드에 같은 구역(setZone='DA')을 주고 operation='zone_deluge' 로 그 구역 시나리오를 설계 기준으로 봅니다('all' 은 참고). 또는 나머지 헤드를 disabled=true 로 둡니다. 어떤 방식을 썼는지 보고서에 적습니다."}
+
+  - id: SPR-018
+    domain: sprinkler
+    severity: warning
+    confidence: guidance
+    applies_to: [Fire, SprinklerDevice]
+    title: "HRRPUA 로 정한 화원은 물이 닿아도 저절로 줄지 않습니다"
+    title_en: "A prescribed-HRRPUA fire is not reduced by water by itself"
+    condition: "스프링클러 작동 뒤 HRR 감소를 기대했지만 화원은 정해진 HRRPUA·램프대로 탑니다. FDS 에서 물의 소화 효과를 넣으려면 화원 면에 E_COEFFICIENT 가 필요합니다(GPU 엔진 지원)."
+    fix: {tools: [set_fds_properties], how: "장애물 화원이면 fds_override={ext_coeff: …}(덱 E_COEFFICIENT). 값은 연소물·실험 근거로 정하고, 근거가 없으면 '작동 후 HRR 고정(제어)' 같은 설계 화재 가정을 사용자와 정해 램프로 표현합니다."}
+
+  - id: SPR-020
+    domain: sprinkler
+    severity: warning
+    confidence: verified
+    applies_to: [PipeNetwork, SprinklerDevice]
+    title: "FDS 에 들어갈 헤드는 spr_apply_to_fds 로 반영합니다"
+    title_en: "Apply network heads to FDS with spr_apply_to_fds"
+    condition: "배관망을 계산하고도 FDS 덱에 헤드가 없거나, add_sprinkler 로 같은 자리에 또 만들어 이중 헤드가 생겼습니다."
+    fix: {tools: [spr_apply_to_fds, list_devices], how: "배관망 헤드는 spr_apply_to_fds 한 경로로만. 배관망 없이 FDS 헤드만 필요하면 add_sprinkler."}
+
+  - id: SPR-021
+    domain: sprinkler
+    severity: info
+    confidence: verified
+    applies_to: [Pipe]
+    title: "라인 번호를 넣어 결과를 라인별로 묶습니다"
+    title_en: "Set line numbers to group results"
+    condition: "도면 라인 번호를 넣지 않아 결과표·검토가 관마다 흩어집니다. 라인 이름의 '40A' 같은 관경과 실제 관경이 다르면 검토가 알려 줍니다(line_name_size)."
+    fix: {tools: [spr_set_pipes, spr_update_pipe]}
+
+  - id: SPR-022
+    domain: sprinkler
+    severity: warning
+    confidence: verified
+    applies_to: [DelugeZone, Valve]
+    title: "일제살수 구역에는 구역 노즐과 구역 밸브를 짝지어 둡니다"
+    title_en: "Pair deluge zones with zone valves"
+    condition: "zone_deluge 운전인데 구역이 없거나(zone_mode_no_zones), 구역 밖 노즐(unzoned_heads), 노즐 없는 구역 밸브(zone_valve_no_heads), 밸브 없는 구역(zone_no_valve)이 있습니다."
+    fix: {tools: [spr_set_nozzles, spr_set_valves, spr_set_defaults], how: "spr_set_nozzles(lineNo=…, setZone='Z1'), spr_set_valves(tag=…, setZone='Z1'), spr_set_defaults(operation='zone_deluge')."}
+
+  - id: SPR-023
+    domain: sprinkler
+    severity: warning
+    confidence: verified
+    applies_to: [Drain]
+    title: "드레인은 항상 열려 유량을 빼앗습니다"
+    title_en: "Drains are always open and take flow"
+    condition: "도면의 열린 끝을 드레인으로 넣어 지배 시나리오 유량의 10 % 이상이 드레인으로 빠집니다(drains_open)."
+    fix: {tools: [spr_set_nozzles, spr_add_drain], how: "운전 중 닫히는 드레인 밸브면 disabled=true. 구멍 지름이 있으면 orificeDiameterMm(Cd 0.62)로 K 를 정합니다."}
+
+  - id: SPR-024
+    domain: sprinkler
+    severity: info
+    confidence: verified
+    applies_to: [Nozzle]
+    title: "노즐 종류: closed(폐쇄형), open(개방형), drain"
+    title_en: "Nozzle kinds"
+    condition: "물분무·일제살수 노즐을 closed 로 두어 설계 계산에서 빠졌습니다(includeClosedHeads=false 일 때) 또는 감열 개방 헤드를 open 으로 두었습니다."
+    fix: {tools: [spr_set_nozzles], how: "물분무 ISO 의 노즐은 보통 open, 건물 스프링클러는 closed."}
+
+  - id: SPR-025
+    domain: sprinkler
+    severity: warning
+    confidence: verified
+    applies_to: [Nozzle]
+    title: "노즐 요구 방사압을 노즐 자료에서 넣습니다"
+    title_en: "Enter each nozzle's required pressure from its datasheet"
+    condition: "요구압을 비워 설계 기본값(0.1 MPa)으로 계산했습니다(required_default 정보). 물분무 노즐은 보통 더 높은 압력을 요구합니다."
+    fix: {tools: [spr_set_nozzles, spr_set_defaults], how: "노즐 사양서의 최소 압력을 requiredPressure(MPa)로 넣고, 최고 사용압(maxNozzlePressureMPa, 기본 1.2)도 제조사 값으로 검토합니다."}
+
+  - id: SPR-026
+    domain: sprinkler
+    severity: info
+    confidence: verified
+    applies_to: [DesignScenario]
+    title: "설계점은 수원압력 역산 결과를 봅니다"
+    title_en: "Read the inverse (required source pressure) result for design"
+    condition: "실제 수원 조건(supply) 결과만 보고 설계 판단을 했습니다."
+    fix: {tools: [spr_get_results], how: "spr_get_results(detail='zones', at='design') — 구역마다 필요 수원 압력·지배 노즐. 지배 시나리오가 펌프 사양의 기준입니다."}
+
+  - id: SPR-030
+    domain: sprinkler
+    severity: warning
+    confidence: regulatory_verify
+    applies_to: [PumpSpec, WaterSource]
+    title: "펌프 성능곡선 조건(NFPA 20 / 국내 화재안전기술기준)"
+    title_en: "Pump curve conditions"
+    condition: "체절(유량 0) 압력이 정격의 140 % 초과이거나, 정격 유량 150 % 에서 압력이 정격의 65 % 미만입니다(pump_curve_churn / pump_curve_150). 곡선 점이 없으면 150 % 판정은 가정이라 '확인 필요'로 나옵니다."
+    fix: {tools: [spr_pump_sizing], how: "mode='check_curve' 로 제조사 곡선을 대조하고, 없으면 제조사 곡선을 받아 넣습니다."}
+
+  - id: SPR-031
+    domain: sprinkler
+    severity: info
+    confidence: verified
+    applies_to: [PumpSpec]
+    title: "펌프 사양은 설계 계산 뒤에 정합니다"
+    title_en: "Size the pump after the design calculation"
+    condition: "설계 계산 없이 펌프 정격을 짐작했습니다."
+    fix: {tools: [spr_run_calc, spr_pump_sizing], how: "spr_run_calc(mode='design') → spr_pump_sizing(mode='from_design', fluid='sea'(해수일 때), staticLiftM, pumpPipe, suctionHeadM, pressureMarginPct) → 제안을 쓰려면 apply=true 후 spr_run_calc."}
+
+  - id: SPR-032
+    domain: sprinkler
+    severity: warning
+    confidence: verified
+    applies_to: [PumpSpec]
+    title: "해수 계통은 fluid='sea'"
+    title_en: "Use fluid='sea' for sea-water systems"
+    condition: "선박 해수 펌프를 청수 밀도로 산정했습니다(정수두 2.5 % 차이)."
+    fix: {tools: [spr_pump_sizing]}
+
+  - id: SPR-040
+    domain: sprinkler
+    severity: error
+    confidence: verified
+    applies_to: [ReviewFinding]
+    title: "보고·내보내기 전에 설계·사양 검토의 오류를 0 으로 만듭니다"
+    title_en: "Clear design-review errors before reporting"
+    condition: "spr_design_review 에 error 가 남아 있습니다(예: pipe_rating_exceeded, valve_rating_exceeded, velocity_fail, nozzle_below_required, disconnected)."
+    fix: {tools: [spr_design_review], how: "code 별로 걸러(code=…) 하나씩 고치고 다시 검토합니다. 경고는 사유를 보고서에 적습니다."}
+
+  - id: SPR-041
+    domain: sprinkler
+    severity: info
+    confidence: verified
+    applies_to: [ExportBundle]
+    title: "FHC 형식 내보내기는 '형식'이지 FHC 프로그램 파일 가져오기가 아닙니다"
+    title_en: "FHC-style export is not an importer for FHC program files"
+    condition: "spr_import_fhc_bundle 로 FHC(Canute) 프로그램이 저장한 파일을 읽으려 했습니다."
+    fix: {tools: [spr_export_results, spr_import_fhc_bundle], how: "spr_import_fhc_bundle 은 BULC 가 내보낸 묶음(<name>_bulc_model.csv 포함)만 되읽습니다. fhcDraft=true 로 만든 .FHC/.PDT 초안은 FHC 에서 확인 후 씁니다."}
+
+  - id: SPR-042
+    domain: sprinkler
+    severity: info
+    confidence: verified
+    applies_to: [ExportBundle]
+    title: "내보낸 묶음은 check 모드로 왕복 검증합니다"
+    title_en: "Round-trip check exported bundles"
+    condition: "내보낸 계산서가 현재 망과 같은지 확인하지 않았습니다."
+    fix: {tools: [spr_import_fhc_bundle], how: "mode='check'(기본, 아무것도 바꾸지 않음)로 필드·결과를 비교합니다."}
+
+  - id: SPR-050
+    domain: sprinkler
+    severity: warning
+    confidence: regulatory_verify
+    applies_to: [Pipe, Nozzle, PipeResults]
+    title: "국내 스프링클러 기준 힌트(NFTC 103)"
+    title_en: "Korean sprinkler code hints (NFTC 103)"
+    condition: "다음 대표 기준을 벗어났습니다 — 헤드 방수압 0.1 MPa 이상 1.2 MPa 이하, 표준형 헤드 방수량 80 L/min 이상, 급수배관 유속 가지배관 6 m/s·그 밖 10 m/s 이하(BULC 기본 유속 경고 6·오류 10 m/s), 사용압력 1.2 MPa 이상이면 압력배관용 탄소강관 등 사용."
+    fix: {tools: [spr_design_review, spr_set_defaults], how: "적용 시점의 NFTC 103 원문과 발주처 기준으로 값을 확인하고 velocityWarn/velocityFail, maxNozzlePressureMPa 를 맞춥니다."}
+
+  - id: SPR-051
+    domain: sprinkler
+    severity: info
+    confidence: regulatory_verify
+    applies_to: [Nozzle]
+    title: "헤드 배치 수평거리 힌트(NFTC 103)"
+    title_en: "Head spacing hints (NFTC 103)"
+    condition: "헤드 수평거리를 용도와 무관하게 정했습니다. 대표값: 무대부·특수가연물 1.7 m, 일반 건물 2.1 m, 내화구조 2.3 m, 랙식 창고 2.5 m, 공동주택 세대 2.6 m(개정 이력이 있으므로 확인). BULC 자동 배치 기본 r = 2.3 m, 정방형 간격 = r√2."
+    fix: {tools: [spr_auto_layout], how: "spacingX/spacingY 를 r√2 이하로 줍니다. 헤드 사이 최소 1.8 m(살수 간섭 방지)."}
+
+  - id: SPR-052
+    domain: sprinkler
+    severity: info
+    confidence: regulatory_verify
+    applies_to: [Nozzle, SprinklerDevice]
+    title: "NFPA 13 배치 힌트"
+    title_en: "NFPA 13 placement hints"
+    condition: "표준 살수형 헤드 사이 1.8 m(6 ft) 미만, 반사판이 평천장 아래 25–300 mm 범위를 벗어남, 벽에서 최대 간격의 절반을 넘음."
+    fix: {how: "해당 판의 NFPA 13 과 헤드 등재(listing) 조건으로 확인합니다. FDS 모델에서는 헤드를 천장 아래 기체 셀에 둡니다(DEVC-001)."}
+
+  - id: SPR-053
+    domain: sprinkler
+    severity: info
+    confidence: regulatory_verify
+    applies_to: [DelugeZone, Nozzle]
+    title: "선박 물분무 힌트(IGC Code·SOLAS/FSS)"
+    title_en: "Marine water-spray hints"
+    condition: "물분무 설계 밀도·구역 동시 운전 조건을 확인하지 않았습니다. 예: 액화가스 운반선(IGC Code 11.3) 수평 투영면 10 L/(min·m²), 수직면 4 L/(min·m²); 차량·로로 구역 고정식 물분무는 MSC.1/Circ.1430 등 해당 판의 밀도·구역 규정."
+    fix: {how: "적용 협약 판·선급 규칙·선주 사양서로 값을 확정하고, 노즐 요구압 = (Q_필요 / K)² / 10 MPa 로 환산해 spr_set_nozzles 에 넣습니다. 펌프는 가장 불리한(지배) 구역 기준입니다."}
+
+  - id: SPR-054
+    domain: sprinkler
+    severity: info
+    confidence: verified
+    applies_to: [Pipe, Valve]
+    title: "관·밸브 압력 등급 검토 기준"
+    title_en: "Pipe and valve pressure-rating basis"
+    condition: "압력 등급을 확인하지 않았습니다. 검토는 운전점 압력과 무유량(체절·정압) 압력 + 정수두의 최댓값으로 봅니다. 대표 등급: KS D 3507·KS D 3576 1.2 MPa(NFTC 103), SGP 1.0 MPa(관례), 플랜지 JIS 5K 0.7 · 10K 1.4 · 16K 2.2 · 20K 3.4 MPa, EN PNxx = xx/10 MPa, ASME Class 150 1.96 MPa(38 °C). 그 밖 강관은 ASME B31.1 두께 식(부식 여유 탄소강 기본 1.0 mm)."
+    fix: {tools: [spr_design_review], how: "등급 표기가 없는 밸브·플랜지는 defaultFlangeClass 로 지정해 검토합니다. 선급·사양서 값이 우선입니다."}
+
+  # ═════════════════════════ ASET / RSET ═════════════════════════
+  - id: ASET-001
+    domain: aset
+    severity: warning
+    confidence: convention
+    applies_to: [AsetCriteria]
+    title: "판정 높이는 층 바닥 + 1.8 m(호흡한계선)입니다"
+    title_en: "Assess at floor + 1.8 m"
+    condition: "영역 바닥 기준 1.8 m 만 보거나 천장 근처 값으로 판정했습니다."
+    fix: {tools: [output_add_tenability_slices, add_slcf, add_device, fire_compute_aset], how: "층마다 zMin + 1.8. output_add_tenability_slices 가 모든 층에 판정 슬라이스 5종을 한 번에 넣습니다. fire_compute_aset 의 points[].floorZ(또는 story)로 판정점의 층 바닥을 줍니다. 출구 앞·피난 경로 위 지점에 장치도 둡니다."}
+
+  - id: ASET-002
+    domain: aset
+    severity: warning
+    confidence: regulatory_verify
+    applies_to: [AsetCriteria]
+    title: "국내 성능위주설계 인명안전 기준 힌트"
+    title_en: "Korean performance-based design life-safety criteria (hints)"
+    condition: "다음 기준을 확인하지 않고 판정했습니다 — 호흡한계선 바닥 + 1.8 m, 온도 60 °C 이하, 가시거리 5 m 이상(집회·판매시설은 10 m, 고휘도·바닥 유도등·축광 유도표지 설치 시 7 m 적용 가능으로 알려져 있음 — 원문 확인), CO 1,400 ppm 이하, O₂ 15 % 이상, CO₂ 5 % 이하."
+    fix: {how: "소방청 「소방시설 등의 성능위주설계 방법 및 기준」 적용 시점 원문과 심의 요구로 값을 확정하고, 바꾼 기준을 보고서에 적습니다. 앱 ASET 보고서 기본값은 60 °C / 5 m / 1,400 ppm / 15 % / 5 % / 1.8 m 입니다."}
+
+  - id: ASET-003
+    domain: aset
+    severity: info
+    confidence: verified
+    applies_to: [AsetCriteria, FedCoupling]
+    title: "가시거리는 피난 가능성(ASET) 기준이지 무력화 기준이 아닙니다"
+    title_en: "Visibility is an ASET criterion, not an incapacitation criterion"
+    condition: "FED 연계 판정에 가시거리 5 m 를 켜서 연기 속 피난자가 그 자리에 멈춥니다. 앱 기본은 FED 1.0·온도 60 °C·CO 1,400 ppm 만 켜고 가시거리·O₂·CO₂ 는 끕니다."
+    fix: {how: "가시거리 판정은 ASET 보고서에서 하고, FED 연계에는 무력화 기준만 둡니다."}
+
+  - id: ASET-004
+    domain: aset
+    severity: warning
+    confidence: verified
+    applies_to: [AsetResult]
+    title: "ASET 은 판정 수량의 슬라이스·Plot3D 가 있어야 계산됩니다 — 실행 전에 출력부터 넣습니다"
+    title_en: "ASET needs slices or Plot3D of every criterion quantity — add the outputs before the run"
+    condition: "판정 수량 자료가 없어 그 기준이 '자료 없음'으로 빠졌습니다. 앱 결과 뷰어의 ASET 보고서는 Plot3D → 슬라이스 → 장치 CSV 순으로, fire_compute_aset 은 수평 슬라이스(우선) → Plot3D 순으로 자료를 찾습니다. 해석 끝까지 기준을 넘지 않으면 ASET 은 'T_END 이상'(하한)입니다."
+    check: {tools: [results_detect, fire_compute_aset], how: "fire_compute_aset 결과의 missing(빠진 수량)과 lowerBound(하한) 표시를 봅니다."}
+    fix: {tools: [output_add_tenability_slices, set_plot3d_outputs, add_slcf, add_device, fire_compute_aset], how: "실행 전에 output_add_tenability_slices(1.8 m 온도·가시거리·O₂·CO₂·CO)를 넣고, 필요하면 OUT-004 Plot3D 5칸도 둡니다. 해석이 끝난 뒤 fire_compute_aset 으로 출구별 ASET·지배 기준을 읽습니다. 자료가 빠졌으면 출력을 더해 다시 실행해야 하며, 값을 지어내지 않습니다(GEN-010)."}
+
+  - id: ASET-005
+    domain: aset
+    severity: info
+    confidence: convention
+    applies_to: [RsetEstimate]
+    title: "RSET = 감지 + 경보 + 피난 개시 지연 + 이동 + 안전율"
+    title_en: "RSET composition"
+    condition: "이동 시간만으로 RSET 을 판정했습니다. 앱 보고서 기본값(가정): 감지 30 s, 경보 3 s, 피난 개시 지연 60 s, 이동 120 s, 안전율 15 %."
+    fix: {tools: [fire_results_summary, evac_get_results, fire_compute_aset], how: "감지 시각은 fire_results_summary 의 감지기 작동 시각, 이동 시간은 evac_get_results 의 마지막 탈출 시각(RSET 이동분)을 쓰고, 개시 지연은 용도·기준 문헌 값을 근거와 함께 넣습니다. 판정: 출구별 fire_compute_aset 의 ASET > RSET."}
+
+  - id: ASET-006
+    domain: aset
+    severity: info
+    confidence: regulatory_verify
+    applies_to: [HvacNetwork]
+    title: "국내 제연설비 기준 힌트(NFTC 501 / 501A)"
+    title_en: "Korean smoke-control code hints"
+    condition: "제연 풍량·풍속을 근거 없이 정했습니다. 대표값(원문 확인): 바닥면적 400 m² 미만 거실 배출량 1 m³/(min·m²) 이상·최저 5,000 m³/h, 공기 유입 풍속 5 m/s 이하, 배출기 흡입측 풍도 15 m/s·배출측 20 m/s 이하. 부속실 제연(501A): 차압 40 Pa 이상(스프링클러 설치 시 12.5 Pa), 문 개방력 110 N 이하, 방연풍속 0.5–0.7 m/s."
+    fix: {how: "원문과 설계 조건으로 확정한 뒤 CFM 으로 바꿔(HVAC-001) 넣습니다."}
+
+  # ═════════════════════════ DRAWINGS ═════════════════════════
+  - id: DRW-001
+    domain: drawing
+    severity: error
+    confidence: guidance
+    applies_to: [Drawing]
+    title: "도면 단위와 축척을 먼저 확정합니다"
+    title_en: "Fix drawing units and scale first"
+    condition: "DXF/DWG 단위(대부분 mm)나 PDF·이미지 축척을 확인하지 않고 좌표를 옮겼습니다."
+    fix: {how: "치수선 하나(예: 기둥 간격 8,400)를 실제 거리와 대조해 축척을 정하고 사용자에게 확인받습니다. 배관 ISO 는 spr_analyze_drawing 이 DIMENSION 으로 축척을 잡고, 없으면 options.scaleMmPerUnit 을 줍니다."}
+
+  - id: DRW-002
+    domain: drawing
+    severity: warning
+    confidence: guidance
+    applies_to: [Drawing]
+    title: "기준점과 축 방향을 정해 기록합니다"
+    title_en: "Choose and record a datum and axis directions"
+    condition: "도면 원점이 수 km 떨어진 좌표(측량 좌표)라 모델이 영역 밖으로 갑니다."
+    fix: {how: "도면의 한 점을 (0,0) 으로 옮기는 오프셋을 정하고 모든 좌표에 같은 오프셋을 씁니다. 회전된 도면은 주축이 x 축에 오도록 회전 각도를 정합니다."}
+
+  - id: DRW-003
+    domain: drawing
+    severity: warning
+    confidence: convention
+    applies_to: [Drawing]
+    title: "읽어 낸 값은 표로 만들어 사용자 확인을 받은 뒤 입력합니다"
+    title_en: "Tabulate extracted data and confirm before building"
+    condition: "도면을 읽자마자 수백 개 객체를 만들고 나서 축척 오류를 발견했습니다."
+    fix: {how: "층·실·벽 끝점·문 폭·천장고(또는 배관 라인·관경·노즐 수)를 표로 요약해 확인받고, 작은 부분을 먼저 만들어 preview_fds/list_obstacles 로 검증한 뒤 나머지를 만듭니다."}
+
+  - id: DRW-004
+    domain: drawing
+    severity: info
+    confidence: verified
+    applies_to: [ArchitecturalPlan]
+    title: "건축 평면도는 arch_analyze_drawing → 확인 → arch_import_building 순서입니다"
+    title_en: "Floor plans: arch_analyze_drawing → confirm → arch_import_building"
+    condition: "배관용 spr_analyze_drawing 으로 건축 평면을 읽으려 했거나, 분석 요약(단위·축척 근거·질문)을 확인하지 않고 dryRun:false 로 바로 만들었습니다. 또는 그림·윤곽선 PDF 처럼 needsVision 인 도면에서 좌표를 지어냈습니다. arch_import_building 의 building.doors/windows[].wall 은 1 부터 셉니다(wall: 0 은 빠짐). 0.88 이하 앱에는 arch_* 가 없습니다."
+    check: {tools: [arch_analyze_drawing, list_obstacles, capture_view], how: "분석 요약의 units(근거·신뢰도), walls·doors·windows 수, questions 를 봅니다. 가져온 뒤 list_obstacles 와 capture_view {view: '2d'} 로 확인합니다."}
+    fix: {tools: [arch_analyze_drawing, arch_import_building, arch_import_floorplan_report, project_undo, add_wall], how: "arch_analyze_drawing {filePath(절대 경로)} → 질문(단위·층·원점·출구 문)을 사용자에게 확인 → arch_import_building {candidateId, story} 기본 dryRun 으로 개수·크기·suggestedMesh 를 보여 주고 → 동의하면 dryRun:false(되돌리기 1단계: project_undo). 축척이 틀리면 options.scaleMmPerUnit 으로 다시 분석합니다. needsVision 이면 그림을 직접 읽어 arch_import_floorplan_report(정규화 좌표 + building_width_m)로 넣습니다. 구버전 앱: bulc_drawing_intake extract_geometry 로 벽 후보를 표로 확인한 뒤 add_wall 로 입력합니다(DRW-003)."}
+
+  - id: DRW-005
+    domain: drawing
+    severity: warning
+    confidence: guidance
+    applies_to: [ArchitecturalPlan]
+    title: "건축 도면에서 해석에 필요한 것만 옮깁니다"
+    title_en: "Transfer only what the analysis needs"
+    condition: "가구 선·치수선·해치·마감선까지 벽으로 옮겨 계산 격자를 어지럽혔습니다."
+    fix: {how: "구조벽·칸막이·문·창·계단·샤프트·천장고·층고만 옮깁니다. 셀보다 작은 디테일은 생략합니다(GEO-003)."}
+
+  - id: DRW-006
+    domain: drawing
+    severity: info
+    confidence: verified
+    applies_to: [PipingIsometric, SprinklerPlan]
+    title: "배관 도면은 spr_analyze_drawing → 확인 → spr_import_network 순서입니다"
+    title_en: "Piping drawings: analyze, confirm, import"
+    condition: "분석 요약(열린 끝, 참조선, 모호한 항목)을 확인하지 않고 바로 가져왔습니다."
+    fix: {tools: [spr_analyze_drawing, spr_import_network], how: "요약의 ambiguities 를 사용자에게 묻고, 제외할 세그먼트·라인·구성요소를 정한 뒤 dryRun=true 로 먼저 점검하고 가져옵니다."}
+
+  - id: DRW-007
+    domain: drawing
+    severity: warning
+    confidence: verified
+    applies_to: [PipingIsometric, DrawingCandidate]
+    title: "점선·다른 계통 선은 참조선이므로 제외합니다"
+    title_en: "Exclude reference (dashed / other-system) lines"
+    condition: "분석 결과의 reference 라벨(점선, 다른 계통)·에어 블로·드레인 라인을 본 계통으로 가져왔습니다."
+    fix: {tools: [spr_import_network], how: "excludeSegments / excludeLines / excludeRuns / components 로 걸러 냅니다."}
+
+  - id: DRW-008
+    domain: drawing
+    severity: warning
+    confidence: verified
+    applies_to: [PipingIsometric, ArchitecturalPlan]
+    title: "윤곽선 글자 PDF 는 이미지로 읽어야 합니다"
+    title_en: "Outlined-text PDFs need vision"
+    condition: "spr_analyze_drawing 또는 arch_analyze_drawing 결과가 needsVision 입니다(글자가 벡터 윤곽이라 텍스트로 안 읽히거나, 그림 파일)."
+    fix: {tools: [spr_import_network, arch_import_floorplan_report], how: "배관: 페이지 이미지를 직접 보고 라인 번호·관경·태그를 읽어 손으로 쓴 network 페이로드(spr_import_network network=…)로 넣거나, 분석 결과에 보완값(nozzleOverrides, zoneByLine)을 줍니다. 건축 평면: 그림에서 벽 중심선·문·창을 0~1 정규화 좌표로 읽어 arch_import_floorplan_report 로 넣고, 건물 실제 폭(building_width_m)은 사용자에게 확인받습니다(DRW-001)."}
+
+  - id: DRW-009
+    domain: drawing
+    severity: info
+    confidence: verified
+    applies_to: [DrawingCandidate]
+    title: "가져오기는 기본이 append 입니다"
+    title_en: "Import appends by default"
+    condition: "같은 도면을 두 번 가져와 배관망이 이중이 되었습니다."
+    fix: {tools: [spr_import_network], how: "다시 가져올 때는 mode='replace'. scriptPath 로 페이로드 JSON 을 저장해 두면 재현할 수 있습니다."}
+
+  # ═════════════════════════ TROUBLESHOOTING SHORTCUTS ═════════════════════════
+  - id: TRB-001
+    domain: troubleshooting
+    severity: warning
+    confidence: verified
+    applies_to: [Output]
+    title: "결과가 20 °C 초기 상태만 보입니다"
+    title_en: "Results show only the initial 20 °C state"
+    condition: "출력 주기 ≥ T_END(OUT-001), 또는 화원이 타지 않았습니다(TRB-002)."
+    fix: {tools: [validate_project, update_dump_config]}
+
+  - id: TRB-002
+    domain: troubleshooting
+    severity: error
+    confidence: verified
+    applies_to: [Fire]
+    title: "화원이 타지 않습니다"
+    title_en: "The fire does not burn"
+    condition: "화원이 메시 밖(GEO-006), 바닥 OPEN 벤트에 덮임(VENT-002), 화재 프리셋 없는 is_fire_source(FIRE-011), REAC 없음(FIRE-003), 성장이 T_END 대비 너무 느림(FIRE-004/005), 밀폐 영역 산소 고갈(VENT-001)."
+    fix: {tools: [validate_project, preview_fds, list_vents]}
+
+  - id: TRB-003
+    domain: troubleshooting
+    severity: warning
+    confidence: guidance
+    applies_to: [HrrCurve]
+    title: "HRR 이 설계 곡선보다 낮습니다"
+    title_en: "HRR below the design curve"
+    condition: "<CHID>_hrr.csv 의 HRR 이 설계보다 낮습니다 — 산소 부족(개구부·OPEN 부족), 면적이 격자에 맞춰 줄어듦(FIRE-001), 램프 성장 지연, 소화(스프링클러 물) 효과."
+    fix: {how: "개구부·급기 경로를 확인하고, 화원 면 치수를 셀 배수로 맞추고, 소화 효과를 보려면 E_COEFFICIENT·분무 설정을 검토합니다."}
+
+  - id: TRB-004
+    domain: troubleshooting
+    severity: warning
+    confidence: guidance
+    applies_to: [SprinklerDevice]
+    title: "스프링클러가 작동하지 않습니다"
+    title_en: "Sprinklers never activate"
+    condition: "헤드가 고체 셀 안(DEVC-001), 작동 온도·RTI 가 과대, 화원에서 너무 멀거나 T_END 가 짧음, CTRL 연동 헤드인데 CTRL 이 참이 되지 않음, 컷셀 엔진(CTRL 미평가, SIM-009)."
+    fix: {tools: [list_devices, get_object_properties, preview_fds], how: "DEVC 'ACTUATED SPRINKLERS' 장치를 넣어 작동 수를 기록하고 헤드 위치 온도(TEMPERATURE 장치)를 함께 봅니다."}
+
+  - id: TRB-005
+    domain: troubleshooting
+    severity: warning
+    confidence: verified
+    applies_to: [Project]
+    title: "실행 후 결과가 자동으로 열리지 않습니다"
+    title_en: "Results do not auto-load after the run"
+    condition: "덱의 CHID 와 파일 이름이 달라 결과 파일 이름을 못 찾았습니다(GEN-009)."
+    fix: {tools: [set_chid], how: "사용자에게 앱에서 저장해 CHID 를 파일 이름에 맞추게 하거나, 결과 뷰어에서 결과 .smv 를 직접 열게 합니다."}
+
+common_mistakes:
+  - id: LLM-001
+    mistake: "HRR(kW)을 hrrpua 에 그대로 넣음"
+    consequence: "화원 크기가 면적배로 틀어짐"
+    correct: "hrrpua = HRR / 면적, add_fire 응답의 total HRR 확인"
+    rules: [FIRE-001]
+  - id: LLM-002
+    mistake: "도면 mm 좌표를 m 로 변환하지 않음"
+    consequence: "건물이 1,000배 커져 영역 밖으로 사라짐"
+    correct: "× 0.001, 축척 확인 후 입력"
+    rules: [GEN-001, DRW-001]
+  - id: LLM-003
+    mistake: "높이를 y 에, 평면 세로를 z 에 넣음"
+    consequence: "건물이 옆으로 누움"
+    correct: "z = 연직"
+    rules: [GEN-002]
+  - id: LLM-004
+    mistake: "XB 를 [x1,y1,z1,x2,y2,z2] 로 씀"
+    consequence: "엉뚱한 크기·위치의 장애물"
+    correct: "[x1,x2,y1,y2,z1,z2]"
+    rules: [GEN-003]
+  - id: LLM-005
+    mistake: "윗층 벽·장치를 z=0 기준으로 만듦(층 zMin 무시)"
+    consequence: "모든 층이 1층에 겹치고, 앱에서 해당 층을 보면 객체가 '안 보임'"
+    correct: "draw_list_stories 의 zMin 사용"
+    rules: [GEO-002, EVAC-001]
+  - id: LLM-006
+    mistake: "층을 쌓으며 층간 슬래브를 빠뜨림"
+    consequence: "연기가 층 사이로 막힘없이 퍼짐"
+    correct: "윗층마다 add_floor"
+    rules: [GEO-007]
+  - id: LLM-007
+    mistake: "set_all_boundaries_open 을 인자 없이 호출"
+    consequence: "바닥이 열리고 바닥 화원이 사라질 수 있음"
+    correct: "faces 에서 ZMIN 제외"
+    rules: [VENT-002]
+  - id: LLM-008
+    mistake: "두께 0 장애물·셀보다 좁은 문을 만듦"
+    consequence: "의도치 않은 차단·누설, 문이 막힘"
+    correct: "1셀 이상 두께, 문 폭 ≥ 셀 2개"
+    rules: [GEO-003, GEO-005]
+  - id: LLM-009
+    mistake: "없는 도구를 가정(evac_add_exit, 피난 실행, ASET 계산, 건축 도면 인식)"
+    consequence: "호출 실패 또는 거짓 보고"
+    correct: "tools/list 확인, 앱 화면 단계로 안내"
+    rules: [GEN-005, EVAC-004, DRW-004]
+  - id: LLM-010
+    mistake: "배관망·덕트·밸브를 고친 뒤 계산을 다시 돌리지 않음"
+    consequence: "이전 결과로 보고·FDS 반영"
+    correct: "spr_run_calc / hvac_run_calc 다시 실행 후 apply"
+    rules: [SPR-004, HVAC-003]
+  - id: LLM-011
+    mistake: "US K(5.6)를 미터 K 자리에 넣음"
+    consequence: "유량이 1/14 로 과소"
+    correct: "× 14.41"
+    rules: [SPR-010]
+  - id: LLM-012
+    mistake: "MPa 와 bar 혼동"
+    consequence: "요구압·유량 10배 오차"
+    correct: "0.1 MPa = 1 bar"
+    rules: [SPR-011]
+  - id: LLM-013
+    mistake: "m³/h 를 CFM 자리에 넣음"
+    consequence: "풍량 1.7배 과대"
+    correct: "× 0.5886"
+    rules: [HVAC-001]
+  - id: LLM-014
+    mistake: "EVAC floorIndex 에 층 id(1부터)를 넣음"
+    consequence: "피난자가 한 층 위에 놓임"
+    correct: "EVAC/HVAC = 0부터 순번, SPR = 층 id"
+    rules: [EVAC-001]
+  - id: LLM-015
+    mistake: "실내 문·창을 'Door_'/'Window_' 로 만듦"
+    consequence: "실내 문에서 피난 완료 처리, RSET 과소"
+    correct: "창은 다른 접두어, 출구 목록 확인"
+    rules: [EVAC-003]
+  - id: LLM-016
+    mistake: "감지기·헤드를 천장 슬래브 높이에 둠"
+    consequence: "고체 셀이라 작동하지 않음"
+    correct: "천장 아래 기체 셀"
+    rules: [DEVC-001]
+  - id: LLM-017
+    mistake: "출력 주기가 T_END 이상"
+    consequence: "t=0 한 장만 저장"
+    correct: "DT_* < T_END"
+    rules: [OUT-001]
+  - id: LLM-018
+    mistake: "GPU 미지원 SLCF/DEVC 수량을 씀"
+    consequence: "TEMPERATURE 로 대체되거나 0 열"
+    correct: "지원 목록 확인"
+    rules: [OUT-002, DEVC-002]
+  - id: LLM-019
+    mistake: "화원 tmp_front 기본값(300)을 의식하지 않음"
+    consequence: "버너 면이 300 °C 로 고정되어 복사를 냄"
+    correct: "의도가 아니면 tmp_front=20"
+    rules: [FIRE-006]
+  - id: LLM-029
+    mistake: "set_fds_properties 의 fire_faces 에 면 이름 문자열을 넣음"
+    consequence: "−X 면만 타는 화원"
+    correct: "불린 6개 [-X,+X,-Y,+Y,-Z,+Z]"
+    rules: [FIRE-013]
+  - id: LLM-030
+    mistake: "장애물 화원에 ramp_points 만 주고 ramp_id 를 빠뜨림"
+    consequence: "처음부터 최대 HRR"
+    correct: "ramp_id 와 ramp_points 를 함께"
+    rules: [FIRE-014]
+  - id: LLM-031
+    mistake: "자동 배치 배관망을 관경 조정 없이 보고"
+    consequence: "유속·압력 등급 초과, 과대 펌프"
+    correct: "검토 결과로 관경·수원을 고치고 재계산"
+    rules: [SPR-016, SPR-017]
+  - id: LLM-020
+    mistake: "t² 프리셋 기본 시간을 최대 HRR 과 무관하게 씀"
+    consequence: "성장 계수 α 가 의도와 다름"
+    correct: "t_peak = √(Q/α)"
+    rules: [FIRE-004]
+  - id: LLM-021
+    mistake: "validate_project 를 건너뛰고 '완료'라고 보고"
+    consequence: "실행 단계에서 ERROR 314/1020/938 등으로 멈춤"
+    correct: "편집 묶음마다, 저장·실행 전 필수"
+    rules: [GEN-006]
+  - id: LLM-022
+    mistake: "실행하지 않은 결과(온도, ASET)를 지어냄"
+    consequence: "거짓 보고"
+    correct: "지표·결과 파일을 읽은 값만 보고"
+    rules: [GEN-010]
+  - id: LLM-023
+    mistake: "생성 id(배관·HVAC·피난 노드)를 짐작"
+    consequence: "잘못된 노드 연결 또는 실패"
+    correct: "요약 도구로 id 읽기"
+    rules: [GEN-008]
+  - id: LLM-024
+    mistake: "단일 메시 도구로 다중 메시를 덮어씀"
+    consequence: "auto_multimesh 결과가 사라짐"
+    correct: "set_meshes / slice_mesh / merge_meshes"
+    rules: [MESH-004]
+  - id: LLM-025
+    mistake: "HVAC 단말을 기본 0.2 m 그대로 두고 큰 풍량 적용"
+    consequence: "수십 m/s 제트, 수치 불안정"
+    correct: "단말을 실제 크기로 키움"
+    rules: [HVAC-004]
+  - id: LLM-026
+    mistake: "같은 배관 도면을 두 번 가져옴(append)"
+    consequence: "배관망 이중"
+    correct: "mode='replace'"
+    rules: [DRW-009]
+  - id: LLM-027
+    mistake: "배관망 헤드를 add_sprinkler 로도 또 만듦"
+    consequence: "FDS 헤드 이중"
+    correct: "spr_apply_to_fds 한 경로"
+    rules: [SPR-020]
+  - id: LLM-028
+    mistake: "법규 값을 확정 사실처럼 단정"
+    consequence: "개정 기준과 불일치"
+    correct: "regulatory_verify 규칙은 '원문 확인 필요'로 표시"
+    rules: [ASET-002, SPR-050, SPR-053, ASET-006]
+  - id: LLM-032
+    mistake: "사용자가 말하지 않은 화원을 '예시로' 넣음"
+    consequence: "결과 전체가 가정 하나로 정해짐"
+    correct: "화원 위치·크기·성장·연료를 묻고 받은 값으로만 add_fire"
+    rules: [GEN-015, GEN-011]
+  - id: LLM-033
+    mistake: "new_project / save_project / export_fds 같은 다른 서버의 파일 도구 이름을 씀"
+    consequence: "Unknown tool, 또는 앱이 아닌 세션이 저장됨"
+    correct: "project_open / project_save / project_export_fds(구버전 앱은 파일 메뉴 안내), 실행은 sim_preflight → sim_start"
+    rules: [GEN-014, GEN-005]
+  - id: LLM-034
+    mistake: "'앱에 연결할 수 없습니다' 오류 뒤에도 작업이 끝났다고 보고"
+    consequence: "아무것도 바뀌지 않았는데 완료로 보고"
+    correct: "bulc_connection_status 확인 → 사용자에게 앱 실행 요청"
+    rules: [GEN-018, GEN-010]
+  - id: LLM-035
+    mistake: "조건 요약·사용자 확인 없이 바로 sim_start {confirm: true} / run_simulation"
+    consequence: "잘못된 조건으로 GPU 를 오래 점유, 결과 덮어씀"
+    correct: "sim_preflight → 조건 요약 → 확인 → sim_start(시나리오마다 다른 파일 이름)"
+    rules: [GEN-016, GEN-019]
+  - id: LLM-036
+    mistake: "스프링클러 헤드·HVAC 단말 노드를 label 없이 연달아 만듦"
+    consequence: "구버전 앱에서 &DEVC·&OBST ID 중복, 새 앱에서도 읽기 어려운 ID"
+    correct: "spr_add_node / hvac_add_node 마다 겹치지 않는 label(H1, H2 …)"
+    rules: [GEN-021]
+  - id: LLM-037
+    mistake: "evac_run 직후 evac_get_results 를 읽고 RSET 을 보고"
+    consequence: "이전 실행 결과(또는 결과 없음)를 이번 결과로 보고"
+    correct: "evac_status 가 끝났다고 할 때까지 기다린 뒤 evac_get_results"
+    rules: [EVAC-004, GEN-010]
+  - id: LLM-038
+    mistake: "건축 평면을 arch_import_building dryRun:false 로 바로 만들거나 문·창 wall 번호를 0 부터 셈"
+    consequence: "축척·층이 틀린 건물, 말없이 빠진 문"
+    correct: "arch_analyze_drawing → 질문 확인 → dryRun(기본) → 동의 후 dryRun:false, wall 은 1 부터"
+    rules: [DRW-004, DRW-003]

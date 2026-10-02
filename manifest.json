@@ -1,0 +1,88 @@
+{
+  "manifest_version": "0.3",
+  "name": "bulc-building-designer",
+  "display_name": "BULC Building Designer",
+  "version": "4.0.0",
+  "description": "Drive the BULC fire, evacuation, HVAC and sprinkler simulator from Claude — with an ontology, rules and playbooks that keep the model from making modelling mistakes.",
+  "long_description": "Connects Claude to the BULC desktop app running on this PC (127.0.0.1 bridge, found automatically through the app's discovery file) and exposes the app's full tool set: opening and saving projects, architectural floor-plan recognition (walls, doors, windows) and building import, geometry, Shape Studio, meshing, run settings, pre-flight checks, runs and progress, fire result summaries and ASET, outputs, fires, materials, detectors and controls, sprinkler and water-spray networks with hydraulics, pump sizing and design review, HVAC ducts, evacuation runs and results, the result viewer and screenshots.\n\nIt also ships a knowledge pack — a domain ontology, 166 rules (condition → check → fix), 38 common LLM mistakes, six playbooks, a Korean–English–FDS glossary and an FDS 6.10.1 key reference — as resources, prompts and tools, plus local checks that work without the app: plan review (bulc_plan_check), drawing intake for DWG/DXF/PDF/ZIP/IFC files (bulc_drawing_intake), deterministic FDS deck lint (bulc_check_deck) and mesh advice (bulc_mesh_advisor).\n\nRequires the BULC desktop application (licensed, 0.89 or later recommended) to be installed and running. Drawings are read locally; nothing is uploaded by this extension.",
+  "author": {
+    "name": "Meteor Simulation Inc.",
+    "url": "https://www.msimul.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Meteor-Simulation/bulc-mcp"
+  },
+  "homepage": "https://github.com/Meteor-Simulation/bulc-mcp",
+  "documentation": "https://github.com/Meteor-Simulation/bulc-mcp#readme",
+  "support": "https://github.com/Meteor-Simulation/bulc-mcp/issues",
+  "icon": "icon.png",
+  "server": {
+    "type": "node",
+    "entry_point": "build/server.js",
+    "mcp_config": {
+      "command": "node",
+      "args": ["${__dirname}/build/server.js"],
+      "env": {
+        "BULC_BRIDGE_PORT": "${user_config.bridge_port}",
+        "BULC_BRIDGE_TOKEN": "${user_config.bridge_token}"
+      }
+    }
+  },
+  "user_config": {
+    "bridge_port": {
+      "type": "number",
+      "title": "BULC bridge port (fallback)",
+      "description": "Only needed for BULC versions that do not write the bridge discovery file: the port of the bridge the app opens on 127.0.0.1 (the app's BULC_BRIDGE_PORT, default 8787). Newer BULC versions are found automatically.",
+      "default": 8787,
+      "min": 1024,
+      "max": 65535,
+      "required": false
+    },
+    "bridge_token": {
+      "type": "string",
+      "title": "BULC bridge token (optional)",
+      "description": "Only if BULC runs with BULC_BRIDGE_AUTH and this extension cannot read the app's discovery file (BULC/bridge.json): the token from that file.",
+      "sensitive": true,
+      "default": "",
+      "required": false
+    }
+  },
+  "tools": [
+    { "name": "bulc_connection_status", "description": "Check that the BULC app is running and reachable" },
+    { "name": "bulc_knowledge_search", "description": "Search the rules, ontology, playbooks, glossary and FDS key reference" },
+    { "name": "bulc_get_rules", "description": "Rules by domain, severity, class or tool" },
+    { "name": "bulc_plan_check", "description": "Check a planned sequence of tool calls against the rules before acting" },
+    { "name": "bulc_drawing_intake", "description": "Classify a local drawing and return the playbook, questions and tool sequence" },
+    { "name": "bulc_check_deck", "description": "Deterministic FDS 6.10.1 deck check with rule ids" },
+    { "name": "bulc_mesh_advisor", "description": "D*, cell size and FFT-friendly cell counts" },
+    { "name": "project_info", "description": "Read the project open in BULC (file, stories, counts)" },
+    { "name": "project_save", "description": "Save the open project as a .bulc bundle" },
+    { "name": "arch_analyze_drawing", "description": "Recognise walls, doors, windows and rooms in a floor plan" },
+    { "name": "arch_import_building", "description": "Build walls, doors and windows from the recognised plan (dry run first)" },
+    { "name": "spr_analyze_drawing", "description": "Recognise a sprinkler / water-spray piping drawing" },
+    { "name": "spr_import_network", "description": "Create the recognised pipe network" },
+    { "name": "add_fire", "description": "Add a fire source" },
+    { "name": "set_mesh", "description": "Set the computational mesh" },
+    { "name": "sim_preflight", "description": "Structured pre-run check with rule ids" },
+    { "name": "sim_start", "description": "Start the fire simulation after the user agreed" },
+    { "name": "fire_compute_aset", "description": "ASET per exit at breathing height from the results" },
+    { "name": "evac_run", "description": "Run the evacuation simulation after the user agreed" },
+    { "name": "evac_get_results", "description": "Evacuation result summary (RSET, per-exit statistics)" },
+    { "name": "hvac_apply_to_fds", "description": "Apply the HVAC duct network to the FDS model" },
+    { "name": "capture_view", "description": "Screenshot of the BULC window for visual checks" },
+    { "name": "run_simulation", "description": "Guarded run for any BULC version (validates first)" }
+  ],
+  "tools_generated": true,
+  "prompts_generated": true,
+  "keywords": ["fire simulation", "FDS", "CFD", "evacuation", "sprinkler", "water spray", "HVAC", "smoke control", "building", "floor plan", "ontology"],
+  "license": "MIT",
+  "privacy_policies": ["https://github.com/Meteor-Simulation/bulc-mcp/blob/main/PRIVACY_POLICY.md"],
+  "compatibility": {
+    "claude_desktop": ">=0.10.0",
+    "platforms": ["win32", "darwin", "linux"],
+    "runtimes": {
+      "node": ">=20.0.0"
+    }
+  }
+}

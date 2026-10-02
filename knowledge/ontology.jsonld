@@ -1,0 +1,6541 @@
+{
+  "@context": {
+    "@vocab": "urn:bulc:onto:",
+    "bulc": "urn:bulc:onto:",
+    "tool": "urn:bulc:tool:",
+    "rule": "urn:bulc:rule:",
+    "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+    "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+    "schema": "https://schema.org/",
+    "label": {
+      "@id": "rdfs:label",
+      "@container": "@language"
+    },
+    "comment": {
+      "@id": "rdfs:comment",
+      "@language": "ko"
+    },
+    "subClassOf": {
+      "@id": "rdfs:subClassOf",
+      "@type": "@id"
+    },
+    "domainIncludes": {
+      "@id": "schema:domainIncludes",
+      "@type": "@id"
+    },
+    "rangeIncludes": {
+      "@id": "schema:rangeIncludes",
+      "@type": "@id"
+    },
+    "fdsNamelist": {
+      "@id": "bulc:fdsNamelist"
+    },
+    "unit": {
+      "@id": "bulc:unit"
+    },
+    "valueType": {
+      "@id": "bulc:valueType"
+    },
+    "defaultValue": {
+      "@id": "bulc:defaultValue"
+    },
+    "allowedValues": {
+      "@id": "bulc:allowedValues",
+      "@container": "@list"
+    },
+    "note": {
+      "@id": "bulc:note",
+      "@language": "ko"
+    },
+    "area": {
+      "@id": "bulc:area"
+    },
+    "seeRule": {
+      "@id": "bulc:seeRule",
+      "@type": "@id"
+    },
+    "createdBy": {
+      "@id": "bulc:createdBy",
+      "@type": "@id"
+    },
+    "readBy": {
+      "@id": "bulc:readBy",
+      "@type": "@id"
+    },
+    "updatedBy": {
+      "@id": "bulc:updatedBy",
+      "@type": "@id"
+    },
+    "deletedBy": {
+      "@id": "bulc:deletedBy",
+      "@type": "@id"
+    },
+    "checkedBy": {
+      "@id": "bulc:checkedBy",
+      "@type": "@id"
+    },
+    "otherTool": {
+      "@id": "bulc:otherTool",
+      "@type": "@id"
+    }
+  },
+  "@graph": [
+    {
+      "@id": "bulc:",
+      "@type": "schema:DefinedTermSet",
+      "label": {
+        "en": "BULC fire / evacuation / HVAC / sprinkler domain ontology"
+      },
+      "schema:dateModified": "2026-10-02",
+      "bulc:fdsVersion": "6.10.1",
+      "bulc:conventions": "{\"units\": {\"length\": \"m (도면 DXF/DWG 는 보통 mm — 1 mm = 0.001 m)\", \"duct_and_pipe_size\": \"mm (덕트 지름·폭·높이, 배관 호칭경)\", \"time\": \"s\", \"temperature\": \"°C (FDS 덱의 TMPA, TMP_FRONT, ACTIVATION_TEMPERATURE 모두 섭씨). 엔진 실행 지표 Tmax 는 K.\", \"heat_release_rate\": \"kW (HRR), kW/m² (HRRPUA = 단위 면적당 발열량)\", \"heat_flux\": \"kW/m²\", \"mass_flux\": \"kg/(m²·s)\", \"volume_flow_fds\": \"m³/s (FDS VOLUME_FLOW)\", \"volume_flow_hvac_module\": \"CFM (BULC HVAC 모듈 입력). 1 CFM = 0.000471947 m³/s, 1 m³/h = 0.5886 CFM, 1 m³/min = 35.31 CFM\", \"water_flow\": \"L/min\", \"pressure_pipe_network\": \"MPa (배관망 수력계산·요구 방사압·펌프). 0.1 MPa = 1 bar ≈ 10.2 m 수두\", \"pressure_fds_sprinkler\": \"bar (FDS &PROP OPERATING_PRESSURE, add_sprinkler 의 operating_pressure)\", \"pressure_hvac\": \"Pa\", \"k_factor\": \"L/(min·bar^½) (미터계). 미국 gpm/psi^½ 값 × 14.41. Q = K·√P (P 는 bar)\", \"rti\": \"(m·s)^½\", \"droplet_diameter\": \"µm\", \"yields\": \"kg/kg (연료 질량당 생성 질량)\", \"concentrations_aset\": \"CO ppm, O₂·CO₂ 부피 %, 가시거리 m\"}, \"coordinates\": {\"axes\": \"x, y = 평면(도면) 좌표, z = 연직(위가 +). FDS 와 BULC 모두 z-up 입니다.\", \"origin\": \"프로젝트 원점은 사용자가 정합니다. 도면을 옮길 때는 한 기준점(예: 도면 좌하단 기둥 중심)을 (0,0) 으로 정하고 기록합니다.\", \"image_y_flip\": \"이미지(PNG/JPG/PDF 렌더) 픽셀 좌표는 y 가 아래로 증가합니다. 모델 y = (이미지 높이 − 픽셀 y) × 축척.\", \"xb\": \"XB = [x1, x2, y1, y2, z1, z2] (각 축 min, max 쌍). [x1, y1, z1, x2, y2, z2] 순서가 아닙니다.\", \"point\": \"XYZ = [x, y, z]\", \"plane\": \"평면(VENT, 화원 면, 경계면)은 한 축의 min = max 입니다. 예: 바닥 화원 XB=[4,5,4,5,0,0]\", \"faces\": \"면 순서(SURF_ID6) = [-X, +X, -Y, +Y, -Z, +Z]\", \"story_elevation\": \"층 높이 zMin 은 draw_list_stories 로 확인합니다. 기본값: 1F zMin=0, 층고 3.0 m, 층간 슬래브 0.2 m → 2F zMin=3.2 m\"}, \"floor_identifiers\": {\"story_id\": \"draw 층 id (1부터). draw_update_story / draw_remove_story / spr_* 도구의 floorIndex·targetFloorIndex 가 이 id 를 받습니다.\", \"evac_floor_index\": \"피난(EVAC)·HVAC 도구의 floorIndex 는 층을 높이순으로 정렬한 0부터의 순번입니다(1F → 0, 2F → 1).\", \"warning\": \"같은 이름(floorIndex)이 도구마다 다른 뜻입니다 — rules.yaml EVAC-001 참조.\"}, \"ids\": {\"uniqueness\": \"같은 namelist 그룹 안에서 ID 는 유일해야 합니다(OBST, HOLE, VENT, DEVC, CTRL, SLCF, SURF, MATL …).\", \"generated_ids\": \"배관망(spr_*)·HVAC(hvac_*)·피난(evac_*) 노드 id 는 스토어가 만듭니다. 만든 직후 spr_list_summary / hvac_list_summary / evac_list_summary 로 id 를 읽어 다음 호출에 씁니다.\", \"chid\": \"프로젝트를 저장하면 CHID 가 저장 파일 이름으로 바뀝니다(GEN-009).\"}, \"modes\": {\"snapshot\": \"BULC 앱이 실행 중이 아님 — 서버가 내장 도구 목록(스냅샷)만 보여 줍니다. 지식 도구(bulc_knowledge_search, bulc_get_rules, bulc_plan_check, bulc_drawing_intake, bulc_check_deck, bulc_mesh_advisor)는 동작하지만 앱 도구 호출은 '앱을 실행하세요' 오류로 끝납니다. 이 상태에서 편집·실행이 됐다고 말하지 않습니다(GEN-018).\", \"live\": \"실행 중인 BULC 데스크톱 앱에 연결 — 편집이 화면에 바로 반영되고 프로젝트 열기·저장(project_*), 실행(sim_preflight → sim_start → sim_status), 결과 읽기(fire_*, evac_get_results), 화면 캡처(capture_view), result_* 가 동작합니다. 연결 여부·도구 집합은 bulc_connection_status 로 확인합니다. 서버는 앱의 발견 파일(BULC/bridge.json)로 주소·토큰을 찾습니다.\"}, \"app_versions\": {\"note\": \"도구 집합은 앱 버전마다 다릅니다. 실제 기준은 연결된 앱의 tools/list 입니다.\", \"0.89+\": \"project_info/open/save/new/export_fds/undo/redo, get_conventions, fds_apply_text, sim_preflight/start/status/stop/log_tail, results_detect, fire_results_summary/timeseries/compute_aset, output_add_tenability_slices, capture_view, evac_run/status/stop/get_results, arch_analyze_drawing/import_building/import_floorplan_report\", \"0.88 이하\": \"위 도구가 없습니다 — 열기·저장은 앱 파일 메뉴, 실행은 run_simulation(이 서버의 가드), 피난 실행·결과는 앱 EVAC 탭, 건축 평면은 bulc_drawing_intake 의 벽 후보 + add_wall 로 합니다.\"}, \"app_only_actions\": {\"file_menu\": \"BULC 0.89 이상은 project_open / project_save / project_export_fds / project_new 로 앱의 현재 프로젝트를 열고 저장합니다(저장 안 된 변경·덮어쓰기는 사용자 확인 뒤). 그 이전 앱은 사용자가 앱의 파일 메뉴에서 합니다. new_project / open_project / save_project / export_fds 는 다른 서버의 이름입니다(GEN-014).\", \"evacuation_run\": \"피난 실행은 evac_run → evac_status → evac_get_results(0.89+). FED 연계·경보 연동 설정은 앱 EVAC 탭에서 사용자가 켭니다 — 켠 설정은 evac_run 입력에 들어갑니다(EVAC-004).\", \"architectural_drawing\": \"건축 평면 인식은 arch_analyze_drawing → arch_import_building(0.89+), 그림은 arch_import_floorplan_report. 앱 2D 편집기의 CAD 배경 기능은 사용자가 화면에서 쓰는 다른 경로입니다(DRW-004).\"}}"
+    },
+    {
+      "@id": "bulc:Project",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "Project",
+        "ko": "프로젝트"
+      },
+      "comment": "하나의 해석 단위. .bulc 번들(.fds 텍스트 + 피난·배관망·HVAC 상태 JSON)로 저장합니다.",
+      "area": "core",
+      "fdsNamelist": [
+        "&HEAD CHID, TITLE"
+      ],
+      "readBy": [
+        "tool:project_info",
+        "tool:get_project_summary",
+        "tool:get_config_summary",
+        "tool:get_simulation_settings",
+        "tool:preview_fds",
+        "tool:get_conventions"
+      ],
+      "otherTool": [
+        "tool:project_open",
+        "tool:project_save",
+        "tool:project_new",
+        "tool:project_export_fds",
+        "tool:sim_start",
+        "tool:run_simulation",
+        "tool:capture_view"
+      ],
+      "updatedBy": [
+        "tool:set_chid",
+        "tool:fds_apply_text",
+        "tool:project_undo",
+        "tool:project_redo"
+      ],
+      "checkedBy": [
+        "tool:validate_project",
+        "tool:sim_preflight",
+        "tool:bulc_check_deck"
+      ],
+      "seeRule": [
+        "rule:GEN-006",
+        "rule:GEN-009",
+        "rule:GEN-010",
+        "rule:GEN-014",
+        "rule:GEN-016",
+        "rule:GEN-017"
+      ]
+    },
+    {
+      "@id": "bulc:Project.chid",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "chid"
+      },
+      "domainIncludes": "bulc:Project",
+      "valueType": "string",
+      "note": "출력 파일 이름 접두어. 마침표·공백 불가. 저장 시 파일 이름으로 정규화"
+    },
+    {
+      "@id": "bulc:Project.title",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "title"
+      },
+      "domainIncludes": "bulc:Project",
+      "valueType": "string"
+    },
+    {
+      "@id": "bulc:Project.file_path",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "file_path"
+      },
+      "domainIncludes": "bulc:Project",
+      "valueType": "path",
+      "note": ".bulc 또는 .fds 절대 경로"
+    },
+    {
+      "@id": "bulc:Story",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "Story",
+        "ko": "층"
+      },
+      "comment": "건물 층. 2D 편집과 층 단위 표시·배관망 층 판정·피난 층 판정의 기준입니다. FDS 덱에는 층 개념이 없고 z 좌표만 있습니다.",
+      "area": "core",
+      "createdBy": [
+        "tool:draw_add_story"
+      ],
+      "readBy": [
+        "tool:draw_list_stories"
+      ],
+      "updatedBy": [
+        "tool:draw_update_story",
+        "tool:draw_set_wall_params",
+        "tool:draw_set_door_params",
+        "tool:draw_set_window_params"
+      ],
+      "deletedBy": [
+        "tool:draw_remove_story"
+      ],
+      "seeRule": [
+        "rule:GEO-002",
+        "rule:GEO-007",
+        "rule:EVAC-001"
+      ]
+    },
+    {
+      "@id": "bulc:Story.id",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "id"
+      },
+      "domainIncludes": "bulc:Story",
+      "valueType": "integer",
+      "note": "1부터. 1F = 1"
+    },
+    {
+      "@id": "bulc:Story.name",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "name"
+      },
+      "domainIncludes": "bulc:Story",
+      "valueType": "string",
+      "note": "기본 '<id>F'"
+    },
+    {
+      "@id": "bulc:Story.zMin",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "zMin"
+      },
+      "domainIncludes": "bulc:Story",
+      "valueType": "number",
+      "unit": "m",
+      "note": "층 바닥 윗면 높이"
+    },
+    {
+      "@id": "bulc:Story.height",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "height"
+      },
+      "domainIncludes": "bulc:Story",
+      "valueType": "number",
+      "unit": "m",
+      "note": "층고(바닥 윗면 → 천장 아랫면). 기본 3.0"
+    },
+    {
+      "@id": "bulc:Simulation",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "Simulation settings",
+        "ko": "해석 설정"
+      },
+      "comment": "시간·해석 모드·난류 모델·수치 안정·주변 대기·실행 엔진 선택.",
+      "area": "core",
+      "fdsNamelist": [
+        "&TIME",
+        "&MISC",
+        "&RADI",
+        "&PRES",
+        "&COMB"
+      ],
+      "updatedBy": [
+        "tool:set_time",
+        "tool:set_simulation_mode",
+        "tool:set_turbulence_model",
+        "tool:set_numerics",
+        "tool:set_ambient",
+        "tool:set_run_options",
+        "tool:add_raw_namelist",
+        "tool:remove_raw_namelist"
+      ],
+      "readBy": [
+        "tool:get_simulation_settings",
+        "tool:get_numerics",
+        "tool:list_raw_namelists"
+      ],
+      "checkedBy": [
+        "tool:sim_preflight"
+      ],
+      "otherTool": [
+        "tool:sim_start",
+        "tool:sim_stop",
+        "tool:run_simulation",
+        "tool:sim_status",
+        "tool:sim_log_tail",
+        "tool:get_simulation_metrics"
+      ],
+      "seeRule": [
+        "rule:SIM-001",
+        "rule:SIM-002",
+        "rule:SIM-003",
+        "rule:SIM-007",
+        "rule:SIM-009",
+        "rule:FIRE-005",
+        "rule:GEN-016"
+      ]
+    },
+    {
+      "@id": "bulc:Simulation.t_begin",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "t_begin"
+      },
+      "domainIncludes": "bulc:Simulation",
+      "valueType": "number",
+      "unit": "s",
+      "defaultValue": 0
+    },
+    {
+      "@id": "bulc:Simulation.t_end",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "t_end"
+      },
+      "domainIncludes": "bulc:Simulation",
+      "valueType": "number",
+      "unit": "s",
+      "note": "기본 프로젝트 10 s — 실제 해석에서는 반드시 다시 지정"
+    },
+    {
+      "@id": "bulc:Simulation.simulation_mode",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "simulation_mode"
+      },
+      "domainIncludes": "bulc:Simulation",
+      "valueType": "enum",
+      "allowedValues": [
+        "LES",
+        "VLES",
+        "SVLES",
+        "DNS"
+      ],
+      "note": "BULC 는 LES 를 씁니다. FDS 6.10.1 의 미지정 기본값은 VLES"
+    },
+    {
+      "@id": "bulc:Simulation.turbulence_model",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "turbulence_model"
+      },
+      "domainIncludes": "bulc:Simulation",
+      "valueType": "enum",
+      "allowedValues": [
+        "DEARDORFF",
+        "VREMAN",
+        "WALE",
+        "CONSTANT_SMAGORINSKY"
+      ]
+    },
+    {
+      "@id": "bulc:Simulation.dt",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "dt"
+      },
+      "domainIncludes": "bulc:Simulation",
+      "valueType": "number",
+      "unit": "s"
+    },
+    {
+      "@id": "bulc:Simulation.lock_time_step",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "lock_time_step"
+      },
+      "domainIncludes": "bulc:Simulation",
+      "valueType": "boolean",
+      "note": "true 면 dt 필수"
+    },
+    {
+      "@id": "bulc:Simulation.cfl_max",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "cfl_max"
+      },
+      "domainIncludes": "bulc:Simulation",
+      "valueType": "number"
+    },
+    {
+      "@id": "bulc:Simulation.tmpa",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "tmpa"
+      },
+      "domainIncludes": "bulc:Simulation",
+      "valueType": "number",
+      "unit": "°C",
+      "defaultValue": 20
+    },
+    {
+      "@id": "bulc:Simulation.humidity",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "humidity"
+      },
+      "domainIncludes": "bulc:Simulation",
+      "valueType": "number",
+      "unit": "%",
+      "defaultValue": 40
+    },
+    {
+      "@id": "bulc:Simulation.solver_type",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "solver_type"
+      },
+      "domainIncludes": "bulc:Simulation",
+      "valueType": "enum",
+      "allowedValues": [
+        "gpu",
+        "gpu_cutcell",
+        "cpu_openmp"
+      ],
+      "note": "gpu = 기본 GPU 엔진, gpu_cutcell = 컷셀 엔진(베타), cpu_openmp = FDS 6.10.1 CPU"
+    },
+    {
+      "@id": "bulc:Ramp",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "Ramp",
+        "ko": "램프(시간 함수)"
+      },
+      "comment": "시간에 따른 비율 곡선. 화원 HRR 성장, 급배기 기동, 노즐 유량 등에 씁니다.",
+      "area": "core",
+      "fdsNamelist": [
+        "&RAMP ID, T, F"
+      ],
+      "createdBy": [
+        "tool:add_ramp",
+        "tool:add_fire"
+      ],
+      "updatedBy": [
+        "tool:update_ramp"
+      ],
+      "deletedBy": [
+        "tool:remove_ramp"
+      ],
+      "seeRule": [
+        "rule:FIRE-004",
+        "rule:FIRE-008"
+      ]
+    },
+    {
+      "@id": "bulc:Ramp.id",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "id"
+      },
+      "domainIncludes": "bulc:Ramp",
+      "valueType": "string"
+    },
+    {
+      "@id": "bulc:Ramp.points",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "points"
+      },
+      "domainIncludes": "bulc:Ramp",
+      "valueType": "array of [t, f]",
+      "unit": "s, 0–1 비율"
+    },
+    {
+      "@id": "bulc:Mesh",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "Mesh",
+        "ko": "계산 격자"
+      },
+      "comment": "계산 영역과 셀. 단일 메시 또는 정육면체 셀의 다중 메시. 메시 밖의 물체·화원·장치는 계산에서 빠집니다.",
+      "area": "geometry",
+      "fdsNamelist": [
+        "&MESH IJK, XB"
+      ],
+      "createdBy": [
+        "tool:set_mesh",
+        "tool:set_mesh_cell_size",
+        "tool:auto_fit_mesh",
+        "tool:set_meshes",
+        "tool:auto_multimesh",
+        "tool:auto_cutcell_mesh"
+      ],
+      "readBy": [
+        "tool:list_meshes",
+        "tool:get_config_summary"
+      ],
+      "updatedBy": [
+        "tool:slice_mesh",
+        "tool:merge_meshes"
+      ],
+      "checkedBy": [
+        "tool:validate_project",
+        "tool:bulc_mesh_advisor",
+        "tool:bulc_check_deck"
+      ],
+      "seeRule": [
+        "rule:MESH-001",
+        "rule:MESH-002",
+        "rule:MESH-003",
+        "rule:MESH-004",
+        "rule:MESH-005",
+        "rule:MESH-006",
+        "rule:MESH-007",
+        "rule:MESH-008"
+      ]
+    },
+    {
+      "@id": "bulc:Mesh.xb",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "xb"
+      },
+      "domainIncludes": "bulc:Mesh",
+      "valueType": "XB",
+      "unit": "m"
+    },
+    {
+      "@id": "bulc:Mesh.ijk",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "ijk"
+      },
+      "domainIncludes": "bulc:Mesh",
+      "valueType": "[ni, nj, nk]"
+    },
+    {
+      "@id": "bulc:Mesh.cell_size",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "cell_size"
+      },
+      "domainIncludes": "bulc:Mesh",
+      "valueType": "number",
+      "unit": "m",
+      "note": "dx = (x2−x1)/ni. 셀은 정육면체에 가깝게(비 ≤ 2)"
+    },
+    {
+      "@id": "bulc:Obstacle",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "Obstruction",
+        "ko": "장애물(고체)"
+      },
+      "comment": "직육면체 고체. 벽·바닥·천장·가구·기둥이 모두 장애물입니다. 셀 격자에 맞춰 계단 근사됩니다.",
+      "area": "geometry",
+      "fdsNamelist": [
+        "&OBST ID, XB, SURF_ID / SURF_IDS / SURF_ID6"
+      ],
+      "createdBy": [
+        "tool:add_obstacle",
+        "tool:add_wall",
+        "tool:add_floor",
+        "tool:place_furniture",
+        "tool:shape_export_obst"
+      ],
+      "readBy": [
+        "tool:list_obstacles",
+        "tool:get_object_properties"
+      ],
+      "updatedBy": [
+        "tool:update_obstacle",
+        "tool:transform_obstacle",
+        "tool:set_fds_properties",
+        "tool:assign_surface"
+      ],
+      "deletedBy": [
+        "tool:remove_obstacle"
+      ],
+      "seeRule": [
+        "rule:GEO-003",
+        "rule:GEO-005",
+        "rule:GEO-006",
+        "rule:GEN-003"
+      ]
+    },
+    {
+      "@id": "bulc:Obstacle.id",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "id"
+      },
+      "domainIncludes": "bulc:Obstacle",
+      "valueType": "string"
+    },
+    {
+      "@id": "bulc:Obstacle.xb",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "xb"
+      },
+      "domainIncludes": "bulc:Obstacle",
+      "valueType": "XB",
+      "unit": "m"
+    },
+    {
+      "@id": "bulc:Obstacle.surf_ids",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "surf_ids"
+      },
+      "domainIncludes": "bulc:Obstacle",
+      "valueType": "string[]",
+      "note": "1개 = 전 면, 3개 = 윗면/옆면/아랫면, 6개 = 면별"
+    },
+    {
+      "@id": "bulc:Obstacle.is_fire_source",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "is_fire_source"
+      },
+      "domainIncludes": "bulc:Obstacle",
+      "valueType": "boolean"
+    },
+    {
+      "@id": "bulc:Obstacle.fds_override",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "fds_override"
+      },
+      "domainIncludes": "bulc:Obstacle",
+      "valueType": "object",
+      "note": "화원·감지기·스프링클러·HVAC 프리셋 등 런타임 FDS 속성(get_object_properties 로 확인)"
+    },
+    {
+      "@id": "bulc:Wall",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "Wall",
+        "ko": "벽"
+      },
+      "comment": "두 점과 높이·두께로 만드는 장애물. 대각 벽은 경계 상자 하나로 만들어지므로 대각 벽은 짧은 직교 벽 여러 개로 나눕니다.",
+      "subClassOf": "bulc:Obstacle",
+      "area": "geometry",
+      "createdBy": [
+        "tool:add_wall"
+      ],
+      "updatedBy": [
+        "tool:update_obstacle",
+        "tool:transform_obstacle"
+      ],
+      "seeRule": [
+        "rule:GEO-002",
+        "rule:GEO-003",
+        "rule:GEO-014"
+      ]
+    },
+    {
+      "@id": "bulc:Wall.start",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "start"
+      },
+      "domainIncludes": "bulc:Wall",
+      "valueType": "[x, y]",
+      "unit": "m"
+    },
+    {
+      "@id": "bulc:Wall.end",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "end"
+      },
+      "domainIncludes": "bulc:Wall",
+      "valueType": "[x, y]",
+      "unit": "m"
+    },
+    {
+      "@id": "bulc:Wall.height",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "height"
+      },
+      "domainIncludes": "bulc:Wall",
+      "valueType": "number",
+      "unit": "m",
+      "defaultValue": 3.0
+    },
+    {
+      "@id": "bulc:Wall.thickness",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "thickness"
+      },
+      "domainIncludes": "bulc:Wall",
+      "valueType": "number",
+      "unit": "m",
+      "defaultValue": 0.2
+    },
+    {
+      "@id": "bulc:Wall.z_base",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "z_base"
+      },
+      "domainIncludes": "bulc:Wall",
+      "valueType": "number",
+      "unit": "m",
+      "defaultValue": 0,
+      "note": "윗층 벽은 그 층의 zMin"
+    },
+    {
+      "@id": "bulc:Slab",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "Floor / ceiling slab",
+        "ko": "바닥·천장 슬래브"
+      },
+      "comment": "수평 판. add_floor 의 z 는 슬래브 윗면이고 두께만큼 아래로 생깁니다([z−t, z]).",
+      "subClassOf": "bulc:Obstacle",
+      "area": "geometry",
+      "createdBy": [
+        "tool:add_floor"
+      ],
+      "seeRule": [
+        "rule:GEO-001",
+        "rule:GEO-007",
+        "rule:GEO-008"
+      ]
+    },
+    {
+      "@id": "bulc:Slab.z",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "z"
+      },
+      "domainIncludes": "bulc:Slab",
+      "valueType": "number",
+      "unit": "m",
+      "note": "슬래브 윗면"
+    },
+    {
+      "@id": "bulc:Slab.thickness",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "thickness"
+      },
+      "domainIncludes": "bulc:Slab",
+      "valueType": "number",
+      "unit": "m",
+      "defaultValue": 0.2
+    },
+    {
+      "@id": "bulc:Opening",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "Opening",
+        "ko": "개구부"
+      },
+      "comment": "장애물을 뚫는 구멍(HOLE). 문·창·슬래브 개구부·계단 개구부가 모두 여기에 속합니다.",
+      "area": "geometry",
+      "fdsNamelist": [
+        "&HOLE ID, XB"
+      ],
+      "seeRule": [
+        "rule:GEO-004",
+        "rule:GEO-013"
+      ]
+    },
+    {
+      "@id": "bulc:Door",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "Door",
+        "ko": "문"
+      },
+      "comment": "벽을 관통하는 HOLE. 피난 계산은 ID 가 'Door_' 로 시작하는 HOLE 만 통로이자 출구로 봅니다.",
+      "subClassOf": "bulc:Opening",
+      "area": "geometry",
+      "createdBy": [
+        "tool:add_door",
+        "tool:place_furniture",
+        "tool:arch_import_building"
+      ],
+      "updatedBy": [
+        "tool:update_hole"
+      ],
+      "deletedBy": [
+        "tool:remove_hole"
+      ],
+      "seeRule": [
+        "rule:GEO-004",
+        "rule:EVAC-002",
+        "rule:EVAC-003"
+      ]
+    },
+    {
+      "@id": "bulc:Door.id",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "id"
+      },
+      "domainIncludes": "bulc:Door",
+      "valueType": "string",
+      "note": "피난 출구로 쓸 문은 'Door_' 접두어"
+    },
+    {
+      "@id": "bulc:Door.wall_id",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "wall_id"
+      },
+      "domainIncludes": "bulc:Door",
+      "valueType": "string"
+    },
+    {
+      "@id": "bulc:Door.position",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "position"
+      },
+      "domainIncludes": "bulc:Door",
+      "valueType": "number",
+      "note": "벽을 따라 0–1"
+    },
+    {
+      "@id": "bulc:Door.width",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "width"
+      },
+      "domainIncludes": "bulc:Door",
+      "valueType": "number",
+      "unit": "m",
+      "defaultValue": 0.9
+    },
+    {
+      "@id": "bulc:Door.height",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "height"
+      },
+      "domainIncludes": "bulc:Door",
+      "valueType": "number",
+      "unit": "m",
+      "defaultValue": 2.1
+    },
+    {
+      "@id": "bulc:Window",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "Window",
+        "ko": "창"
+      },
+      "comment": "창대 높이부터 뚫린 HOLE — 열린 창입니다. 닫힌 창은 HOLE 을 만들지 않습니다. ID 가 'Window_' 면 피난 출구가 되므로(EVAC-003) 출구가 아닌 창은 'Win_' 를 씁니다 — arch_import_building 은 창을 'Win_…' 로 만듭니다.",
+      "subClassOf": "bulc:Opening",
+      "area": "geometry",
+      "createdBy": [
+        "tool:add_window",
+        "tool:arch_import_building"
+      ],
+      "seeRule": [
+        "rule:GEO-013",
+        "rule:EVAC-003"
+      ]
+    },
+    {
+      "@id": "bulc:Window.id",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "id"
+      },
+      "domainIncludes": "bulc:Window",
+      "valueType": "string",
+      "note": "'Win_…' 권장 ('Window_…' 는 피난 출구)"
+    },
+    {
+      "@id": "bulc:Window.sill_height",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "sill_height"
+      },
+      "domainIncludes": "bulc:Window",
+      "valueType": "number",
+      "unit": "m",
+      "defaultValue": 0.9
+    },
+    {
+      "@id": "bulc:Window.width",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "width"
+      },
+      "domainIncludes": "bulc:Window",
+      "valueType": "number",
+      "unit": "m",
+      "defaultValue": 1.2
+    },
+    {
+      "@id": "bulc:Window.height",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "height"
+      },
+      "domainIncludes": "bulc:Window",
+      "valueType": "number",
+      "unit": "m",
+      "defaultValue": 1.2
+    },
+    {
+      "@id": "bulc:Hole",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "Hole",
+        "ko": "개구부(일반)"
+      },
+      "subClassOf": "bulc:Opening",
+      "area": "geometry",
+      "createdBy": [
+        "tool:add_hole"
+      ],
+      "updatedBy": [
+        "tool:update_hole"
+      ],
+      "deletedBy": [
+        "tool:remove_hole"
+      ],
+      "seeRule": [
+        "rule:GEO-004",
+        "rule:GEO-008"
+      ]
+    },
+    {
+      "@id": "bulc:Hole.id",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "id"
+      },
+      "domainIncludes": "bulc:Hole",
+      "valueType": "string"
+    },
+    {
+      "@id": "bulc:Hole.xb",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "xb"
+      },
+      "domainIncludes": "bulc:Hole",
+      "valueType": "XB",
+      "unit": "m",
+      "note": "뚫을 장애물 두께보다 약간 크게"
+    },
+    {
+      "@id": "bulc:FurnitureItem",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "Furniture / item",
+        "ko": "가구·품목"
+      },
+      "comment": "카탈로그 품목. 화재 데이터가 있는 품목은 배치 시 화원이 될 수 있고, 문·창 품목은 가까운 벽에 붙어 HOLE 을 만듭니다.",
+      "subClassOf": "bulc:Obstacle",
+      "area": "geometry",
+      "readBy": [
+        "tool:list_furniture_catalog",
+        "tool:get_furniture_info"
+      ],
+      "createdBy": [
+        "tool:place_furniture"
+      ],
+      "seeRule": [
+        "rule:GEO-011",
+        "rule:GEO-012",
+        "rule:FIRE-012"
+      ]
+    },
+    {
+      "@id": "bulc:FurnitureItem.furniture_id",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "furniture_id"
+      },
+      "domainIncludes": "bulc:FurnitureItem",
+      "valueType": "string"
+    },
+    {
+      "@id": "bulc:FurnitureItem.as_fire_source",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "as_fire_source"
+      },
+      "domainIncludes": "bulc:FurnitureItem",
+      "valueType": "boolean"
+    },
+    {
+      "@id": "bulc:Shape",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "Shape Studio solid",
+        "ko": "형상 스튜디오 입체"
+      },
+      "comment": "곡면·경사·복합 형상을 CSG 로 만들고 OBST(복셀) 또는 GEOM(삼각망)으로 내보냅니다.",
+      "area": "geometry",
+      "createdBy": [
+        "tool:shape_new_document",
+        "tool:shape_add_box",
+        "tool:shape_add_cylinder",
+        "tool:shape_add_sphere",
+        "tool:shape_add_cone",
+        "tool:shape_add_torus",
+        "tool:shape_add_wedge",
+        "tool:shape_add_polygon_prism",
+        "tool:shape_add_revolve",
+        "tool:shape_add_arch",
+        "tool:shape_extrude_sketch",
+        "tool:shape_import_mesh"
+      ],
+      "updatedBy": [
+        "tool:shape_boolean",
+        "tool:shape_transform",
+        "tool:shape_mirror",
+        "tool:shape_array",
+        "tool:shape_hull",
+        "tool:shape_set_params",
+        "tool:shape_edit_node",
+        "tool:shape_push_pull",
+        "tool:shape_undo"
+      ],
+      "readBy": [
+        "tool:shape_get_tree",
+        "tool:shape_preview_voxels",
+        "tool:shape_screenshot"
+      ],
+      "otherTool": [
+        "tool:shape_export_obst",
+        "tool:shape_export_geom",
+        "tool:shape_export_stl",
+        "tool:shape_export_obj",
+        "tool:shape_register_item"
+      ],
+      "deletedBy": [
+        "tool:shape_delete_node"
+      ],
+      "seeRule": [
+        "rule:GEO-009",
+        "rule:GEO-010"
+      ]
+    },
+    {
+      "@id": "bulc:Geom",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "GEOM triangulated surface",
+        "ko": "GEOM 삼각망"
+      },
+      "comment": "&GEOM 삼각형 면. 계단 근사 없이 곡면을 표현하지만 수밀(watertight) 면이어야 합니다.",
+      "area": "geometry",
+      "fdsNamelist": [
+        "&GEOM"
+      ],
+      "createdBy": [
+        "tool:shape_export_geom"
+      ],
+      "readBy": [
+        "tool:list_geoms"
+      ],
+      "deletedBy": [
+        "tool:remove_geom"
+      ],
+      "seeRule": [
+        "rule:GEO-010"
+      ]
+    },
+    {
+      "@id": "bulc:Surface",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "Surface",
+        "ko": "표면 경계조건"
+      },
+      "comment": "고체 면의 열·연소·분출 경계조건. 재료 층(MATL)을 가질 수 있습니다. INERT, OPEN, MIRROR 는 예약 ID 입니다.",
+      "area": "geometry",
+      "fdsNamelist": [
+        "&SURF"
+      ],
+      "createdBy": [
+        "tool:add_surface",
+        "tool:add_surface_from_library"
+      ],
+      "readBy": [
+        "tool:list_surfaces"
+      ],
+      "updatedBy": [
+        "tool:update_surface",
+        "tool:assign_surface"
+      ],
+      "deletedBy": [
+        "tool:remove_surface"
+      ],
+      "seeRule": [
+        "rule:SURF-001",
+        "rule:SURF-002",
+        "rule:SIM-011"
+      ]
+    },
+    {
+      "@id": "bulc:Surface.id",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "id"
+      },
+      "domainIncludes": "bulc:Surface",
+      "valueType": "string"
+    },
+    {
+      "@id": "bulc:Surface.hrrpua",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "hrrpua"
+      },
+      "domainIncludes": "bulc:Surface",
+      "valueType": "number",
+      "unit": "kW/m²"
+    },
+    {
+      "@id": "bulc:Surface.tmp_front",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "tmp_front"
+      },
+      "domainIncludes": "bulc:Surface",
+      "valueType": "number",
+      "unit": "°C"
+    },
+    {
+      "@id": "bulc:Surface.layers",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "layers"
+      },
+      "domainIncludes": "bulc:Surface",
+      "valueType": "array",
+      "note": "두께 m + 재료 질량분율"
+    },
+    {
+      "@id": "bulc:Material",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "Material",
+        "ko": "재료"
+      },
+      "area": "geometry",
+      "fdsNamelist": [
+        "&MATL"
+      ],
+      "createdBy": [
+        "tool:add_material",
+        "tool:add_material_from_library"
+      ],
+      "readBy": [
+        "tool:list_material_library"
+      ],
+      "updatedBy": [
+        "tool:update_material"
+      ],
+      "deletedBy": [
+        "tool:remove_material"
+      ],
+      "seeRule": [
+        "rule:SURF-001"
+      ]
+    },
+    {
+      "@id": "bulc:Material.density",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "density"
+      },
+      "domainIncludes": "bulc:Material",
+      "valueType": "number",
+      "unit": "kg/m³"
+    },
+    {
+      "@id": "bulc:Material.conductivity",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "conductivity"
+      },
+      "domainIncludes": "bulc:Material",
+      "valueType": "number",
+      "unit": "W/(m·K)"
+    },
+    {
+      "@id": "bulc:Material.specific_heat",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "specific_heat"
+      },
+      "domainIncludes": "bulc:Material",
+      "valueType": "number",
+      "unit": "kJ/(kg·K)"
+    },
+    {
+      "@id": "bulc:Vent",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "Vent",
+        "ko": "벤트(경계 패치)"
+      },
+      "comment": "고체 면이나 영역 경계 위의 평면 패치. 열린 경계(OPEN), 급배기, 버너(화원 면) 등을 표현합니다.",
+      "area": "boundaries",
+      "fdsNamelist": [
+        "&VENT ID, XB, SURF_ID"
+      ],
+      "createdBy": [
+        "tool:add_vent",
+        "tool:set_open_boundary",
+        "tool:set_all_boundaries_open"
+      ],
+      "readBy": [
+        "tool:list_vents"
+      ],
+      "updatedBy": [
+        "tool:update_vent"
+      ],
+      "deletedBy": [
+        "tool:remove_vent"
+      ],
+      "seeRule": [
+        "rule:VENT-001",
+        "rule:VENT-002",
+        "rule:VENT-004",
+        "rule:VENT-005",
+        "rule:VENT-007"
+      ]
+    },
+    {
+      "@id": "bulc:Vent.xb",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "xb"
+      },
+      "domainIncludes": "bulc:Vent",
+      "valueType": "XB",
+      "unit": "m",
+      "note": "한 축이 min = max 인 평면"
+    },
+    {
+      "@id": "bulc:Vent.surf_id",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "surf_id"
+      },
+      "domainIncludes": "bulc:Vent",
+      "valueType": "string"
+    },
+    {
+      "@id": "bulc:OpenBoundary",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "Open boundary",
+        "ko": "개방 경계"
+      },
+      "comment": "SURF_ID='OPEN' 벤트. 외기와 통하는 면. 영역 바닥(ZMIN)은 보통 열지 않습니다.",
+      "subClassOf": "bulc:Vent",
+      "area": "boundaries",
+      "createdBy": [
+        "tool:set_open_boundary",
+        "tool:set_all_boundaries_open",
+        "tool:add_vent"
+      ],
+      "seeRule": [
+        "rule:VENT-001",
+        "rule:VENT-002",
+        "rule:VENT-003",
+        "rule:EVAC-002"
+      ]
+    },
+    {
+      "@id": "bulc:OpenBoundary.face",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "face"
+      },
+      "domainIncludes": "bulc:OpenBoundary",
+      "valueType": "enum",
+      "allowedValues": [
+        "XMIN",
+        "XMAX",
+        "YMIN",
+        "YMAX",
+        "ZMIN",
+        "ZMAX"
+      ]
+    },
+    {
+      "@id": "bulc:SupplyExhaustVent",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "Supply / exhaust vent",
+        "ko": "급기·배기 벤트"
+      },
+      "comment": "유속·유량을 주는 면. BULC 에서는 HVAC 모듈의 단말을 hvac_apply_to_fds 가 HVAC 장애물(아랫면 급기/배기)로 만듭니다.",
+      "subClassOf": "bulc:Vent",
+      "area": "boundaries",
+      "createdBy": [
+        "tool:hvac_apply_to_fds",
+        "tool:set_fds_properties",
+        "tool:add_vent"
+      ],
+      "seeRule": [
+        "rule:HVAC-003",
+        "rule:HVAC-004",
+        "rule:VENT-005"
+      ]
+    },
+    {
+      "@id": "bulc:Fire",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "Fire source",
+        "ko": "화원"
+      },
+      "comment": "HRRPUA 를 가진 면. 바닥이나 물체 윗면 위의 평면(z1 = z2)으로 만듭니다. 총 HRR = HRRPUA × 면적.",
+      "area": "fire",
+      "fdsNamelist": [
+        "&SURF HRRPUA, RAMP_Q",
+        "&VENT 또는 &OBST 면"
+      ],
+      "createdBy": [
+        "tool:add_fire",
+        "tool:set_fds_properties",
+        "tool:place_furniture"
+      ],
+      "updatedBy": [
+        "tool:update_fire"
+      ],
+      "deletedBy": [
+        "tool:remove_fire"
+      ],
+      "checkedBy": [
+        "tool:validate_project"
+      ],
+      "seeRule": [
+        "rule:FIRE-001",
+        "rule:FIRE-002",
+        "rule:FIRE-003",
+        "rule:FIRE-004",
+        "rule:FIRE-005",
+        "rule:FIRE-006",
+        "rule:FIRE-010",
+        "rule:FIRE-011",
+        "rule:FIRE-012",
+        "rule:FIRE-013",
+        "rule:FIRE-014",
+        "rule:VENT-002",
+        "rule:SPR-018"
+      ]
+    },
+    {
+      "@id": "bulc:Fire.hrrpua",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "hrrpua"
+      },
+      "domainIncludes": "bulc:Fire",
+      "valueType": "number",
+      "unit": "kW/m²"
+    },
+    {
+      "@id": "bulc:Fire.xb",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "xb"
+      },
+      "domainIncludes": "bulc:Fire",
+      "valueType": "XB",
+      "unit": "m"
+    },
+    {
+      "@id": "bulc:Fire.area",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "area"
+      },
+      "domainIncludes": "bulc:Fire",
+      "valueType": "number",
+      "unit": "m²",
+      "note": "(x2−x1)(y2−y1)"
+    },
+    {
+      "@id": "bulc:Fire.total_hrr",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "total_hrr"
+      },
+      "domainIncludes": "bulc:Fire",
+      "valueType": "number",
+      "unit": "kW"
+    },
+    {
+      "@id": "bulc:Fire.growth",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "growth"
+      },
+      "domainIncludes": "bulc:Fire",
+      "valueType": "enum",
+      "allowedValues": [
+        "slow",
+        "medium",
+        "fast",
+        "ultrafast"
+      ],
+      "note": "t² 성장 프리셋"
+    },
+    {
+      "@id": "bulc:Fire.time_to_peak",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "time_to_peak"
+      },
+      "domainIncludes": "bulc:Fire",
+      "valueType": "number",
+      "unit": "s"
+    },
+    {
+      "@id": "bulc:Fire.ramp_points",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "ramp_points"
+      },
+      "domainIncludes": "bulc:Fire",
+      "valueType": "array of [t, f]"
+    },
+    {
+      "@id": "bulc:Reaction",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "Combustion reaction",
+        "ko": "연소 반응"
+      },
+      "comment": "연료와 생성물 수율. HRRPUA 화원이 있으면 반드시 있어야 합니다(FDS ERROR 314).",
+      "area": "fire",
+      "fdsNamelist": [
+        "&REAC FUEL, SOOT_YIELD, CO_YIELD, RADIATIVE_FRACTION, HEAT_OF_COMBUSTION"
+      ],
+      "updatedBy": [
+        "tool:update_reaction"
+      ],
+      "seeRule": [
+        "rule:FIRE-003",
+        "rule:FIRE-007",
+        "rule:FIRE-009"
+      ]
+    },
+    {
+      "@id": "bulc:Reaction.fuel",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "fuel"
+      },
+      "domainIncludes": "bulc:Reaction",
+      "valueType": "string",
+      "note": "PROPANE, METHANE 같은 FDS 사전 정의 종 이름, 또는 이름 + c/h/o/n 원자 수로 정의하는 연료"
+    },
+    {
+      "@id": "bulc:Reaction.soot_yield",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "soot_yield"
+      },
+      "domainIncludes": "bulc:Reaction",
+      "valueType": "number",
+      "unit": "kg/kg"
+    },
+    {
+      "@id": "bulc:Reaction.co_yield",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "co_yield"
+      },
+      "domainIncludes": "bulc:Reaction",
+      "valueType": "number",
+      "unit": "kg/kg"
+    },
+    {
+      "@id": "bulc:Reaction.radiative_fraction",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "radiative_fraction"
+      },
+      "domainIncludes": "bulc:Reaction",
+      "valueType": "number"
+    },
+    {
+      "@id": "bulc:Reaction.heat_of_combustion",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "heat_of_combustion"
+      },
+      "domainIncludes": "bulc:Reaction",
+      "valueType": "number",
+      "unit": "kJ/kg"
+    },
+    {
+      "@id": "bulc:Species",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "Species",
+        "ko": "화학종"
+      },
+      "area": "fire",
+      "fdsNamelist": [
+        "&SPEC"
+      ],
+      "createdBy": [
+        "tool:add_species"
+      ],
+      "deletedBy": [
+        "tool:remove_species"
+      ],
+      "seeRule": [
+        "rule:OUT-003",
+        "rule:DEVC-007"
+      ]
+    },
+    {
+      "@id": "bulc:Device",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "Device",
+        "ko": "계측 장치"
+      },
+      "comment": "점(XYZ) 또는 영역(XB) 측정. 기체 셀 안에 있어야 의미 있는 값을 냅니다.",
+      "area": "devices",
+      "fdsNamelist": [
+        "&DEVC ID, QUANTITY, XYZ | XB, PROP_ID, CTRL_ID"
+      ],
+      "createdBy": [
+        "tool:add_device"
+      ],
+      "readBy": [
+        "tool:list_devices"
+      ],
+      "updatedBy": [
+        "tool:update_device"
+      ],
+      "deletedBy": [
+        "tool:remove_device"
+      ],
+      "seeRule": [
+        "rule:DEVC-001",
+        "rule:DEVC-002",
+        "rule:DEVC-003",
+        "rule:DEVC-004",
+        "rule:DEVC-005",
+        "rule:DEVC-007",
+        "rule:DEVC-008"
+      ]
+    },
+    {
+      "@id": "bulc:Device.quantity",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "quantity"
+      },
+      "domainIncludes": "bulc:Device",
+      "valueType": "string",
+      "note": "FDS 수량 이름(대문자). 엔진별 지원 범위가 다름"
+    },
+    {
+      "@id": "bulc:Device.xyz",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "xyz"
+      },
+      "domainIncludes": "bulc:Device",
+      "valueType": "point",
+      "unit": "m"
+    },
+    {
+      "@id": "bulc:Device.xb",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "xb"
+      },
+      "domainIncludes": "bulc:Device",
+      "valueType": "XB",
+      "unit": "m"
+    },
+    {
+      "@id": "bulc:Device.spec_id",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "spec_id"
+      },
+      "domainIncludes": "bulc:Device",
+      "valueType": "string"
+    },
+    {
+      "@id": "bulc:Device.setpoint",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "setpoint"
+      },
+      "domainIncludes": "bulc:Device",
+      "valueType": "number"
+    },
+    {
+      "@id": "bulc:Thermocouple",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "Thermocouple",
+        "ko": "열전대"
+      },
+      "subClassOf": "bulc:Device",
+      "area": "devices",
+      "createdBy": [
+        "tool:add_thermocouple"
+      ],
+      "seeRule": [
+        "rule:DEVC-001"
+      ]
+    },
+    {
+      "@id": "bulc:HeatDetector",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "Heat detector",
+        "ko": "열감지기"
+      },
+      "subClassOf": "bulc:Device",
+      "area": "devices",
+      "createdBy": [
+        "tool:add_heat_detector"
+      ],
+      "updatedBy": [
+        "tool:set_fds_properties"
+      ],
+      "seeRule": [
+        "rule:DEVC-001"
+      ]
+    },
+    {
+      "@id": "bulc:HeatDetector.activation_temp",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "activation_temp"
+      },
+      "domainIncludes": "bulc:HeatDetector",
+      "valueType": "number",
+      "unit": "°C",
+      "defaultValue": 57
+    },
+    {
+      "@id": "bulc:HeatDetector.rti",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "rti"
+      },
+      "domainIncludes": "bulc:HeatDetector",
+      "valueType": "number",
+      "unit": "(m·s)^½"
+    },
+    {
+      "@id": "bulc:SmokeDetector",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "Smoke detector",
+        "ko": "연기감지기"
+      },
+      "subClassOf": "bulc:Device",
+      "area": "devices",
+      "createdBy": [
+        "tool:add_smoke_detector"
+      ],
+      "updatedBy": [
+        "tool:set_fds_properties"
+      ],
+      "seeRule": [
+        "rule:DEVC-001"
+      ]
+    },
+    {
+      "@id": "bulc:SprinklerDevice",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "FDS sprinkler head",
+        "ko": "FDS 스프링클러 헤드"
+      },
+      "comment": "FDS 안의 헤드 = DEVC(SPRINKLER LINK TEMPERATURE) + PROP + PART(물방울). 배관망 헤드는 spr_apply_to_fds 가 계산 유량·압력으로 만듭니다.",
+      "subClassOf": "bulc:Device",
+      "area": "devices",
+      "createdBy": [
+        "tool:add_sprinkler",
+        "tool:spr_apply_to_fds"
+      ],
+      "updatedBy": [
+        "tool:spr_set_head_spray",
+        "tool:set_fds_properties"
+      ],
+      "seeRule": [
+        "rule:SPR-010",
+        "rule:SPR-011",
+        "rule:SPR-012",
+        "rule:SPR-013",
+        "rule:SPR-015",
+        "rule:SPR-018",
+        "rule:SPR-020",
+        "rule:DEVC-001",
+        "rule:TRB-004"
+      ]
+    },
+    {
+      "@id": "bulc:SprinklerDevice.activation_temperature",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "activation_temperature"
+      },
+      "domainIncludes": "bulc:SprinklerDevice",
+      "valueType": "number",
+      "unit": "°C",
+      "defaultValue": 68
+    },
+    {
+      "@id": "bulc:SprinklerDevice.rti",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "rti"
+      },
+      "domainIncludes": "bulc:SprinklerDevice",
+      "valueType": "number",
+      "unit": "(m·s)^½",
+      "defaultValue": 100
+    },
+    {
+      "@id": "bulc:SprinklerDevice.k_factor",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "k_factor"
+      },
+      "domainIncludes": "bulc:SprinklerDevice",
+      "valueType": "number",
+      "unit": "L/(min·bar^½)",
+      "defaultValue": 80
+    },
+    {
+      "@id": "bulc:SprinklerDevice.operating_pressure",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "operating_pressure"
+      },
+      "domainIncludes": "bulc:SprinklerDevice",
+      "valueType": "number",
+      "unit": "bar",
+      "defaultValue": 1.0
+    },
+    {
+      "@id": "bulc:SprinklerDevice.orientation",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "orientation"
+      },
+      "domainIncludes": "bulc:SprinklerDevice",
+      "valueType": "vector",
+      "defaultValue": "[0, 0, -1]"
+    },
+    {
+      "@id": "bulc:Prop",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "Device property",
+        "ko": "장치 특성(PROP)"
+      },
+      "area": "devices",
+      "fdsNamelist": [
+        "&PROP"
+      ],
+      "createdBy": [
+        "tool:add_prop"
+      ],
+      "updatedBy": [
+        "tool:update_prop"
+      ],
+      "deletedBy": [
+        "tool:remove_prop"
+      ],
+      "seeRule": [
+        "rule:SPR-013"
+      ]
+    },
+    {
+      "@id": "bulc:Control",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "Control logic",
+        "ko": "제어 논리"
+      },
+      "comment": "장치·다른 제어를 입력으로 받아 참/거짓을 냅니다(감지기 연동 기동, 지연, 일제살수 연동 등).",
+      "area": "devices",
+      "fdsNamelist": [
+        "&CTRL ID, FUNCTION_TYPE, INPUT_ID"
+      ],
+      "createdBy": [
+        "tool:add_control"
+      ],
+      "updatedBy": [
+        "tool:update_control"
+      ],
+      "deletedBy": [
+        "tool:remove_control"
+      ],
+      "seeRule": [
+        "rule:DEVC-004",
+        "rule:DEVC-006"
+      ]
+    },
+    {
+      "@id": "bulc:Control.function_type",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "function_type"
+      },
+      "domainIncludes": "bulc:Control",
+      "valueType": "string",
+      "note": "ANY, ALL, NOT, TIME_DELAY, DEADBAND, PID …"
+    },
+    {
+      "@id": "bulc:Control.input_id",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "input_id"
+      },
+      "domainIncludes": "bulc:Control",
+      "valueType": "string[]",
+      "note": "반드시 문자열 배열"
+    },
+    {
+      "@id": "bulc:Output",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "Output",
+        "ko": "출력"
+      },
+      "comment": "결과 파일. 슬라이스(.sf), 경계면(.bf), Plot3D(.q), Smoke3D(.s3d), 시계열 CSV.",
+      "area": "outputs",
+      "readBy": [
+        "tool:results_detect"
+      ],
+      "seeRule": [
+        "rule:OUT-001",
+        "rule:GEN-010"
+      ]
+    },
+    {
+      "@id": "bulc:Slice",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "Slice file",
+        "ko": "단면 슬라이스"
+      },
+      "subClassOf": "bulc:Output",
+      "area": "outputs",
+      "fdsNamelist": [
+        "&SLCF QUANTITY, SPEC_ID, PBX | PBY | PBZ"
+      ],
+      "createdBy": [
+        "tool:add_slcf",
+        "tool:output_add_tenability_slices"
+      ],
+      "readBy": [
+        "tool:list_slcf"
+      ],
+      "updatedBy": [
+        "tool:update_slcf"
+      ],
+      "deletedBy": [
+        "tool:remove_slcf"
+      ],
+      "seeRule": [
+        "rule:OUT-002",
+        "rule:OUT-003",
+        "rule:OUT-006"
+      ]
+    },
+    {
+      "@id": "bulc:Slice.quantity",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "quantity"
+      },
+      "domainIncludes": "bulc:Slice",
+      "valueType": "string"
+    },
+    {
+      "@id": "bulc:Slice.pbz",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "pbz"
+      },
+      "domainIncludes": "bulc:Slice",
+      "valueType": "number",
+      "unit": "m",
+      "note": "피난 판정 단면 = 층 바닥 + 1.8 m"
+    },
+    {
+      "@id": "bulc:BoundaryOutput",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "Boundary file",
+        "ko": "경계면 출력"
+      },
+      "subClassOf": "bulc:Output",
+      "area": "outputs",
+      "fdsNamelist": [
+        "&BNDF QUANTITY"
+      ],
+      "createdBy": [
+        "tool:add_bndf"
+      ],
+      "readBy": [
+        "tool:list_bndf"
+      ],
+      "deletedBy": [
+        "tool:remove_bndf"
+      ],
+      "seeRule": [
+        "rule:OUT-005"
+      ]
+    },
+    {
+      "@id": "bulc:Plot3D",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "Plot3D",
+        "ko": "3D 전체장(Plot3D)"
+      },
+      "subClassOf": "bulc:Output",
+      "area": "outputs",
+      "fdsNamelist": [
+        "&DUMP PLOT3D_QUANTITY, PLOT3D_SPEC_ID, DT_PL3D"
+      ],
+      "updatedBy": [
+        "tool:set_plot3d_outputs",
+        "tool:update_dump_config"
+      ],
+      "seeRule": [
+        "rule:OUT-004"
+      ]
+    },
+    {
+      "@id": "bulc:Plot3D.quantities",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "quantities"
+      },
+      "domainIncludes": "bulc:Plot3D",
+      "valueType": "string[]",
+      "note": "최대 5개"
+    },
+    {
+      "@id": "bulc:Plot3D.spec_ids",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "spec_ids"
+      },
+      "domainIncludes": "bulc:Plot3D",
+      "valueType": "string[]",
+      "note": "VOLUME FRACTION 칸에 순서대로 대응"
+    },
+    {
+      "@id": "bulc:Smoke3D",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "Smoke3D",
+        "ko": "3D 연기 표시"
+      },
+      "subClassOf": "bulc:Output",
+      "area": "outputs",
+      "fdsNamelist": [
+        "&DUMP DT_SMOKE3D"
+      ],
+      "updatedBy": [
+        "tool:update_dump_config"
+      ]
+    },
+    {
+      "@id": "bulc:DeviceCsv",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "Device / HRR CSV",
+        "ko": "장치·HRR 시계열"
+      },
+      "comment": "<CHID>_devc.csv, <CHID>_hrr.csv. 파일을 직접 읽을 수 있는 클라이언트라면 이 파일로 결과를 확인합니다.",
+      "subClassOf": "bulc:Output",
+      "area": "outputs",
+      "updatedBy": [
+        "tool:update_dump_config"
+      ]
+    },
+    {
+      "@id": "bulc:DumpSettings",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "Dump intervals",
+        "ko": "출력 주기"
+      },
+      "area": "outputs",
+      "fdsNamelist": [
+        "&DUMP DT_SLCF, DT_PL3D, DT_SMOKE3D, DT_BNDF, DT_DEVC, DT_HRR, DT_RESTART, NFRAMES"
+      ],
+      "updatedBy": [
+        "tool:update_dump_config"
+      ],
+      "readBy": [
+        "tool:get_simulation_settings"
+      ],
+      "seeRule": [
+        "rule:OUT-001",
+        "rule:OUT-007"
+      ]
+    },
+    {
+      "@id": "bulc:EvacSetup",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "Evacuation setup",
+        "ko": "피난 설정"
+      },
+      "area": "evacuation",
+      "updatedBy": [
+        "tool:evac_update_setup"
+      ],
+      "readBy": [
+        "tool:evac_list_summary"
+      ],
+      "otherTool": [
+        "tool:evac_run",
+        "tool:evac_status",
+        "tool:evac_stop",
+        "tool:evac_get_results"
+      ],
+      "seeRule": [
+        "rule:EVAC-004",
+        "rule:EVAC-008"
+      ]
+    },
+    {
+      "@id": "bulc:EvacSetup.model",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "model"
+      },
+      "domainIncludes": "bulc:EvacSetup",
+      "valueType": "enum",
+      "allowedValues": [
+        "CollisionFreeSpeed",
+        "SocialForce",
+        "GeneralizedCentrifugal",
+        "CollisionFreeSpeedV2"
+      ]
+    },
+    {
+      "@id": "bulc:EvacSetup.simulationTime",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "simulationTime"
+      },
+      "domainIncludes": "bulc:EvacSetup",
+      "valueType": "number",
+      "unit": "s"
+    },
+    {
+      "@id": "bulc:EvacSetup.timeStep",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "timeStep"
+      },
+      "domainIncludes": "bulc:EvacSetup",
+      "valueType": "number",
+      "unit": "s"
+    },
+    {
+      "@id": "bulc:Agent",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "Evacuee agent",
+        "ko": "피난자"
+      },
+      "area": "evacuation",
+      "createdBy": [
+        "tool:evac_add_agent",
+        "tool:evac_add_agents_batch"
+      ],
+      "updatedBy": [
+        "tool:evac_update_agent"
+      ],
+      "deletedBy": [
+        "tool:evac_remove_agent",
+        "tool:evac_clear_agents"
+      ],
+      "seeRule": [
+        "rule:EVAC-001",
+        "rule:EVAC-005"
+      ]
+    },
+    {
+      "@id": "bulc:Agent.x",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "x"
+      },
+      "domainIncludes": "bulc:Agent",
+      "valueType": "number",
+      "unit": "m"
+    },
+    {
+      "@id": "bulc:Agent.y",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "y"
+      },
+      "domainIncludes": "bulc:Agent",
+      "valueType": "number",
+      "unit": "m"
+    },
+    {
+      "@id": "bulc:Agent.floorIndex",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "floorIndex"
+      },
+      "domainIncludes": "bulc:Agent",
+      "valueType": "integer",
+      "note": "0부터의 층 순번(1F = 0)"
+    },
+    {
+      "@id": "bulc:Agent.desiredSpeed",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "desiredSpeed"
+      },
+      "domainIncludes": "bulc:Agent",
+      "valueType": "number",
+      "unit": "m/s",
+      "defaultValue": 1.2
+    },
+    {
+      "@id": "bulc:Agent.maxSpeed",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "maxSpeed"
+      },
+      "domainIncludes": "bulc:Agent",
+      "valueType": "number",
+      "unit": "m/s",
+      "defaultValue": 1.8
+    },
+    {
+      "@id": "bulc:Exit",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "Exit",
+        "ko": "출구"
+      },
+      "comment": "피난자가 도달하면 제거되는 선분. 별도 생성 도구가 없고 피난 입력 조립 때 자동으로 정해집니다: 그 층과 겹치는 OPEN 벤트, 문 품목, ID 가 'Door_'/'Window_' 로 시작하는 HOLE('Win_' 창은 출구가 아님). fire_compute_aset 의 기본 판정점도 이 출구들입니다.",
+      "area": "evacuation",
+      "readBy": [
+        "tool:project_info"
+      ],
+      "seeRule": [
+        "rule:EVAC-002",
+        "rule:EVAC-003"
+      ]
+    },
+    {
+      "@id": "bulc:Stair",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "Stair",
+        "ko": "계단"
+      },
+      "area": "evacuation",
+      "createdBy": [
+        "tool:evac_add_stair"
+      ],
+      "updatedBy": [
+        "tool:evac_update_stair"
+      ],
+      "deletedBy": [
+        "tool:evac_remove_stair"
+      ],
+      "seeRule": [
+        "rule:EVAC-001",
+        "rule:EVAC-006"
+      ]
+    },
+    {
+      "@id": "bulc:Stair.fromFloorIndex",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "fromFloorIndex"
+      },
+      "domainIncludes": "bulc:Stair",
+      "valueType": "integer"
+    },
+    {
+      "@id": "bulc:Stair.toFloorIndex",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "toFloorIndex"
+      },
+      "domainIncludes": "bulc:Stair",
+      "valueType": "integer"
+    },
+    {
+      "@id": "bulc:Stair.x1",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "x1"
+      },
+      "domainIncludes": "bulc:Stair",
+      "valueType": "number",
+      "unit": "m"
+    },
+    {
+      "@id": "bulc:Stair.y1",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "y1"
+      },
+      "domainIncludes": "bulc:Stair",
+      "valueType": "number",
+      "unit": "m"
+    },
+    {
+      "@id": "bulc:Stair.x2",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "x2"
+      },
+      "domainIncludes": "bulc:Stair",
+      "valueType": "number",
+      "unit": "m"
+    },
+    {
+      "@id": "bulc:Stair.y2",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "y2"
+      },
+      "domainIncludes": "bulc:Stair",
+      "valueType": "number",
+      "unit": "m"
+    },
+    {
+      "@id": "bulc:Stair.widthCm",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "widthCm"
+      },
+      "domainIncludes": "bulc:Stair",
+      "valueType": "number",
+      "unit": "cm",
+      "defaultValue": 120
+    },
+    {
+      "@id": "bulc:Stair.capacity",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "capacity"
+      },
+      "domainIncludes": "bulc:Stair",
+      "valueType": "integer",
+      "defaultValue": 20
+    },
+    {
+      "@id": "bulc:Waypoint",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "Waypoint",
+        "ko": "경유점"
+      },
+      "area": "evacuation",
+      "createdBy": [
+        "tool:evac_add_waypoint"
+      ],
+      "updatedBy": [
+        "tool:evac_update_waypoint"
+      ],
+      "deletedBy": [
+        "tool:evac_remove_waypoint"
+      ]
+    },
+    {
+      "@id": "bulc:Journey",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "Journey",
+        "ko": "피난 경로(여정)"
+      },
+      "area": "evacuation",
+      "createdBy": [
+        "tool:evac_add_journey"
+      ],
+      "updatedBy": [
+        "tool:evac_update_journey"
+      ],
+      "deletedBy": [
+        "tool:evac_remove_journey"
+      ],
+      "seeRule": [
+        "rule:EVAC-007"
+      ]
+    },
+    {
+      "@id": "bulc:Journey.stages",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "stages"
+      },
+      "domainIncludes": "bulc:Journey",
+      "valueType": "array of {type, targetId}",
+      "note": "type = WAYPOINT | WAITING_SET | QUEUE | EXIT. 마지막은 EXIT. 계단은 단계가 아님"
+    },
+    {
+      "@id": "bulc:FedCoupling",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "FED fire coupling",
+        "ko": "FED 화재 연계"
+      },
+      "comment": "화재 결과의 호흡선(기본 1.8 m) 위험장(T, 소광계수, CO, CO₂, O₂)을 피난 계산에 넣어 FED 누적·감속을 반영합니다. 3D 자료(Plot3D·3D 슬라이스·Smoke3D)가 필요하고, 현재 설정은 BULC 앱의 피난 설정 화면에서 합니다(MCP 도구 없음).",
+      "area": "evacuation",
+      "seeRule": [
+        "rule:EVAC-008",
+        "rule:OUT-004"
+      ]
+    },
+    {
+      "@id": "bulc:FedCoupling.breathingHeight",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "breathingHeight"
+      },
+      "domainIncludes": "bulc:FedCoupling",
+      "valueType": "number",
+      "unit": "m",
+      "defaultValue": 1.8
+    },
+    {
+      "@id": "bulc:FedCoupling.fedThreshold",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "fedThreshold"
+      },
+      "domainIncludes": "bulc:FedCoupling",
+      "valueType": "number",
+      "defaultValue": 1.0
+    },
+    {
+      "@id": "bulc:FedCoupling.frameInterval",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "frameInterval"
+      },
+      "domainIncludes": "bulc:FedCoupling",
+      "valueType": "number",
+      "unit": "s",
+      "defaultValue": 2
+    },
+    {
+      "@id": "bulc:Alarm",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "Alarm chain",
+        "ko": "경보 연동"
+      },
+      "comment": "감지기 작동 시각 + 경보 지연 + 피난 개시 소요 → 피난 개시 시각. 앱의 피난 설정 화면에서 설정합니다.",
+      "area": "evacuation"
+    },
+    {
+      "@id": "bulc:HvacNetwork",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "HVAC duct network",
+        "ko": "공조·제연 덕트망"
+      },
+      "comment": "덕트망 풍량 계산 모듈. FDS 에는 단말(디퓨저·그릴)만 경계 유량으로 들어갑니다(덕트 내부 유동은 FDS 로 보내지 않음).",
+      "area": "hvac",
+      "readBy": [
+        "tool:hvac_list_summary",
+        "tool:hvac_get_results"
+      ],
+      "otherTool": [
+        "tool:hvac_run_calc",
+        "tool:hvac_apply_to_fds"
+      ],
+      "updatedBy": [
+        "tool:hvac_set_defaults"
+      ],
+      "seeRule": [
+        "rule:HVAC-001",
+        "rule:HVAC-002",
+        "rule:HVAC-003",
+        "rule:HVAC-004",
+        "rule:HVAC-005"
+      ]
+    },
+    {
+      "@id": "bulc:HvacNode",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "HVAC node",
+        "ko": "HVAC 노드"
+      },
+      "area": "hvac",
+      "createdBy": [
+        "tool:hvac_add_node"
+      ],
+      "updatedBy": [
+        "tool:hvac_update_node"
+      ],
+      "deletedBy": [
+        "tool:hvac_remove_node"
+      ],
+      "seeRule": [
+        "rule:HVAC-002",
+        "rule:EVAC-001",
+        "rule:GEN-021"
+      ]
+    },
+    {
+      "@id": "bulc:HvacNode.type",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "type"
+      },
+      "domainIncludes": "bulc:HvacNode",
+      "valueType": "enum",
+      "allowedValues": [
+        "junction",
+        "supply_diffuser",
+        "exhaust_grille",
+        "fan"
+      ]
+    },
+    {
+      "@id": "bulc:HvacNode.x",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "x"
+      },
+      "domainIncludes": "bulc:HvacNode",
+      "valueType": "number",
+      "unit": "m"
+    },
+    {
+      "@id": "bulc:HvacNode.y",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "y"
+      },
+      "domainIncludes": "bulc:HvacNode",
+      "valueType": "number",
+      "unit": "m"
+    },
+    {
+      "@id": "bulc:HvacNode.z",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "z"
+      },
+      "domainIncludes": "bulc:HvacNode",
+      "valueType": "number",
+      "unit": "m",
+      "defaultValue": 3.0
+    },
+    {
+      "@id": "bulc:HvacNode.floorIndex",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "floorIndex"
+      },
+      "domainIncludes": "bulc:HvacNode",
+      "valueType": "integer",
+      "note": "0부터의 층 순번"
+    },
+    {
+      "@id": "bulc:HvacNode.label",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "label"
+      },
+      "domainIncludes": "bulc:HvacNode",
+      "valueType": "string",
+      "note": "급기·배기 단말은 겹치지 않게(SA1, EX1 …) — FDS &OBST ID 가 됩니다(GEN-021)"
+    },
+    {
+      "@id": "bulc:Duct",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "Duct",
+        "ko": "덕트"
+      },
+      "area": "hvac",
+      "createdBy": [
+        "tool:hvac_add_duct"
+      ],
+      "updatedBy": [
+        "tool:hvac_update_duct"
+      ],
+      "deletedBy": [
+        "tool:hvac_remove_duct"
+      ]
+    },
+    {
+      "@id": "bulc:Duct.ductShape",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "ductShape"
+      },
+      "domainIncludes": "bulc:Duct",
+      "valueType": "enum",
+      "allowedValues": [
+        "circular",
+        "rectangular"
+      ]
+    },
+    {
+      "@id": "bulc:Duct.diameter",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "diameter"
+      },
+      "domainIncludes": "bulc:Duct",
+      "valueType": "number",
+      "unit": "mm"
+    },
+    {
+      "@id": "bulc:Duct.width",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "width"
+      },
+      "domainIncludes": "bulc:Duct",
+      "valueType": "number",
+      "unit": "mm"
+    },
+    {
+      "@id": "bulc:Duct.height",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "height"
+      },
+      "domainIncludes": "bulc:Duct",
+      "valueType": "number",
+      "unit": "mm"
+    },
+    {
+      "@id": "bulc:Duct.material",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "material"
+      },
+      "domainIncludes": "bulc:Duct",
+      "valueType": "enum",
+      "allowedValues": [
+        "galvanized_steel",
+        "stainless_steel",
+        "aluminum",
+        "flexible"
+      ]
+    },
+    {
+      "@id": "bulc:AirHandler",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "Air handler / fan",
+        "ko": "공조기·송풍기"
+      },
+      "area": "hvac",
+      "createdBy": [
+        "tool:hvac_add_air_handler"
+      ],
+      "updatedBy": [
+        "tool:hvac_update_air_handler"
+      ],
+      "deletedBy": [
+        "tool:hvac_remove_air_handler"
+      ]
+    },
+    {
+      "@id": "bulc:AirHandler.maxAirflowCFM",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "maxAirflowCFM"
+      },
+      "domainIncludes": "bulc:AirHandler",
+      "valueType": "number",
+      "unit": "CFM"
+    },
+    {
+      "@id": "bulc:AirHandler.staticPressurePa",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "staticPressurePa"
+      },
+      "domainIncludes": "bulc:AirHandler",
+      "valueType": "number",
+      "unit": "Pa"
+    },
+    {
+      "@id": "bulc:AirHandler.fanType",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "fanType"
+      },
+      "domainIncludes": "bulc:AirHandler",
+      "valueType": "enum",
+      "allowedValues": [
+        "supply",
+        "exhaust",
+        "return"
+      ]
+    },
+    {
+      "@id": "bulc:SupplyDiffuser",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "Supply diffuser",
+        "ko": "급기 디퓨저"
+      },
+      "area": "hvac",
+      "createdBy": [
+        "tool:hvac_add_supply_diffuser"
+      ],
+      "updatedBy": [
+        "tool:hvac_update_supply_diffuser"
+      ],
+      "deletedBy": [
+        "tool:hvac_remove_supply_diffuser"
+      ],
+      "seeRule": [
+        "rule:HVAC-001",
+        "rule:HVAC-005"
+      ]
+    },
+    {
+      "@id": "bulc:SupplyDiffuser.airflowCFM",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "airflowCFM"
+      },
+      "domainIncludes": "bulc:SupplyDiffuser",
+      "valueType": "number",
+      "unit": "CFM",
+      "defaultValue": 200
+    },
+    {
+      "@id": "bulc:SupplyDiffuser.supplyTempC",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "supplyTempC"
+      },
+      "domainIncludes": "bulc:SupplyDiffuser",
+      "valueType": "number",
+      "unit": "°C",
+      "defaultValue": 20
+    },
+    {
+      "@id": "bulc:ExhaustGrille",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "Exhaust grille",
+        "ko": "배기 그릴"
+      },
+      "area": "hvac",
+      "createdBy": [
+        "tool:hvac_add_exhaust_grille"
+      ],
+      "updatedBy": [
+        "tool:hvac_update_exhaust_grille"
+      ],
+      "deletedBy": [
+        "tool:hvac_remove_exhaust_grille"
+      ],
+      "seeRule": [
+        "rule:HVAC-001"
+      ]
+    },
+    {
+      "@id": "bulc:ExhaustGrille.airflowCFM",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "airflowCFM"
+      },
+      "domainIncludes": "bulc:ExhaustGrille",
+      "valueType": "number",
+      "unit": "CFM",
+      "defaultValue": 200
+    },
+    {
+      "@id": "bulc:HvacTerminal",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "HVAC terminal obstacle",
+        "ko": "HVAC 단말 장애물"
+      },
+      "comment": "hvac_apply_to_fds 가 만든 0.2 m 정육면체 장애물. 아랫면이 급기(SUPPLY) 또는 배기(EXHAUST). 덱에는 면적으로 나눈 유속(VEL)으로 쓰입니다.",
+      "subClassOf": "bulc:Obstacle",
+      "area": "hvac",
+      "createdBy": [
+        "tool:hvac_apply_to_fds"
+      ],
+      "updatedBy": [
+        "tool:transform_obstacle",
+        "tool:set_fds_properties"
+      ],
+      "seeRule": [
+        "rule:HVAC-003",
+        "rule:HVAC-004",
+        "rule:HVAC-006"
+      ]
+    },
+    {
+      "@id": "bulc:HvacTerminal.volume_flow_rate",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "volume_flow_rate"
+      },
+      "domainIncludes": "bulc:HvacTerminal",
+      "valueType": "number",
+      "unit": "m³/s"
+    },
+    {
+      "@id": "bulc:HvacTerminal.face_area",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "face_area"
+      },
+      "domainIncludes": "bulc:HvacTerminal",
+      "valueType": "number",
+      "unit": "m²",
+      "note": "기본 0.04 m²"
+    },
+    {
+      "@id": "bulc:PipeNetwork",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "Pipe network",
+        "ko": "배관망"
+      },
+      "comment": "스프링클러·물분무 수력계산 모듈(Hazen-Williams 관망 해석, NFPA 13 방식 부속 상당길이).",
+      "area": "sprinkler",
+      "readBy": [
+        "tool:spr_list_summary",
+        "tool:spr_get_results"
+      ],
+      "otherTool": [
+        "tool:spr_run_calc",
+        "tool:spr_apply_to_fds",
+        "tool:spr_export_results"
+      ],
+      "updatedBy": [
+        "tool:spr_set_defaults",
+        "tool:spr_auto_layout",
+        "tool:spr_import_network",
+        "tool:spr_import_fhc_bundle"
+      ],
+      "checkedBy": [
+        "tool:spr_design_review"
+      ],
+      "seeRule": [
+        "rule:SPR-001",
+        "rule:SPR-002",
+        "rule:SPR-003",
+        "rule:SPR-004",
+        "rule:SPR-016",
+        "rule:SPR-017",
+        "rule:SPR-020",
+        "rule:SPR-050"
+      ]
+    },
+    {
+      "@id": "bulc:PipeNode",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "Pipe node",
+        "ko": "배관 노드"
+      },
+      "area": "sprinkler",
+      "createdBy": [
+        "tool:spr_add_node",
+        "tool:spr_insert_fitting"
+      ],
+      "updatedBy": [
+        "tool:spr_update_node"
+      ],
+      "deletedBy": [
+        "tool:spr_remove_node"
+      ],
+      "seeRule": [
+        "rule:SPR-002",
+        "rule:EVAC-001",
+        "rule:GEN-021"
+      ]
+    },
+    {
+      "@id": "bulc:PipeNode.type",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "type"
+      },
+      "domainIncludes": "bulc:PipeNode",
+      "valueType": "enum",
+      "allowedValues": [
+        "junction",
+        "sprinkler",
+        "source"
+      ]
+    },
+    {
+      "@id": "bulc:PipeNode.x",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "x"
+      },
+      "domainIncludes": "bulc:PipeNode",
+      "valueType": "number",
+      "unit": "m"
+    },
+    {
+      "@id": "bulc:PipeNode.y",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "y"
+      },
+      "domainIncludes": "bulc:PipeNode",
+      "valueType": "number",
+      "unit": "m"
+    },
+    {
+      "@id": "bulc:PipeNode.z",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "z"
+      },
+      "domainIncludes": "bulc:PipeNode",
+      "valueType": "number",
+      "unit": "m",
+      "defaultValue": 3.0
+    },
+    {
+      "@id": "bulc:PipeNode.floorIndex",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "floorIndex"
+      },
+      "domainIncludes": "bulc:PipeNode",
+      "valueType": "integer",
+      "note": "층 id(1F = 1). 생략하면 z 가 든 층"
+    },
+    {
+      "@id": "bulc:PipeNode.fitting",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "fitting"
+      },
+      "domainIncludes": "bulc:PipeNode",
+      "valueType": "enum",
+      "allowedValues": [
+        "auto",
+        "none",
+        "elbow90",
+        "elbow90_long",
+        "elbow45",
+        "tee",
+        "cross",
+        "wye",
+        "reducer"
+      ]
+    },
+    {
+      "@id": "bulc:PipeNode.label",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "label"
+      },
+      "domainIncludes": "bulc:PipeNode",
+      "valueType": "string",
+      "note": "헤드 노드는 겹치지 않게(H1, H2 …) — FDS &DEVC ID 가 됩니다(GEN-021)"
+    },
+    {
+      "@id": "bulc:Pipe",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "Pipe",
+        "ko": "배관"
+      },
+      "area": "sprinkler",
+      "createdBy": [
+        "tool:spr_add_pipe"
+      ],
+      "updatedBy": [
+        "tool:spr_update_pipe",
+        "tool:spr_set_pipes"
+      ],
+      "deletedBy": [
+        "tool:spr_remove_pipe"
+      ],
+      "seeRule": [
+        "rule:SPR-005",
+        "rule:SPR-006",
+        "rule:SPR-021"
+      ]
+    },
+    {
+      "@id": "bulc:Pipe.diameter",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "diameter"
+      },
+      "domainIncludes": "bulc:Pipe",
+      "valueType": "number",
+      "unit": "mm",
+      "note": "호칭경"
+    },
+    {
+      "@id": "bulc:Pipe.material",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "material"
+      },
+      "domainIncludes": "bulc:Pipe",
+      "valueType": "string",
+      "note": "배관 규격 id(스케줄 포함). 예: KSD3507, JIS_G3454_STPG_SCH40"
+    },
+    {
+      "@id": "bulc:Pipe.cFactor",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "cFactor"
+      },
+      "domainIncludes": "bulc:Pipe",
+      "valueType": "number",
+      "note": "Hazen-Williams C. 규격 기본값을 따름"
+    },
+    {
+      "@id": "bulc:Pipe.lineNo",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "lineNo"
+      },
+      "domainIncludes": "bulc:Pipe",
+      "valueType": "string",
+      "note": "도면 라인 번호"
+    },
+    {
+      "@id": "bulc:Fitting",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "Fitting",
+        "ko": "관 부속"
+      },
+      "comment": "엘보·티·크로스·와이·레듀서. 상당길이법으로 마찰 손실에 더해집니다.",
+      "area": "sprinkler",
+      "createdBy": [
+        "tool:spr_insert_fitting"
+      ],
+      "updatedBy": [
+        "tool:spr_update_node"
+      ],
+      "seeRule": [
+        "rule:SPR-007"
+      ]
+    },
+    {
+      "@id": "bulc:Valve",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "Valve",
+        "ko": "밸브"
+      },
+      "area": "sprinkler",
+      "createdBy": [
+        "tool:spr_add_pipe",
+        "tool:spr_update_pipe"
+      ],
+      "updatedBy": [
+        "tool:spr_set_valves"
+      ],
+      "seeRule": [
+        "rule:SPR-008",
+        "rule:SPR-022"
+      ]
+    },
+    {
+      "@id": "bulc:Valve.type",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "type"
+      },
+      "domainIncludes": "bulc:Valve",
+      "valueType": "enum",
+      "allowedValues": [
+        "gate_valve",
+        "butterfly_valve",
+        "check_valve",
+        "alarm_valve",
+        "globe_valve",
+        "angle_valve"
+      ]
+    },
+    {
+      "@id": "bulc:Valve.open",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "open"
+      },
+      "domainIncludes": "bulc:Valve",
+      "valueType": "boolean",
+      "note": "false = 닫힘 → 그 관은 계산에서 빠지고 하류가 고립"
+    },
+    {
+      "@id": "bulc:Valve.tag",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "tag"
+      },
+      "domainIncludes": "bulc:Valve",
+      "valueType": "string"
+    },
+    {
+      "@id": "bulc:Valve.zone",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "zone"
+      },
+      "domainIncludes": "bulc:Valve",
+      "valueType": "string",
+      "note": "구역 밸브: 'all' 시나리오와 자기 구역 시나리오에서만 열림"
+    },
+    {
+      "@id": "bulc:Riser",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "Riser",
+        "ko": "입상관"
+      },
+      "comment": "층간 수직관(같은 x, y). 정수두 ρgΔz 가 계산에 들어갑니다.",
+      "subClassOf": "bulc:Pipe",
+      "area": "sprinkler",
+      "createdBy": [
+        "tool:spr_add_riser"
+      ],
+      "seeRule": [
+        "rule:SPR-009"
+      ]
+    },
+    {
+      "@id": "bulc:Drain",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "Drain hole",
+        "ko": "드레인"
+      },
+      "comment": "항상 열린 오리피스. Q = K√P, 요구압 없음.",
+      "subClassOf": "bulc:Nozzle",
+      "area": "sprinkler",
+      "createdBy": [
+        "tool:spr_add_drain"
+      ],
+      "updatedBy": [
+        "tool:spr_set_nozzles"
+      ],
+      "seeRule": [
+        "rule:SPR-023"
+      ]
+    },
+    {
+      "@id": "bulc:Nozzle",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "Sprinkler head / nozzle",
+        "ko": "헤드·노즐"
+      },
+      "comment": "배관망의 방수 지점. closed = 폐쇄형 스프링클러(감열 개방), open = 개방형 노즐(일제살수·물분무), drain = 드레인.",
+      "area": "sprinkler",
+      "createdBy": [
+        "tool:spr_add_sprinkler_head",
+        "tool:spr_import_network",
+        "tool:spr_auto_layout"
+      ],
+      "updatedBy": [
+        "tool:spr_update_sprinkler_head",
+        "tool:spr_set_nozzles",
+        "tool:spr_set_head_spray"
+      ],
+      "deletedBy": [
+        "tool:spr_remove_sprinkler_head"
+      ],
+      "seeRule": [
+        "rule:SPR-010",
+        "rule:SPR-011",
+        "rule:SPR-024",
+        "rule:SPR-025"
+      ]
+    },
+    {
+      "@id": "bulc:Nozzle.nozzleKind",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "nozzleKind"
+      },
+      "domainIncludes": "bulc:Nozzle",
+      "valueType": "enum",
+      "allowedValues": [
+        "closed",
+        "open",
+        "drain"
+      ]
+    },
+    {
+      "@id": "bulc:Nozzle.kFactor",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "kFactor"
+      },
+      "domainIncludes": "bulc:Nozzle",
+      "valueType": "number",
+      "unit": "L/(min·bar^½)"
+    },
+    {
+      "@id": "bulc:Nozzle.requiredPressure",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "requiredPressure"
+      },
+      "domainIncludes": "bulc:Nozzle",
+      "valueType": "number",
+      "unit": "MPa",
+      "note": "이 노즐의 요구 방사압. 비우면 종류별 설계 기본값(기본 0.1 MPa)"
+    },
+    {
+      "@id": "bulc:Nozzle.zone",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "zone"
+      },
+      "domainIncludes": "bulc:Nozzle",
+      "valueType": "string"
+    },
+    {
+      "@id": "bulc:Nozzle.lineNo",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "lineNo"
+      },
+      "domainIncludes": "bulc:Nozzle",
+      "valueType": "string"
+    },
+    {
+      "@id": "bulc:Nozzle.sprayProfileId",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "sprayProfileId"
+      },
+      "domainIncludes": "bulc:Nozzle",
+      "valueType": "string"
+    },
+    {
+      "@id": "bulc:WaterSource",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "Water source",
+        "ko": "수원"
+      },
+      "area": "sprinkler",
+      "createdBy": [
+        "tool:spr_add_water_source"
+      ],
+      "updatedBy": [
+        "tool:spr_update_water_source",
+        "tool:spr_pump_sizing"
+      ],
+      "deletedBy": [
+        "tool:spr_remove_water_source"
+      ],
+      "seeRule": [
+        "rule:SPR-001",
+        "rule:SPR-030",
+        "rule:SPR-031"
+      ]
+    },
+    {
+      "@id": "bulc:WaterSource.sourceType",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "sourceType"
+      },
+      "domainIncludes": "bulc:WaterSource",
+      "valueType": "enum",
+      "allowedValues": [
+        "city_water",
+        "pump",
+        "gravity_tank",
+        "pressure_tank"
+      ]
+    },
+    {
+      "@id": "bulc:WaterSource.staticPressure",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "staticPressure"
+      },
+      "domainIncludes": "bulc:WaterSource",
+      "valueType": "number",
+      "unit": "MPa"
+    },
+    {
+      "@id": "bulc:WaterSource.residualPressure",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "residualPressure"
+      },
+      "domainIncludes": "bulc:WaterSource",
+      "valueType": "number",
+      "unit": "MPa"
+    },
+    {
+      "@id": "bulc:WaterSource.residualFlow",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "residualFlow"
+      },
+      "domainIncludes": "bulc:WaterSource",
+      "valueType": "number",
+      "unit": "L/min"
+    },
+    {
+      "@id": "bulc:WaterSource.pumpRatedFlow",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "pumpRatedFlow"
+      },
+      "domainIncludes": "bulc:WaterSource",
+      "valueType": "number",
+      "unit": "L/min"
+    },
+    {
+      "@id": "bulc:WaterSource.pumpRatedHead",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "pumpRatedHead"
+      },
+      "domainIncludes": "bulc:WaterSource",
+      "valueType": "number",
+      "unit": "MPa",
+      "note": "이름은 head 지만 단위는 MPa"
+    },
+    {
+      "@id": "bulc:WaterSource.pumpShutoffHead",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "pumpShutoffHead"
+      },
+      "domainIncludes": "bulc:WaterSource",
+      "valueType": "number",
+      "unit": "MPa"
+    },
+    {
+      "@id": "bulc:WaterSource.tankElevation",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "tankElevation"
+      },
+      "domainIncludes": "bulc:WaterSource",
+      "valueType": "number",
+      "unit": "m"
+    },
+    {
+      "@id": "bulc:DelugeZone",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "Deluge zone",
+        "ko": "일제살수 구역"
+      },
+      "comment": "같이 열리는 개방형 노즐 묶음. 설계 계산은 구역마다 한 시나리오를 풉니다.",
+      "area": "sprinkler",
+      "updatedBy": [
+        "tool:spr_set_nozzles",
+        "tool:spr_set_valves",
+        "tool:spr_set_defaults"
+      ],
+      "seeRule": [
+        "rule:SPR-022",
+        "rule:SPR-026"
+      ]
+    },
+    {
+      "@id": "bulc:SprayProfile",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "Spray profile",
+        "ko": "분무 프로파일"
+      },
+      "comment": "FDS 6.10.1 &PROP + &PART 묶음 템플릿(유량 방식, 분무각, 입경 분포 등). 여러 헤드가 공유합니다.",
+      "area": "sprinkler",
+      "createdBy": [
+        "tool:spr_upsert_spray_profile"
+      ],
+      "updatedBy": [
+        "tool:spr_upsert_spray_profile",
+        "tool:spr_set_head_spray"
+      ],
+      "readBy": [
+        "tool:spr_list_summary"
+      ],
+      "seeRule": [
+        "rule:SPR-012",
+        "rule:SPR-013",
+        "rule:SPR-014"
+      ]
+    },
+    {
+      "@id": "bulc:SprayProfile.preset",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "preset"
+      },
+      "domainIncludes": "bulc:SprayProfile",
+      "valueType": "string",
+      "note": "std_pendant_k80, esfr-k200-pendent, mist-high-70bar …"
+    },
+    {
+      "@id": "bulc:DesignScenario",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "Design scenario",
+        "ko": "설계 시나리오"
+      },
+      "comment": "'all'(참여 노즐 전부) 또는 'zone:<구역>'. 각 시나리오를 실제 수원 조건(정방향)과 수원압력 역산(설계점)으로 풉니다.",
+      "area": "sprinkler",
+      "otherTool": [
+        "tool:spr_run_calc"
+      ],
+      "readBy": [
+        "tool:spr_get_results"
+      ],
+      "seeRule": [
+        "rule:SPR-003",
+        "rule:SPR-026"
+      ]
+    },
+    {
+      "@id": "bulc:DesignScenario.key",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "key"
+      },
+      "domainIncludes": "bulc:DesignScenario",
+      "valueType": "string",
+      "note": "'all' | 'zone:<zone>'"
+    },
+    {
+      "@id": "bulc:DesignScenario.at",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "at"
+      },
+      "domainIncludes": "bulc:DesignScenario",
+      "valueType": "enum",
+      "allowedValues": [
+        "supply",
+        "design"
+      ]
+    },
+    {
+      "@id": "bulc:DesignScenario.requiredSourcePressure",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "requiredSourcePressure"
+      },
+      "domainIncludes": "bulc:DesignScenario",
+      "valueType": "number",
+      "unit": "MPa"
+    },
+    {
+      "@id": "bulc:DesignScenario.governingNozzle",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "governingNozzle"
+      },
+      "domainIncludes": "bulc:DesignScenario",
+      "valueType": "string"
+    },
+    {
+      "@id": "bulc:PumpSpec",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "Pump specification",
+        "ko": "펌프 사양"
+      },
+      "area": "sprinkler",
+      "createdBy": [
+        "tool:spr_pump_sizing"
+      ],
+      "seeRule": [
+        "rule:SPR-030",
+        "rule:SPR-031",
+        "rule:SPR-032"
+      ]
+    },
+    {
+      "@id": "bulc:PumpSpec.ratedFlow",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "ratedFlow"
+      },
+      "domainIncludes": "bulc:PumpSpec",
+      "valueType": "number",
+      "unit": "L/min"
+    },
+    {
+      "@id": "bulc:PumpSpec.ratedPressure",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "ratedPressure"
+      },
+      "domainIncludes": "bulc:PumpSpec",
+      "valueType": "number",
+      "unit": "MPa"
+    },
+    {
+      "@id": "bulc:PumpSpec.churnRatio",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "churnRatio"
+      },
+      "domainIncludes": "bulc:PumpSpec",
+      "valueType": "number",
+      "note": "체절압/정격압 ≤ 1.40"
+    },
+    {
+      "@id": "bulc:PumpSpec.at150Ratio",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "at150Ratio"
+      },
+      "domainIncludes": "bulc:PumpSpec",
+      "valueType": "number",
+      "note": "150 % 유량 압력/정격압 ≥ 0.65"
+    },
+    {
+      "@id": "bulc:PumpSpec.motorKw",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "motorKw"
+      },
+      "domainIncludes": "bulc:PumpSpec",
+      "valueType": "number",
+      "unit": "kW"
+    },
+    {
+      "@id": "bulc:ReviewFinding",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "Design review finding",
+        "ko": "설계·사양 검토 결과"
+      },
+      "area": "sprinkler",
+      "createdBy": [
+        "tool:spr_design_review"
+      ],
+      "seeRule": [
+        "rule:SPR-040"
+      ]
+    },
+    {
+      "@id": "bulc:ReviewFinding.code",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "code"
+      },
+      "domainIncludes": "bulc:ReviewFinding",
+      "valueType": "string"
+    },
+    {
+      "@id": "bulc:ReviewFinding.severity",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "severity"
+      },
+      "domainIncludes": "bulc:ReviewFinding",
+      "valueType": "enum",
+      "allowedValues": [
+        "error",
+        "warning",
+        "info"
+      ]
+    },
+    {
+      "@id": "bulc:ReviewFinding.category",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "category"
+      },
+      "domainIncludes": "bulc:ReviewFinding",
+      "valueType": "enum",
+      "allowedValues": [
+        "spec",
+        "design"
+      ]
+    },
+    {
+      "@id": "bulc:ExportBundle",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "Calculation export bundle",
+        "ko": "계산서 내보내기 묶음"
+      },
+      "comment": "CSV 표 5종 또는 FHC 계산서 형식 CSV(+ 선택 .FHC/.PDT 초안). <name>_bulc_model.csv 로 그대로 되읽을 수 있습니다.",
+      "area": "sprinkler",
+      "createdBy": [
+        "tool:spr_export_results"
+      ],
+      "readBy": [
+        "tool:spr_import_fhc_bundle"
+      ],
+      "seeRule": [
+        "rule:SPR-041",
+        "rule:SPR-042"
+      ]
+    },
+    {
+      "@id": "bulc:HrrCurve",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "HRR curve",
+        "ko": "발열량 곡선"
+      },
+      "comment": "<CHID>_hrr.csv. 설계 화원과 비교해 화원이 의도대로 탔는지 확인합니다.",
+      "area": "results",
+      "readBy": [
+        "tool:fire_results_summary",
+        "tool:fire_timeseries"
+      ],
+      "seeRule": [
+        "rule:FIRE-001",
+        "rule:TRB-003",
+        "rule:GEN-010"
+      ]
+    },
+    {
+      "@id": "bulc:RuntimeMetrics",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "Runtime metrics",
+        "ko": "실행 지표"
+      },
+      "area": "results",
+      "readBy": [
+        "tool:sim_status",
+        "tool:sim_log_tail",
+        "tool:get_simulation_metrics"
+      ],
+      "seeRule": [
+        "rule:SIM-007"
+      ]
+    },
+    {
+      "@id": "bulc:RuntimeMetrics.qdot",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "qdot"
+      },
+      "domainIncludes": "bulc:RuntimeMetrics",
+      "valueType": "number",
+      "unit": "kW"
+    },
+    {
+      "@id": "bulc:RuntimeMetrics.tmax",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "tmax"
+      },
+      "domainIncludes": "bulc:RuntimeMetrics",
+      "valueType": "number",
+      "unit": "K"
+    },
+    {
+      "@id": "bulc:RuntimeMetrics.umax",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "umax"
+      },
+      "domainIncludes": "bulc:RuntimeMetrics",
+      "valueType": "number",
+      "unit": "m/s"
+    },
+    {
+      "@id": "bulc:RuntimeMetrics.nan",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "nan"
+      },
+      "domainIncludes": "bulc:RuntimeMetrics",
+      "valueType": "integer"
+    },
+    {
+      "@id": "bulc:AsetCriteria",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "ASET criteria",
+        "ko": "인명안전 기준"
+      },
+      "comment": "국내 성능위주설계 기준(호흡한계선 1.8 m). 앱 기본값: 온도 60 °C, 가시거리 5 m, CO 1,400 ppm, O₂ 15 %, CO₂ 5 %.",
+      "area": "results",
+      "seeRule": [
+        "rule:ASET-001",
+        "rule:ASET-002",
+        "rule:ASET-003"
+      ]
+    },
+    {
+      "@id": "bulc:AsetCriteria.samplingHeight",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "samplingHeight"
+      },
+      "domainIncludes": "bulc:AsetCriteria",
+      "valueType": "number",
+      "unit": "m",
+      "defaultValue": 1.8
+    },
+    {
+      "@id": "bulc:AsetCriteria.tempMax",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "tempMax"
+      },
+      "domainIncludes": "bulc:AsetCriteria",
+      "valueType": "number",
+      "unit": "°C",
+      "defaultValue": 60
+    },
+    {
+      "@id": "bulc:AsetCriteria.visMin",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "visMin"
+      },
+      "domainIncludes": "bulc:AsetCriteria",
+      "valueType": "number",
+      "unit": "m",
+      "defaultValue": 5
+    },
+    {
+      "@id": "bulc:AsetCriteria.coMaxPpm",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "coMaxPpm"
+      },
+      "domainIncludes": "bulc:AsetCriteria",
+      "valueType": "number",
+      "unit": "ppm",
+      "defaultValue": 1400
+    },
+    {
+      "@id": "bulc:AsetCriteria.o2Min",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "o2Min"
+      },
+      "domainIncludes": "bulc:AsetCriteria",
+      "valueType": "number",
+      "unit": "%",
+      "defaultValue": 15
+    },
+    {
+      "@id": "bulc:AsetCriteria.co2Max",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "co2Max"
+      },
+      "domainIncludes": "bulc:AsetCriteria",
+      "valueType": "number",
+      "unit": "%",
+      "defaultValue": 5
+    },
+    {
+      "@id": "bulc:AsetResult",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "ASET result",
+        "ko": "ASET 결과"
+      },
+      "comment": "출구 위치·호흡선 높이에서 기준을 처음 넘는 시각. fire_compute_aset 은 수평 슬라이스(우선) → Plot3D 에서, 앱 결과 뷰어의 ASET/RSET 보고서는 Plot3D → 슬라이스 → CSV 순으로 자료를 찾습니다.",
+      "area": "results",
+      "readBy": [
+        "tool:fire_compute_aset"
+      ],
+      "otherTool": [
+        "tool:output_add_tenability_slices"
+      ],
+      "seeRule": [
+        "rule:ASET-004",
+        "rule:OUT-004",
+        "rule:OUT-006"
+      ]
+    },
+    {
+      "@id": "bulc:RsetEstimate",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "RSET",
+        "ko": "피난 소요 시간"
+      },
+      "comment": "감지 + 경보 + 피난 개시 지연 + 이동(피난 계산) + 안전율.",
+      "area": "results",
+      "readBy": [
+        "tool:evac_get_results",
+        "tool:fire_results_summary"
+      ],
+      "seeRule": [
+        "rule:ASET-005"
+      ]
+    },
+    {
+      "@id": "bulc:PipeResults",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "Hydraulic results",
+        "ko": "수력계산 결과"
+      },
+      "area": "results",
+      "readBy": [
+        "tool:spr_get_results"
+      ],
+      "seeRule": [
+        "rule:SPR-003",
+        "rule:SPR-004"
+      ]
+    },
+    {
+      "@id": "bulc:PipeResults.totalFlow",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "totalFlow"
+      },
+      "domainIncludes": "bulc:PipeResults",
+      "valueType": "number",
+      "unit": "L/min"
+    },
+    {
+      "@id": "bulc:PipeResults.minMargin",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "minMargin"
+      },
+      "domainIncludes": "bulc:PipeResults",
+      "valueType": "number",
+      "unit": "MPa"
+    },
+    {
+      "@id": "bulc:PipeResults.maxVelocity",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "maxVelocity"
+      },
+      "domainIncludes": "bulc:PipeResults",
+      "valueType": "number",
+      "unit": "m/s"
+    },
+    {
+      "@id": "bulc:HvacResults",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "HVAC results",
+        "ko": "풍량 계산 결과"
+      },
+      "area": "results",
+      "readBy": [
+        "tool:hvac_get_results"
+      ]
+    },
+    {
+      "@id": "bulc:Drawing",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "Drawing file",
+        "ko": "도면 파일"
+      },
+      "comment": "DWG, DXF, PDF, PNG/JPG, zip. 고객 도면은 로컬 경로로만 다루고 외부로 보내지 않습니다.",
+      "area": "drawings",
+      "checkedBy": [
+        "tool:bulc_drawing_intake"
+      ],
+      "seeRule": [
+        "rule:DRW-001",
+        "rule:DRW-002",
+        "rule:DRW-003",
+        "rule:GEN-012"
+      ]
+    },
+    {
+      "@id": "bulc:Drawing.path",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "path"
+      },
+      "domainIncludes": "bulc:Drawing",
+      "valueType": "path"
+    },
+    {
+      "@id": "bulc:Drawing.units",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "units"
+      },
+      "domainIncludes": "bulc:Drawing",
+      "valueType": "string",
+      "note": "DXF $INSUNITS 또는 치수로 확인. 대부분 mm"
+    },
+    {
+      "@id": "bulc:Drawing.scale",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "scale"
+      },
+      "domainIncludes": "bulc:Drawing",
+      "valueType": "string",
+      "note": "이미지·PDF 는 축척 확인 필수(두 점 사이 실제 거리)"
+    },
+    {
+      "@id": "bulc:ArchitecturalPlan",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "Architectural floor plan",
+        "ko": "건축 평면도"
+      },
+      "comment": "벽·문·창·계단·실 구획. BULC 0.89 이상은 arch_analyze_drawing(.dxf/.dwg/벡터 .pdf/그림)이 단위·벽 중심선·문·창·기둥·실명·층 표기를 인식하고, arch_import_building 이 한 번의 되돌리기 단계로 벽(&OBST)·문(Door_ HOLE)·창(Win_ HOLE)을 만듭니다(기본 dryRun). 그림은 LLM 이 직접 읽어 arch_import_floorplan_report 로 넣습니다. 구버전 앱은 bulc_drawing_intake 의 벽 후보로 add_wall 등을 씁니다.",
+      "subClassOf": "bulc:Drawing",
+      "area": "drawings",
+      "checkedBy": [
+        "tool:bulc_drawing_intake"
+      ],
+      "readBy": [
+        "tool:arch_analyze_drawing"
+      ],
+      "otherTool": [
+        "tool:arch_import_building",
+        "tool:arch_import_floorplan_report"
+      ],
+      "createdBy": [
+        "tool:add_wall",
+        "tool:add_door",
+        "tool:add_window",
+        "tool:add_floor",
+        "tool:add_hole",
+        "tool:draw_add_story"
+      ],
+      "seeRule": [
+        "rule:DRW-004",
+        "rule:DRW-005",
+        "rule:DRW-008"
+      ]
+    },
+    {
+      "@id": "bulc:SprinklerPlan",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "Sprinkler plan",
+        "ko": "스프링클러 평면도"
+      },
+      "subClassOf": "bulc:Drawing",
+      "area": "drawings",
+      "readBy": [
+        "tool:spr_analyze_drawing"
+      ],
+      "seeRule": [
+        "rule:DRW-006"
+      ]
+    },
+    {
+      "@id": "bulc:PipingIsometric",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "Piping isometric (ISO)",
+        "ko": "배관 아이소메트릭"
+      },
+      "comment": "선박·플랜트 물분무 배관. 치수(DIMENSION)로 축척, 라인 번호·레듀서·밸브 태그, 노즐 스템, 3D 복원(X, Y 수평, Z 위, 입구 = 원점).",
+      "subClassOf": "bulc:Drawing",
+      "area": "drawings",
+      "readBy": [
+        "tool:spr_analyze_drawing"
+      ],
+      "seeRule": [
+        "rule:DRW-006",
+        "rule:DRW-007",
+        "rule:DRW-008"
+      ]
+    },
+    {
+      "@id": "bulc:DrawingCandidate",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "Recognised network candidate",
+        "ko": "인식된 배관망 후보"
+      },
+      "area": "drawings",
+      "readBy": [
+        "tool:spr_analyze_drawing"
+      ],
+      "otherTool": [
+        "tool:spr_import_network"
+      ],
+      "seeRule": [
+        "rule:DRW-007",
+        "rule:DRW-008",
+        "rule:DRW-009"
+      ]
+    },
+    {
+      "@id": "bulc:DrawingCandidate.candidateId",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "candidateId"
+      },
+      "domainIncludes": "bulc:DrawingCandidate",
+      "valueType": "string"
+    },
+    {
+      "@id": "bulc:DrawingCandidate.openEnds",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "openEnds"
+      },
+      "domainIncludes": "bulc:DrawingCandidate",
+      "valueType": "list",
+      "note": "드레인 후보"
+    },
+    {
+      "@id": "bulc:DrawingCandidate.ambiguities",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "ambiguities"
+      },
+      "domainIncludes": "bulc:DrawingCandidate",
+      "valueType": "list",
+      "note": "사용자에게 물어볼 항목"
+    },
+    {
+      "@id": "bulc:appliesAs",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "appliesAs"
+      },
+      "domainIncludes": [
+        "bulc:HvacNetwork",
+        "bulc:PipeNetwork"
+      ],
+      "rangeIncludes": [
+        "bulc:HvacTerminal",
+        "bulc:SprinklerDevice"
+      ]
+    },
+    {
+      "@id": "bulc:appliesTo",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "appliesTo"
+      },
+      "domainIncludes": [
+        "bulc:Simulation"
+      ],
+      "rangeIncludes": [
+        "bulc:Project"
+      ]
+    },
+    {
+      "@id": "bulc:attachedTo",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "attachedTo"
+      },
+      "domainIncludes": [
+        "bulc:AirHandler",
+        "bulc:ExhaustGrille",
+        "bulc:Nozzle",
+        "bulc:SupplyDiffuser",
+        "bulc:WaterSource"
+      ],
+      "rangeIncludes": [
+        "bulc:HvacNode",
+        "bulc:PipeNode"
+      ]
+    },
+    {
+      "@id": "bulc:becomes",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "becomes"
+      },
+      "domainIncludes": [
+        "bulc:Door",
+        "bulc:DrawingCandidate",
+        "bulc:Nozzle",
+        "bulc:OpenBoundary"
+      ],
+      "rangeIncludes": [
+        "bulc:Exit",
+        "bulc:PipeNetwork",
+        "bulc:SprinklerDevice"
+      ]
+    },
+    {
+      "@id": "bulc:boundedBy",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "boundedBy"
+      },
+      "domainIncludes": [
+        "bulc:Mesh"
+      ],
+      "rangeIncludes": [
+        "bulc:OpenBoundary"
+      ]
+    },
+    {
+      "@id": "bulc:comparedWith",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "comparedWith"
+      },
+      "domainIncludes": [
+        "bulc:AsetResult"
+      ],
+      "rangeIncludes": [
+        "bulc:RsetEstimate"
+      ]
+    },
+    {
+      "@id": "bulc:connectedBy",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "connectedBy"
+      },
+      "domainIncludes": [
+        "bulc:Story"
+      ],
+      "rangeIncludes": [
+        "bulc:Stair"
+      ]
+    },
+    {
+      "@id": "bulc:connects",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "connects"
+      },
+      "domainIncludes": [
+        "bulc:Duct",
+        "bulc:Pipe",
+        "bulc:Stair"
+      ],
+      "rangeIncludes": [
+        "bulc:HvacNode",
+        "bulc:PipeNode",
+        "bulc:Story"
+      ]
+    },
+    {
+      "@id": "bulc:consumedBy",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "consumedBy"
+      },
+      "domainIncludes": [
+        "bulc:Output",
+        "bulc:Plot3D",
+        "bulc:Slice"
+      ],
+      "rangeIncludes": [
+        "bulc:AsetResult",
+        "bulc:FedCoupling"
+      ]
+    },
+    {
+      "@id": "bulc:contains",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "contains"
+      },
+      "domainIncludes": [
+        "bulc:Mesh"
+      ],
+      "rangeIncludes": [
+        "bulc:Device",
+        "bulc:Fire",
+        "bulc:Obstacle",
+        "bulc:Vent"
+      ]
+    },
+    {
+      "@id": "bulc:containsAgent",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "containsAgent"
+      },
+      "domainIncludes": [
+        "bulc:Story"
+      ],
+      "rangeIncludes": [
+        "bulc:Agent"
+      ]
+    },
+    {
+      "@id": "bulc:containsHvacNode",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "containsHvacNode"
+      },
+      "domainIncludes": [
+        "bulc:Story"
+      ],
+      "rangeIncludes": [
+        "bulc:HvacNode"
+      ]
+    },
+    {
+      "@id": "bulc:containsPipeNode",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "containsPipeNode"
+      },
+      "domainIncludes": [
+        "bulc:Story"
+      ],
+      "rangeIncludes": [
+        "bulc:PipeNode"
+      ]
+    },
+    {
+      "@id": "bulc:containsSlab",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "containsSlab"
+      },
+      "domainIncludes": [
+        "bulc:Story"
+      ],
+      "rangeIncludes": [
+        "bulc:Slab"
+      ]
+    },
+    {
+      "@id": "bulc:containsWall",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "containsWall"
+      },
+      "domainIncludes": [
+        "bulc:Story"
+      ],
+      "rangeIncludes": [
+        "bulc:Wall"
+      ]
+    },
+    {
+      "@id": "bulc:controlledBy",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "controlledBy"
+      },
+      "domainIncludes": [
+        "bulc:DelugeZone"
+      ],
+      "rangeIncludes": [
+        "bulc:Valve"
+      ]
+    },
+    {
+      "@id": "bulc:controls",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "controls"
+      },
+      "domainIncludes": [
+        "bulc:Valve"
+      ],
+      "rangeIncludes": [
+        "bulc:DelugeZone"
+      ]
+    },
+    {
+      "@id": "bulc:coupledWith",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "coupledWith"
+      },
+      "domainIncludes": [
+        "bulc:EvacSetup"
+      ],
+      "rangeIncludes": [
+        "bulc:FedCoupling"
+      ]
+    },
+    {
+      "@id": "bulc:cuts",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "cuts"
+      },
+      "domainIncludes": [
+        "bulc:Opening"
+      ],
+      "rangeIncludes": [
+        "bulc:Obstacle"
+      ]
+    },
+    {
+      "@id": "bulc:derivedFrom",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "derivedFrom"
+      },
+      "domainIncludes": [
+        "bulc:Exit",
+        "bulc:SprinklerDevice"
+      ],
+      "rangeIncludes": [
+        "bulc:Door",
+        "bulc:FurnitureItem",
+        "bulc:Nozzle",
+        "bulc:OpenBoundary"
+      ]
+    },
+    {
+      "@id": "bulc:exportsTo",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "exportsTo"
+      },
+      "domainIncludes": [
+        "bulc:Shape"
+      ],
+      "rangeIncludes": [
+        "bulc:Geom",
+        "bulc:Obstacle"
+      ]
+    },
+    {
+      "@id": "bulc:feeds",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "feeds"
+      },
+      "domainIncludes": [
+        "bulc:FedCoupling"
+      ],
+      "rangeIncludes": [
+        "bulc:EvacSetup"
+      ]
+    },
+    {
+      "@id": "bulc:follows",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "follows"
+      },
+      "domainIncludes": [
+        "bulc:Agent"
+      ],
+      "rangeIncludes": [
+        "bulc:Journey"
+      ]
+    },
+    {
+      "@id": "bulc:from",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "from"
+      },
+      "domainIncludes": [
+        "bulc:RsetEstimate"
+      ],
+      "rangeIncludes": [
+        "bulc:EvacSetup"
+      ]
+    },
+    {
+      "@id": "bulc:groups",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "groups"
+      },
+      "domainIncludes": [
+        "bulc:DelugeZone"
+      ],
+      "rangeIncludes": [
+        "bulc:Nozzle"
+      ]
+    },
+    {
+      "@id": "bulc:hasAgent",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "hasAgent"
+      },
+      "domainIncludes": [
+        "bulc:EvacSetup"
+      ],
+      "rangeIncludes": [
+        "bulc:Agent"
+      ]
+    },
+    {
+      "@id": "bulc:hasDevice",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "hasDevice"
+      },
+      "domainIncludes": [
+        "bulc:Project"
+      ],
+      "rangeIncludes": [
+        "bulc:Device"
+      ]
+    },
+    {
+      "@id": "bulc:hasDuct",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "hasDuct"
+      },
+      "domainIncludes": [
+        "bulc:HvacNetwork"
+      ],
+      "rangeIncludes": [
+        "bulc:Duct"
+      ]
+    },
+    {
+      "@id": "bulc:hasEvacSetup",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "hasEvacSetup"
+      },
+      "domainIncludes": [
+        "bulc:Project"
+      ],
+      "rangeIncludes": [
+        "bulc:EvacSetup"
+      ]
+    },
+    {
+      "@id": "bulc:hasExit",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "hasExit"
+      },
+      "domainIncludes": [
+        "bulc:EvacSetup"
+      ],
+      "rangeIncludes": [
+        "bulc:Exit"
+      ]
+    },
+    {
+      "@id": "bulc:hasFire",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "hasFire"
+      },
+      "domainIncludes": [
+        "bulc:Project"
+      ],
+      "rangeIncludes": [
+        "bulc:Fire"
+      ]
+    },
+    {
+      "@id": "bulc:hasHvacNetwork",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "hasHvacNetwork"
+      },
+      "domainIncludes": [
+        "bulc:Project"
+      ],
+      "rangeIncludes": [
+        "bulc:HvacNetwork"
+      ]
+    },
+    {
+      "@id": "bulc:hasJourney",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "hasJourney"
+      },
+      "domainIncludes": [
+        "bulc:EvacSetup"
+      ],
+      "rangeIncludes": [
+        "bulc:Journey"
+      ]
+    },
+    {
+      "@id": "bulc:hasLayer",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "hasLayer"
+      },
+      "domainIncludes": [
+        "bulc:Surface"
+      ],
+      "rangeIncludes": [
+        "bulc:Material"
+      ]
+    },
+    {
+      "@id": "bulc:hasMesh",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "hasMesh"
+      },
+      "domainIncludes": [
+        "bulc:Project"
+      ],
+      "rangeIncludes": [
+        "bulc:Mesh"
+      ]
+    },
+    {
+      "@id": "bulc:hasNode",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "hasNode"
+      },
+      "domainIncludes": [
+        "bulc:HvacNetwork",
+        "bulc:PipeNetwork"
+      ],
+      "rangeIncludes": [
+        "bulc:HvacNode",
+        "bulc:PipeNode"
+      ]
+    },
+    {
+      "@id": "bulc:hasNozzle",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "hasNozzle"
+      },
+      "domainIncludes": [
+        "bulc:PipeNetwork"
+      ],
+      "rangeIncludes": [
+        "bulc:Nozzle"
+      ]
+    },
+    {
+      "@id": "bulc:hasObstacle",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "hasObstacle"
+      },
+      "domainIncludes": [
+        "bulc:Project"
+      ],
+      "rangeIncludes": [
+        "bulc:Obstacle"
+      ]
+    },
+    {
+      "@id": "bulc:hasOpening",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "hasOpening"
+      },
+      "domainIncludes": [
+        "bulc:Obstacle",
+        "bulc:Slab",
+        "bulc:Wall"
+      ],
+      "rangeIncludes": [
+        "bulc:Door",
+        "bulc:Hole",
+        "bulc:Window"
+      ]
+    },
+    {
+      "@id": "bulc:hasOutput",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "hasOutput"
+      },
+      "domainIncludes": [
+        "bulc:Project"
+      ],
+      "rangeIncludes": [
+        "bulc:Output"
+      ]
+    },
+    {
+      "@id": "bulc:hasPipe",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "hasPipe"
+      },
+      "domainIncludes": [
+        "bulc:PipeNetwork"
+      ],
+      "rangeIncludes": [
+        "bulc:Pipe"
+      ]
+    },
+    {
+      "@id": "bulc:hasPipeNetwork",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "hasPipeNetwork"
+      },
+      "domainIncludes": [
+        "bulc:Project"
+      ],
+      "rangeIncludes": [
+        "bulc:PipeNetwork"
+      ]
+    },
+    {
+      "@id": "bulc:hasSimulation",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "hasSimulation"
+      },
+      "domainIncludes": [
+        "bulc:Project"
+      ],
+      "rangeIncludes": [
+        "bulc:Simulation"
+      ]
+    },
+    {
+      "@id": "bulc:hasSource",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "hasSource"
+      },
+      "domainIncludes": [
+        "bulc:PipeNetwork"
+      ],
+      "rangeIncludes": [
+        "bulc:WaterSource"
+      ]
+    },
+    {
+      "@id": "bulc:hasStage",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "hasStage"
+      },
+      "domainIncludes": [
+        "bulc:Journey"
+      ],
+      "rangeIncludes": [
+        "bulc:Exit",
+        "bulc:Waypoint"
+      ]
+    },
+    {
+      "@id": "bulc:hasStair",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "hasStair"
+      },
+      "domainIncludes": [
+        "bulc:EvacSetup"
+      ],
+      "rangeIncludes": [
+        "bulc:Stair"
+      ]
+    },
+    {
+      "@id": "bulc:hasStory",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "hasStory"
+      },
+      "domainIncludes": [
+        "bulc:Project"
+      ],
+      "rangeIncludes": [
+        "bulc:Story"
+      ]
+    },
+    {
+      "@id": "bulc:hasValve",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "hasValve"
+      },
+      "domainIncludes": [
+        "bulc:Pipe"
+      ],
+      "rangeIncludes": [
+        "bulc:Valve"
+      ]
+    },
+    {
+      "@id": "bulc:hasVent",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "hasVent"
+      },
+      "domainIncludes": [
+        "bulc:Project"
+      ],
+      "rangeIncludes": [
+        "bulc:Vent"
+      ]
+    },
+    {
+      "@id": "bulc:hasZone",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "hasZone"
+      },
+      "domainIncludes": [
+        "bulc:PipeNetwork"
+      ],
+      "rangeIncludes": [
+        "bulc:DelugeZone"
+      ]
+    },
+    {
+      "@id": "bulc:importedFrom",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "importedFrom"
+      },
+      "domainIncludes": [
+        "bulc:PipeNetwork",
+        "bulc:Project"
+      ],
+      "rangeIncludes": [
+        "bulc:Drawing",
+        "bulc:DrawingCandidate",
+        "bulc:ExportBundle"
+      ]
+    },
+    {
+      "@id": "bulc:inputs",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "inputs"
+      },
+      "domainIncludes": [
+        "bulc:Control"
+      ],
+      "rangeIncludes": [
+        "bulc:Control",
+        "bulc:Device"
+      ]
+    },
+    {
+      "@id": "bulc:insideOf",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "insideOf"
+      },
+      "domainIncludes": [
+        "bulc:Fire"
+      ],
+      "rangeIncludes": [
+        "bulc:Mesh"
+      ]
+    },
+    {
+      "@id": "bulc:locatedOn",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "locatedOn"
+      },
+      "domainIncludes": [
+        "bulc:Fire"
+      ],
+      "rangeIncludes": [
+        "bulc:Obstacle",
+        "bulc:Slab"
+      ]
+    },
+    {
+      "@id": "bulc:memberOf",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "memberOf"
+      },
+      "domainIncludes": [
+        "bulc:Nozzle"
+      ],
+      "rangeIncludes": [
+        "bulc:DelugeZone"
+      ]
+    },
+    {
+      "@id": "bulc:mountedOn",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "mountedOn"
+      },
+      "domainIncludes": [
+        "bulc:Valve"
+      ],
+      "rangeIncludes": [
+        "bulc:Pipe"
+      ]
+    },
+    {
+      "@id": "bulc:onStory",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "onStory"
+      },
+      "domainIncludes": [
+        "bulc:Agent",
+        "bulc:Obstacle",
+        "bulc:PipeNode"
+      ],
+      "rangeIncludes": [
+        "bulc:Story"
+      ]
+    },
+    {
+      "@id": "bulc:reads",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "reads"
+      },
+      "domainIncludes": [
+        "bulc:AsetResult",
+        "bulc:FedCoupling"
+      ],
+      "rangeIncludes": [
+        "bulc:DeviceCsv",
+        "bulc:Plot3D",
+        "bulc:Slice",
+        "bulc:Smoke3D"
+      ]
+    },
+    {
+      "@id": "bulc:requires",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "requires"
+      },
+      "domainIncludes": [
+        "bulc:Fire"
+      ],
+      "rangeIncludes": [
+        "bulc:Reaction"
+      ]
+    },
+    {
+      "@id": "bulc:sampledAt",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "sampledAt"
+      },
+      "domainIncludes": [
+        "bulc:Output"
+      ],
+      "rangeIncludes": [
+        "bulc:Mesh",
+        "bulc:Story"
+      ]
+    },
+    {
+      "@id": "bulc:separates",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "separates"
+      },
+      "domainIncludes": [
+        "bulc:Slab"
+      ],
+      "rangeIncludes": [
+        "bulc:Story"
+      ]
+    },
+    {
+      "@id": "bulc:sizedBy",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "sizedBy"
+      },
+      "domainIncludes": [
+        "bulc:WaterSource"
+      ],
+      "rangeIncludes": [
+        "bulc:PumpSpec"
+      ]
+    },
+    {
+      "@id": "bulc:sizes",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "sizes"
+      },
+      "domainIncludes": [
+        "bulc:PumpSpec"
+      ],
+      "rangeIncludes": [
+        "bulc:WaterSource"
+      ]
+    },
+    {
+      "@id": "bulc:triggers",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "triggers"
+      },
+      "domainIncludes": [
+        "bulc:Device"
+      ],
+      "rangeIncludes": [
+        "bulc:Control"
+      ]
+    },
+    {
+      "@id": "bulc:usedBy",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "usedBy"
+      },
+      "domainIncludes": [
+        "bulc:Ramp"
+      ],
+      "rangeIncludes": [
+        "bulc:Fire",
+        "bulc:HvacTerminal",
+        "bulc:SprayProfile",
+        "bulc:Surface"
+      ]
+    },
+    {
+      "@id": "bulc:usesProfile",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "usesProfile"
+      },
+      "domainIncludes": [
+        "bulc:Nozzle",
+        "bulc:SprinklerDevice"
+      ],
+      "rangeIncludes": [
+        "bulc:SprayProfile"
+      ]
+    },
+    {
+      "@id": "bulc:usesProp",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "usesProp"
+      },
+      "domainIncludes": [
+        "bulc:Device"
+      ],
+      "rangeIncludes": [
+        "bulc:Prop"
+      ]
+    },
+    {
+      "@id": "bulc:usesRamp",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "usesRamp"
+      },
+      "domainIncludes": [
+        "bulc:Fire",
+        "bulc:Surface"
+      ],
+      "rangeIncludes": [
+        "bulc:Ramp"
+      ]
+    },
+    {
+      "@id": "bulc:usesSurface",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "usesSurface"
+      },
+      "domainIncludes": [
+        "bulc:Obstacle"
+      ],
+      "rangeIncludes": [
+        "bulc:Surface"
+      ]
+    },
+    {
+      "@id": "bulc:writes",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "writes"
+      },
+      "domainIncludes": [
+        "bulc:Device",
+        "bulc:Simulation"
+      ],
+      "rangeIncludes": [
+        "bulc:DeviceCsv",
+        "bulc:Output"
+      ]
+    },
+    {
+      "@id": "bulc:yields",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "yields"
+      },
+      "domainIncludes": [
+        "bulc:ArchitecturalPlan",
+        "bulc:EvacSetup",
+        "bulc:HvacNetwork",
+        "bulc:PipeNetwork",
+        "bulc:PipingIsometric",
+        "bulc:SprinklerPlan"
+      ],
+      "rangeIncludes": [
+        "bulc:DesignScenario",
+        "bulc:Door",
+        "bulc:DrawingCandidate",
+        "bulc:HvacResults",
+        "bulc:PipeResults",
+        "bulc:RsetEstimate",
+        "bulc:Slab",
+        "bulc:Story",
+        "bulc:Wall",
+        "bulc:Window"
+      ]
+    },
+    {
+      "@id": "tool:add_bndf",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "add_bndf"
+      }
+    },
+    {
+      "@id": "tool:add_control",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "add_control"
+      }
+    },
+    {
+      "@id": "tool:add_device",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "add_device"
+      }
+    },
+    {
+      "@id": "tool:add_door",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "add_door"
+      }
+    },
+    {
+      "@id": "tool:add_fire",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "add_fire"
+      }
+    },
+    {
+      "@id": "tool:add_floor",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "add_floor"
+      }
+    },
+    {
+      "@id": "tool:add_heat_detector",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "add_heat_detector"
+      }
+    },
+    {
+      "@id": "tool:add_hole",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "add_hole"
+      }
+    },
+    {
+      "@id": "tool:add_material",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "add_material"
+      }
+    },
+    {
+      "@id": "tool:add_material_from_library",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "add_material_from_library"
+      }
+    },
+    {
+      "@id": "tool:add_obstacle",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "add_obstacle"
+      }
+    },
+    {
+      "@id": "tool:add_prop",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "add_prop"
+      }
+    },
+    {
+      "@id": "tool:add_ramp",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "add_ramp"
+      }
+    },
+    {
+      "@id": "tool:add_raw_namelist",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "add_raw_namelist"
+      }
+    },
+    {
+      "@id": "tool:add_slcf",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "add_slcf"
+      }
+    },
+    {
+      "@id": "tool:add_smoke_detector",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "add_smoke_detector"
+      }
+    },
+    {
+      "@id": "tool:add_species",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "add_species"
+      }
+    },
+    {
+      "@id": "tool:add_sprinkler",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "add_sprinkler"
+      }
+    },
+    {
+      "@id": "tool:add_surface",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "add_surface"
+      }
+    },
+    {
+      "@id": "tool:add_surface_from_library",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "add_surface_from_library"
+      }
+    },
+    {
+      "@id": "tool:add_thermocouple",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "add_thermocouple"
+      }
+    },
+    {
+      "@id": "tool:add_vent",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "add_vent"
+      }
+    },
+    {
+      "@id": "tool:add_wall",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "add_wall"
+      }
+    },
+    {
+      "@id": "tool:add_window",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "add_window"
+      }
+    },
+    {
+      "@id": "tool:arch_analyze_drawing",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "arch_analyze_drawing"
+      }
+    },
+    {
+      "@id": "tool:arch_import_building",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "arch_import_building"
+      }
+    },
+    {
+      "@id": "tool:arch_import_floorplan_report",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "arch_import_floorplan_report"
+      }
+    },
+    {
+      "@id": "tool:assign_surface",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "assign_surface"
+      }
+    },
+    {
+      "@id": "tool:auto_cutcell_mesh",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "auto_cutcell_mesh"
+      }
+    },
+    {
+      "@id": "tool:auto_fit_mesh",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "auto_fit_mesh"
+      }
+    },
+    {
+      "@id": "tool:auto_multimesh",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "auto_multimesh"
+      }
+    },
+    {
+      "@id": "tool:bulc_check_deck",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "bulc_check_deck"
+      }
+    },
+    {
+      "@id": "tool:bulc_drawing_intake",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "bulc_drawing_intake"
+      }
+    },
+    {
+      "@id": "tool:bulc_mesh_advisor",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "bulc_mesh_advisor"
+      }
+    },
+    {
+      "@id": "tool:capture_view",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "capture_view"
+      }
+    },
+    {
+      "@id": "tool:draw_add_story",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "draw_add_story"
+      }
+    },
+    {
+      "@id": "tool:draw_list_stories",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "draw_list_stories"
+      }
+    },
+    {
+      "@id": "tool:draw_remove_story",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "draw_remove_story"
+      }
+    },
+    {
+      "@id": "tool:draw_set_door_params",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "draw_set_door_params"
+      }
+    },
+    {
+      "@id": "tool:draw_set_wall_params",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "draw_set_wall_params"
+      }
+    },
+    {
+      "@id": "tool:draw_set_window_params",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "draw_set_window_params"
+      }
+    },
+    {
+      "@id": "tool:draw_update_story",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "draw_update_story"
+      }
+    },
+    {
+      "@id": "tool:evac_add_agent",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "evac_add_agent"
+      }
+    },
+    {
+      "@id": "tool:evac_add_agents_batch",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "evac_add_agents_batch"
+      }
+    },
+    {
+      "@id": "tool:evac_add_journey",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "evac_add_journey"
+      }
+    },
+    {
+      "@id": "tool:evac_add_stair",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "evac_add_stair"
+      }
+    },
+    {
+      "@id": "tool:evac_add_waypoint",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "evac_add_waypoint"
+      }
+    },
+    {
+      "@id": "tool:evac_clear_agents",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "evac_clear_agents"
+      }
+    },
+    {
+      "@id": "tool:evac_get_results",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "evac_get_results"
+      }
+    },
+    {
+      "@id": "tool:evac_list_summary",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "evac_list_summary"
+      }
+    },
+    {
+      "@id": "tool:evac_remove_agent",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "evac_remove_agent"
+      }
+    },
+    {
+      "@id": "tool:evac_remove_journey",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "evac_remove_journey"
+      }
+    },
+    {
+      "@id": "tool:evac_remove_stair",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "evac_remove_stair"
+      }
+    },
+    {
+      "@id": "tool:evac_remove_waypoint",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "evac_remove_waypoint"
+      }
+    },
+    {
+      "@id": "tool:evac_run",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "evac_run"
+      }
+    },
+    {
+      "@id": "tool:evac_status",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "evac_status"
+      }
+    },
+    {
+      "@id": "tool:evac_stop",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "evac_stop"
+      }
+    },
+    {
+      "@id": "tool:evac_update_agent",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "evac_update_agent"
+      }
+    },
+    {
+      "@id": "tool:evac_update_journey",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "evac_update_journey"
+      }
+    },
+    {
+      "@id": "tool:evac_update_setup",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "evac_update_setup"
+      }
+    },
+    {
+      "@id": "tool:evac_update_stair",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "evac_update_stair"
+      }
+    },
+    {
+      "@id": "tool:evac_update_waypoint",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "evac_update_waypoint"
+      }
+    },
+    {
+      "@id": "tool:fds_apply_text",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "fds_apply_text"
+      }
+    },
+    {
+      "@id": "tool:fire_compute_aset",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "fire_compute_aset"
+      }
+    },
+    {
+      "@id": "tool:fire_results_summary",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "fire_results_summary"
+      }
+    },
+    {
+      "@id": "tool:fire_timeseries",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "fire_timeseries"
+      }
+    },
+    {
+      "@id": "tool:get_config_summary",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "get_config_summary"
+      }
+    },
+    {
+      "@id": "tool:get_conventions",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "get_conventions"
+      }
+    },
+    {
+      "@id": "tool:get_furniture_info",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "get_furniture_info"
+      }
+    },
+    {
+      "@id": "tool:get_numerics",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "get_numerics"
+      }
+    },
+    {
+      "@id": "tool:get_object_properties",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "get_object_properties"
+      }
+    },
+    {
+      "@id": "tool:get_project_summary",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "get_project_summary"
+      }
+    },
+    {
+      "@id": "tool:get_simulation_metrics",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "get_simulation_metrics"
+      }
+    },
+    {
+      "@id": "tool:get_simulation_settings",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "get_simulation_settings"
+      }
+    },
+    {
+      "@id": "tool:hvac_add_air_handler",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "hvac_add_air_handler"
+      }
+    },
+    {
+      "@id": "tool:hvac_add_duct",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "hvac_add_duct"
+      }
+    },
+    {
+      "@id": "tool:hvac_add_exhaust_grille",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "hvac_add_exhaust_grille"
+      }
+    },
+    {
+      "@id": "tool:hvac_add_node",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "hvac_add_node"
+      }
+    },
+    {
+      "@id": "tool:hvac_add_supply_diffuser",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "hvac_add_supply_diffuser"
+      }
+    },
+    {
+      "@id": "tool:hvac_apply_to_fds",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "hvac_apply_to_fds"
+      }
+    },
+    {
+      "@id": "tool:hvac_get_results",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "hvac_get_results"
+      }
+    },
+    {
+      "@id": "tool:hvac_list_summary",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "hvac_list_summary"
+      }
+    },
+    {
+      "@id": "tool:hvac_remove_air_handler",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "hvac_remove_air_handler"
+      }
+    },
+    {
+      "@id": "tool:hvac_remove_duct",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "hvac_remove_duct"
+      }
+    },
+    {
+      "@id": "tool:hvac_remove_exhaust_grille",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "hvac_remove_exhaust_grille"
+      }
+    },
+    {
+      "@id": "tool:hvac_remove_node",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "hvac_remove_node"
+      }
+    },
+    {
+      "@id": "tool:hvac_remove_supply_diffuser",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "hvac_remove_supply_diffuser"
+      }
+    },
+    {
+      "@id": "tool:hvac_run_calc",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "hvac_run_calc"
+      }
+    },
+    {
+      "@id": "tool:hvac_set_defaults",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "hvac_set_defaults"
+      }
+    },
+    {
+      "@id": "tool:hvac_update_air_handler",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "hvac_update_air_handler"
+      }
+    },
+    {
+      "@id": "tool:hvac_update_duct",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "hvac_update_duct"
+      }
+    },
+    {
+      "@id": "tool:hvac_update_exhaust_grille",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "hvac_update_exhaust_grille"
+      }
+    },
+    {
+      "@id": "tool:hvac_update_node",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "hvac_update_node"
+      }
+    },
+    {
+      "@id": "tool:hvac_update_supply_diffuser",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "hvac_update_supply_diffuser"
+      }
+    },
+    {
+      "@id": "tool:list_bndf",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "list_bndf"
+      }
+    },
+    {
+      "@id": "tool:list_devices",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "list_devices"
+      }
+    },
+    {
+      "@id": "tool:list_furniture_catalog",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "list_furniture_catalog"
+      }
+    },
+    {
+      "@id": "tool:list_geoms",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "list_geoms"
+      }
+    },
+    {
+      "@id": "tool:list_material_library",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "list_material_library"
+      }
+    },
+    {
+      "@id": "tool:list_meshes",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "list_meshes"
+      }
+    },
+    {
+      "@id": "tool:list_obstacles",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "list_obstacles"
+      }
+    },
+    {
+      "@id": "tool:list_raw_namelists",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "list_raw_namelists"
+      }
+    },
+    {
+      "@id": "tool:list_slcf",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "list_slcf"
+      }
+    },
+    {
+      "@id": "tool:list_surfaces",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "list_surfaces"
+      }
+    },
+    {
+      "@id": "tool:list_vents",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "list_vents"
+      }
+    },
+    {
+      "@id": "tool:merge_meshes",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "merge_meshes"
+      }
+    },
+    {
+      "@id": "tool:output_add_tenability_slices",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "output_add_tenability_slices"
+      }
+    },
+    {
+      "@id": "tool:place_furniture",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "place_furniture"
+      }
+    },
+    {
+      "@id": "tool:preview_fds",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "preview_fds"
+      }
+    },
+    {
+      "@id": "tool:project_export_fds",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "project_export_fds"
+      }
+    },
+    {
+      "@id": "tool:project_info",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "project_info"
+      }
+    },
+    {
+      "@id": "tool:project_new",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "project_new"
+      }
+    },
+    {
+      "@id": "tool:project_open",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "project_open"
+      }
+    },
+    {
+      "@id": "tool:project_redo",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "project_redo"
+      }
+    },
+    {
+      "@id": "tool:project_save",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "project_save"
+      }
+    },
+    {
+      "@id": "tool:project_undo",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "project_undo"
+      }
+    },
+    {
+      "@id": "tool:remove_bndf",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "remove_bndf"
+      }
+    },
+    {
+      "@id": "tool:remove_control",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "remove_control"
+      }
+    },
+    {
+      "@id": "tool:remove_device",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "remove_device"
+      }
+    },
+    {
+      "@id": "tool:remove_fire",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "remove_fire"
+      }
+    },
+    {
+      "@id": "tool:remove_geom",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "remove_geom"
+      }
+    },
+    {
+      "@id": "tool:remove_hole",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "remove_hole"
+      }
+    },
+    {
+      "@id": "tool:remove_material",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "remove_material"
+      }
+    },
+    {
+      "@id": "tool:remove_obstacle",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "remove_obstacle"
+      }
+    },
+    {
+      "@id": "tool:remove_prop",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "remove_prop"
+      }
+    },
+    {
+      "@id": "tool:remove_ramp",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "remove_ramp"
+      }
+    },
+    {
+      "@id": "tool:remove_raw_namelist",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "remove_raw_namelist"
+      }
+    },
+    {
+      "@id": "tool:remove_slcf",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "remove_slcf"
+      }
+    },
+    {
+      "@id": "tool:remove_species",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "remove_species"
+      }
+    },
+    {
+      "@id": "tool:remove_surface",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "remove_surface"
+      }
+    },
+    {
+      "@id": "tool:remove_vent",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "remove_vent"
+      }
+    },
+    {
+      "@id": "tool:results_detect",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "results_detect"
+      }
+    },
+    {
+      "@id": "tool:run_simulation",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "run_simulation"
+      }
+    },
+    {
+      "@id": "tool:set_all_boundaries_open",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "set_all_boundaries_open"
+      }
+    },
+    {
+      "@id": "tool:set_ambient",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "set_ambient"
+      }
+    },
+    {
+      "@id": "tool:set_chid",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "set_chid"
+      }
+    },
+    {
+      "@id": "tool:set_fds_properties",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "set_fds_properties"
+      }
+    },
+    {
+      "@id": "tool:set_mesh",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "set_mesh"
+      }
+    },
+    {
+      "@id": "tool:set_mesh_cell_size",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "set_mesh_cell_size"
+      }
+    },
+    {
+      "@id": "tool:set_meshes",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "set_meshes"
+      }
+    },
+    {
+      "@id": "tool:set_numerics",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "set_numerics"
+      }
+    },
+    {
+      "@id": "tool:set_open_boundary",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "set_open_boundary"
+      }
+    },
+    {
+      "@id": "tool:set_plot3d_outputs",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "set_plot3d_outputs"
+      }
+    },
+    {
+      "@id": "tool:set_run_options",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "set_run_options"
+      }
+    },
+    {
+      "@id": "tool:set_simulation_mode",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "set_simulation_mode"
+      }
+    },
+    {
+      "@id": "tool:set_time",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "set_time"
+      }
+    },
+    {
+      "@id": "tool:set_turbulence_model",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "set_turbulence_model"
+      }
+    },
+    {
+      "@id": "tool:shape_add_arch",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "shape_add_arch"
+      }
+    },
+    {
+      "@id": "tool:shape_add_box",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "shape_add_box"
+      }
+    },
+    {
+      "@id": "tool:shape_add_cone",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "shape_add_cone"
+      }
+    },
+    {
+      "@id": "tool:shape_add_cylinder",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "shape_add_cylinder"
+      }
+    },
+    {
+      "@id": "tool:shape_add_polygon_prism",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "shape_add_polygon_prism"
+      }
+    },
+    {
+      "@id": "tool:shape_add_revolve",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "shape_add_revolve"
+      }
+    },
+    {
+      "@id": "tool:shape_add_sphere",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "shape_add_sphere"
+      }
+    },
+    {
+      "@id": "tool:shape_add_torus",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "shape_add_torus"
+      }
+    },
+    {
+      "@id": "tool:shape_add_wedge",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "shape_add_wedge"
+      }
+    },
+    {
+      "@id": "tool:shape_array",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "shape_array"
+      }
+    },
+    {
+      "@id": "tool:shape_boolean",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "shape_boolean"
+      }
+    },
+    {
+      "@id": "tool:shape_delete_node",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "shape_delete_node"
+      }
+    },
+    {
+      "@id": "tool:shape_edit_node",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "shape_edit_node"
+      }
+    },
+    {
+      "@id": "tool:shape_export_geom",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "shape_export_geom"
+      }
+    },
+    {
+      "@id": "tool:shape_export_obj",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "shape_export_obj"
+      }
+    },
+    {
+      "@id": "tool:shape_export_obst",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "shape_export_obst"
+      }
+    },
+    {
+      "@id": "tool:shape_export_stl",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "shape_export_stl"
+      }
+    },
+    {
+      "@id": "tool:shape_extrude_sketch",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "shape_extrude_sketch"
+      }
+    },
+    {
+      "@id": "tool:shape_get_tree",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "shape_get_tree"
+      }
+    },
+    {
+      "@id": "tool:shape_hull",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "shape_hull"
+      }
+    },
+    {
+      "@id": "tool:shape_import_mesh",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "shape_import_mesh"
+      }
+    },
+    {
+      "@id": "tool:shape_mirror",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "shape_mirror"
+      }
+    },
+    {
+      "@id": "tool:shape_new_document",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "shape_new_document"
+      }
+    },
+    {
+      "@id": "tool:shape_preview_voxels",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "shape_preview_voxels"
+      }
+    },
+    {
+      "@id": "tool:shape_push_pull",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "shape_push_pull"
+      }
+    },
+    {
+      "@id": "tool:shape_register_item",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "shape_register_item"
+      }
+    },
+    {
+      "@id": "tool:shape_screenshot",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "shape_screenshot"
+      }
+    },
+    {
+      "@id": "tool:shape_set_params",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "shape_set_params"
+      }
+    },
+    {
+      "@id": "tool:shape_transform",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "shape_transform"
+      }
+    },
+    {
+      "@id": "tool:shape_undo",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "shape_undo"
+      }
+    },
+    {
+      "@id": "tool:sim_log_tail",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "sim_log_tail"
+      }
+    },
+    {
+      "@id": "tool:sim_preflight",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "sim_preflight"
+      }
+    },
+    {
+      "@id": "tool:sim_start",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "sim_start"
+      }
+    },
+    {
+      "@id": "tool:sim_status",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "sim_status"
+      }
+    },
+    {
+      "@id": "tool:sim_stop",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "sim_stop"
+      }
+    },
+    {
+      "@id": "tool:slice_mesh",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "slice_mesh"
+      }
+    },
+    {
+      "@id": "tool:spr_add_drain",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "spr_add_drain"
+      }
+    },
+    {
+      "@id": "tool:spr_add_node",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "spr_add_node"
+      }
+    },
+    {
+      "@id": "tool:spr_add_pipe",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "spr_add_pipe"
+      }
+    },
+    {
+      "@id": "tool:spr_add_riser",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "spr_add_riser"
+      }
+    },
+    {
+      "@id": "tool:spr_add_sprinkler_head",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "spr_add_sprinkler_head"
+      }
+    },
+    {
+      "@id": "tool:spr_add_water_source",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "spr_add_water_source"
+      }
+    },
+    {
+      "@id": "tool:spr_analyze_drawing",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "spr_analyze_drawing"
+      }
+    },
+    {
+      "@id": "tool:spr_apply_to_fds",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "spr_apply_to_fds"
+      }
+    },
+    {
+      "@id": "tool:spr_auto_layout",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "spr_auto_layout"
+      }
+    },
+    {
+      "@id": "tool:spr_design_review",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "spr_design_review"
+      }
+    },
+    {
+      "@id": "tool:spr_export_results",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "spr_export_results"
+      }
+    },
+    {
+      "@id": "tool:spr_get_results",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "spr_get_results"
+      }
+    },
+    {
+      "@id": "tool:spr_import_fhc_bundle",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "spr_import_fhc_bundle"
+      }
+    },
+    {
+      "@id": "tool:spr_import_network",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "spr_import_network"
+      }
+    },
+    {
+      "@id": "tool:spr_insert_fitting",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "spr_insert_fitting"
+      }
+    },
+    {
+      "@id": "tool:spr_list_summary",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "spr_list_summary"
+      }
+    },
+    {
+      "@id": "tool:spr_pump_sizing",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "spr_pump_sizing"
+      }
+    },
+    {
+      "@id": "tool:spr_remove_node",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "spr_remove_node"
+      }
+    },
+    {
+      "@id": "tool:spr_remove_pipe",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "spr_remove_pipe"
+      }
+    },
+    {
+      "@id": "tool:spr_remove_sprinkler_head",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "spr_remove_sprinkler_head"
+      }
+    },
+    {
+      "@id": "tool:spr_remove_water_source",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "spr_remove_water_source"
+      }
+    },
+    {
+      "@id": "tool:spr_run_calc",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "spr_run_calc"
+      }
+    },
+    {
+      "@id": "tool:spr_set_defaults",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "spr_set_defaults"
+      }
+    },
+    {
+      "@id": "tool:spr_set_head_spray",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "spr_set_head_spray"
+      }
+    },
+    {
+      "@id": "tool:spr_set_nozzles",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "spr_set_nozzles"
+      }
+    },
+    {
+      "@id": "tool:spr_set_pipes",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "spr_set_pipes"
+      }
+    },
+    {
+      "@id": "tool:spr_set_valves",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "spr_set_valves"
+      }
+    },
+    {
+      "@id": "tool:spr_update_node",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "spr_update_node"
+      }
+    },
+    {
+      "@id": "tool:spr_update_pipe",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "spr_update_pipe"
+      }
+    },
+    {
+      "@id": "tool:spr_update_sprinkler_head",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "spr_update_sprinkler_head"
+      }
+    },
+    {
+      "@id": "tool:spr_update_water_source",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "spr_update_water_source"
+      }
+    },
+    {
+      "@id": "tool:spr_upsert_spray_profile",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "spr_upsert_spray_profile"
+      }
+    },
+    {
+      "@id": "tool:transform_obstacle",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "transform_obstacle"
+      }
+    },
+    {
+      "@id": "tool:update_control",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "update_control"
+      }
+    },
+    {
+      "@id": "tool:update_device",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "update_device"
+      }
+    },
+    {
+      "@id": "tool:update_dump_config",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "update_dump_config"
+      }
+    },
+    {
+      "@id": "tool:update_fire",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "update_fire"
+      }
+    },
+    {
+      "@id": "tool:update_hole",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "update_hole"
+      }
+    },
+    {
+      "@id": "tool:update_material",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "update_material"
+      }
+    },
+    {
+      "@id": "tool:update_obstacle",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "update_obstacle"
+      }
+    },
+    {
+      "@id": "tool:update_prop",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "update_prop"
+      }
+    },
+    {
+      "@id": "tool:update_ramp",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "update_ramp"
+      }
+    },
+    {
+      "@id": "tool:update_reaction",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "update_reaction"
+      }
+    },
+    {
+      "@id": "tool:update_slcf",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "update_slcf"
+      }
+    },
+    {
+      "@id": "tool:update_surface",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "update_surface"
+      }
+    },
+    {
+      "@id": "tool:update_vent",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "update_vent"
+      }
+    },
+    {
+      "@id": "tool:validate_project",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "validate_project"
+      }
+    }
+  ]
+}
