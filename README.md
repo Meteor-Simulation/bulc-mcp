@@ -22,7 +22,7 @@
 BULC MCP 는 [Model Context Protocol](https://modelcontextprotocol.io) 서버입니다. Claude Desktop, Claude Code, Cursor, VS Code 같은 MCP 클라이언트의 AI 가
 **이 PC 에서 실행 중인 BULC 데스크톱 앱**(FDS 6.10.1 기반 GPU 화재 시뮬레이터, 2D/3D 건물 편집기)을 자연어로 조작하게 합니다.
 
-- **앱의 모든 기능**: 프로젝트 열기·저장, 도면 인식, 형상·Shape Studio, 격자, 해석 설정·사전 점검·실행·진행 확인, 출력, 화원, 재료, 감지기·제어, 스프링클러/물분무 배관망과 수리계산·펌프 사양·설계 검토, HVAC 덕트망, 피난 배치·실행·결과, 화재 결과 요약·ASET 판정, 결과 뷰어, 화면 캡처 — BULC 0.89 기준 **앱 도구 239종**을 그대로 노출합니다. 앱을 업데이트하면 새 도구가 이 서버를 다시 설치하지 않아도 따라옵니다.
+- **앱의 모든 기능**: 프로젝트 열기·저장, 도면 인식, 형상·Shape Studio, 격자, 해석 설정·사전 점검·실행·진행 확인, 출력, 화원, 재료, 감지기·제어, 스프링클러/물분무 배관망과 수리계산·펌프 사양·설계 검토, HVAC 덕트망, 피난 배치·실행·결과, 화재 결과 요약·ASET 판정, 결과 뷰어, 화면 캡처 — BULC 0.90 기준 **앱 도구 239종**을 그대로 노출합니다. 앱을 업데이트하면 새 도구가 이 서버를 다시 설치하지 않아도 따라옵니다.
 - **도면 기반 작업**: 사용자가 PC 의 도면 파일(DWG, DXF, PDF, 이미지, ZIP 묶음, IFC) 경로를 알려 주면, 서버가 파일을 **로컬에서** 분류하고(`bulc_drawing_intake`) 맞는 작업 절차를 돌려줍니다. 건축 평면도는 앱이 벽·문·창·기둥·실명을 인식해 건물을 만들고(`arch_analyze_drawing` → `arch_import_building`), 스프링클러·물분무 배관 도면은 배관망을 만듭니다(`spr_analyze_drawing` → `spr_import_network`).
 - **오류를 줄이는 지식 팩**: 온톨로지(클래스 79개), 규칙 166개(조건 → 확인 → 고치는 법), 흔한 LLM 실수 38개, 단계별 플레이북 6편, 한·영·FDS·도구 용어집, FDS 6.10.1 키 참조를 MCP resources·prompts·도구로 제공합니다. 실행 전 계획 점검(`bulc_plan_check`)과 덱 점검(`bulc_check_deck`)이 들어 있습니다.
 
@@ -59,7 +59,7 @@ MCP 클라이언트 ──stdio──▶ bulc-mcp (이 저장소)
 
 ### 요구 사항
 
-1. **BULC 데스크톱 앱**(라이선스 필요), 실행 중이어야 합니다. 0.89 이상을 권합니다(0.88 은 줄어든 도구 집합으로 동작). 설치 파일: [Meteor-Simulation/bulc-releases](https://github.com/Meteor-Simulation/bulc-releases/releases/latest). 브리지는 기본으로 켜져 있습니다(앱 환경 변수 `BULC_BRIDGE=0` 이면 꺼짐).
+1. **BULC 데스크톱 앱**(라이선스 필요), 실행 중이어야 합니다. 0.90 이상을 권합니다(0.88 은 줄어든 도구 집합으로 동작). 설치 파일: [Meteor-Simulation/bulc-releases](https://github.com/Meteor-Simulation/bulc-releases/releases/latest). 브리지는 기본으로 켜져 있습니다(앱 환경 변수 `BULC_BRIDGE=0` 이면 꺼짐).
 2. **Node.js 20 이상**
 3. MCP 클라이언트(Claude Desktop, Claude Code, Cursor, VS Code 등)
 
@@ -72,30 +72,30 @@ MCP 클라이언트 ──stdio──▶ bulc-mcp (이 저장소)
   "mcpServers": {
     "bulc": {
       "command": "npx",
-      "args": ["-y", "@meteor-simulation/bulc-mcp"]
+      "args": ["-y", "github:Meteor-Simulation/bulc-mcp"]
     }
   }
 }
 ```
 
-Windows 에서 `npx` 를 찾지 못하면 `"command": "cmd", "args": ["/c", "npx", "-y", "@meteor-simulation/bulc-mcp"]` 로 바꿉니다.
+Windows 에서 `npx` 를 찾지 못하면 `"command": "cmd", "args": ["/c", "npx", "-y", "github:Meteor-Simulation/bulc-mcp"]` 로 바꿉니다.
 
 **Claude Code**
 
 ```bash
-claude mcp add bulc --scope user -- npx -y @meteor-simulation/bulc-mcp
+claude mcp add bulc --scope user -- npx -y github:Meteor-Simulation/bulc-mcp
 ```
 
 **Cursor** (`~/.cursor/mcp.json`) — 도구 수 상한이 있는 클라이언트는 `compact` 프로필을 권합니다.
 
 ```json
-{ "mcpServers": { "bulc": { "command": "npx", "args": ["-y", "@meteor-simulation/bulc-mcp"], "env": { "BULC_MCP_PROFILE": "compact" } } } }
+{ "mcpServers": { "bulc": { "command": "npx", "args": ["-y", "github:Meteor-Simulation/bulc-mcp"], "env": { "BULC_MCP_PROFILE": "compact" } } } }
 ```
 
 **VS Code** (`.vscode/mcp.json`)
 
 ```json
-{ "servers": { "bulc": { "type": "stdio", "command": "npx", "args": ["-y", "@meteor-simulation/bulc-mcp"] } } }
+{ "servers": { "bulc": { "type": "stdio", "command": "npx", "args": ["-y", "github:Meteor-Simulation/bulc-mcp"] } } }
 ```
 
 **소스에서**
@@ -111,7 +111,7 @@ node build/server.js
 
 ### 앱 찾기(브리지 주소와 토큰)
 
-설정 없이 동작합니다. BULC 앱(0.89 이상)은 브리지를 열 때 사용자 설정 폴더에 **발견 파일** `BULC/bridge.json`(Windows `%APPDATA%\BULC\bridge.json`)을 쓰고, 이 서버가 그 파일에서 주소·포트·토큰을 읽습니다. 앱이 8787 이 아닌 포트에서 돌아도(다른 프로그램이 8787 을 쓰는 경우) 그대로 찾습니다. 종료된 앱이 남긴 파일은 무시합니다.
+설정 없이 동작합니다. BULC 앱(0.90 이상)은 브리지를 열 때 사용자 설정 폴더에 **발견 파일** `BULC/bridge.json`(Windows `%APPDATA%\BULC\bridge.json`)을 쓰고, 이 서버가 그 파일에서 주소·포트·토큰을 읽습니다. 앱이 8787 이 아닌 포트에서 돌아도(다른 프로그램이 8787 을 쓰는 경우) 그대로 찾습니다. 종료된 앱이 남긴 파일은 무시합니다.
 
 - 순서: `BULC_BRIDGE_URL` → 발견 파일 → `BULC_BRIDGE_HOST`/`BULC_BRIDGE_PORT`(기본 `127.0.0.1:8787`).
 - 앱을 `BULC_BRIDGE_AUTH=sensitive|all` 로 실행하면 파일·실행 도구(또는 전부)에 토큰이 필요합니다. 서버는 발견 파일의 토큰을 그 주소에만 `Authorization: Bearer` 로 보냅니다. 발견 파일을 읽을 수 없는 환경에서는 `BULC_BRIDGE_TOKEN` 을 씁니다.
@@ -150,10 +150,10 @@ node build/server.js
 | `bulc_mesh_advisor` | ○ | D* 와 셀 크기, 2·3·5 친화 IJK, 총 셀 수 |
 | `bulc_find_tools` | ○ | 키워드로 앱 도구와 입력 스키마 찾기 |
 | `bulc_call` | | (compact 프로필) 이름으로 앱 도구 호출 |
-| `get_project_summary` | | 앱 프로젝트 짧은 요약(0.89 이상은 `project_info` 가 더 자세함) |
-| `run_simulation` | | 모든 앱 버전용 실행 가드 — `validate_project` 를 먼저 돌려 오류가 있으면 실행하지 않음(0.89 이상은 `sim_preflight` → `sim_start` 권장) |
+| `get_project_summary` | | 앱 프로젝트 짧은 요약(0.90 이상은 `project_info` 가 더 자세함) |
+| `run_simulation` | | 모든 앱 버전용 실행 가드 — `validate_project` 를 먼저 돌려 오류가 있으면 실행하지 않음(0.90 이상은 `sim_preflight` → `sim_start` 권장) |
 
-**앱 도구(BULC 0.89 기준 239종)**: 프로젝트·실행·결과 24 · 건축 도면 3 · 형상 14 · 화재 6 · 경계 5 · 장치·제어 14 · 격자 21 · 재료 6 · 표면 8 · 출력 10 · 조회·점검 7 · 피난 16 · 스프링클러·물분무 32 · HVAC 20 · 층 7 · 가구 3 · 결과 뷰어 11 · Shape Studio 32.
+**앱 도구(BULC 0.90 기준 239종)**: 프로젝트·실행·결과 24 · 건축 도면 3 · 형상 14 · 화재 6 · 경계 5 · 장치·제어 14 · 격자 21 · 재료 6 · 표면 8 · 출력 10 · 조회·점검 7 · 피난 16 · 스프링클러·물분무 32 · HVAC 20 · 층 7 · 가구 3 · 결과 뷰어 11 · Shape Studio 32.
 도구마다 읽기 전용·파괴적·멱등 주석이 붙고, 실행 중인 앱에서만 동작하는 도구(열기·저장·실행·캡처 등)는 "Live app only" 로 표시됩니다.
 
 ### 지식 팩
@@ -226,7 +226,7 @@ FDS 6.10.1, with a 2D/3D building editor) in plain language.
 - **Every app feature**: opening and saving projects, drawing recognition, geometry, Shape Studio, meshing, run settings, pre-flight
   checks, runs and progress, outputs, fires, materials, detectors and controls, sprinkler / water-spray networks with hydraulics, pump
   sizing and design review, HVAC ducts, evacuation set-up, runs and results, fire result summaries and ASET, the result viewer and
-  screenshots — **239 app tools** as of BULC 0.89, taken live from the app so new app versions bring new tools without reinstalling
+  screenshots — **239 app tools** as of BULC 0.90, taken live from the app so new app versions bring new tools without reinstalling
   this server.
 - **Work from drawings**: give the AI the local path of a DWG, DXF, PDF, image, ZIP bundle or IFC file. `bulc_drawing_intake`
   classifies it **on your PC** and returns the playbook. The app recognises architectural floor plans (walls, doors, windows, columns,
@@ -255,7 +255,7 @@ BULC 0.88 and older lack `project_*`, `sim_*`, `fire_*`, `evac_run`, `arch_*` an
 
 ### Requirements
 
-1. The **BULC desktop app** (licensed), running — 0.89 or later recommended (0.88 works with the smaller tool set). Installer:
+1. The **BULC desktop app** (licensed), running — 0.90 or later recommended (0.88 works with the smaller tool set). Installer:
    [Meteor-Simulation/bulc-releases](https://github.com/Meteor-Simulation/bulc-releases/releases/latest). The bridge is on by
    default (`BULC_BRIDGE=0` in the app's environment turns it off).
 2. **Node.js 20+**
@@ -266,17 +266,17 @@ BULC 0.88 and older lack `project_*`, `sim_*`, `fire_*`, `evac_run`, `arch_*` an
 Claude Desktop (`claude_desktop_config.json`):
 
 ```json
-{ "mcpServers": { "bulc": { "command": "npx", "args": ["-y", "@meteor-simulation/bulc-mcp"] } } }
+{ "mcpServers": { "bulc": { "command": "npx", "args": ["-y", "github:Meteor-Simulation/bulc-mcp"] } } }
 ```
 
-Claude Code: `claude mcp add bulc --scope user -- npx -y @meteor-simulation/bulc-mcp`
+Claude Code: `claude mcp add bulc --scope user -- npx -y github:Meteor-Simulation/bulc-mcp`
 
 Cursor / VS Code: same command; clients with a tool-count limit should set `BULC_MCP_PROFILE=compact`.
 From source: `git clone`, `npm install` (builds in `prepare`), then run `node build/server.js`.
 
 ### Finding the app
 
-No configuration is needed. When BULC (0.89+) opens its bridge it writes a **discovery file** `BULC/bridge.json` in the user's
+No configuration is needed. When BULC (0.90+) opens its bridge it writes a **discovery file** `BULC/bridge.json` in the user's
 config folder (`%APPDATA%\BULC\bridge.json` on Windows); this server reads the address, port and token from it — also when the app runs
 on a port other than 8787. Files left behind by an app that has ended are ignored. Order: `BULC_BRIDGE_URL` → discovery file →
 `BULC_BRIDGE_HOST`/`BULC_BRIDGE_PORT` (default `127.0.0.1:8787`). With `BULC_BRIDGE_AUTH=sensitive|all` in the app, the token from the

@@ -6,7 +6,7 @@ All notable changes to this project are documented here. The format follows
 ## [4.0.0] — unreleased
 
 First release under the Meteor-Simulation organisation. Continues `bulc-mcp-server` 3.0.0 (the thin bridge client).
-Recommended with BULC 0.89 or later; BULC 0.88 works with its smaller tool set.
+Recommended with BULC 0.90 or later; BULC 0.88 works with its smaller tool set.
 
 ### Added
 
@@ -46,10 +46,10 @@ Recommended with BULC 0.89 or later; BULC 0.88 works with its smaller tool set.
 
 - Package renamed to `@meteor-simulation/bulc-mcp`; binary `bulc-mcp`; entry point `build/server.js`.
 - `run_simulation` now runs the app's `validate_project` first and does not start when it reports errors (kept for every app
-  version; `sim_preflight` → `sim_start` is preferred on BULC 0.89+).
+  version; `sim_preflight` → `sim_start` is preferred on BULC 0.90+).
 - App replies that start with `Tool input error`, `Unknown tool`, `Tool error (` or `.fds 생성 실패` are returned as errors
   (`isError`) with a pointer to the relevant rule and the real tool names.
-- Tool snapshot: BULC 0.89.0, 239 tools (adds project_*, sim_*, fire_*, evac_run/status/stop/get_results, arch_*, capture_view,
+- Tool snapshot: BULC 0.90.0, 239 tools (adds project_*, sim_*, fire_*, evac_run/status/stop/get_results, arch_*, capture_view,
   fds_apply_text, get_conventions, output_add_tenability_slices; the app-only `rewrite_fds_via_ai` and `request_simulation_run`
   are no longer listed) in snapshot schema 2 (`appVersion`, `generatedAt`, `sha256`, `toolsHash`, `category`, `annotations`,
   `liveOnly`). `scripts/import-snapshot.mjs` keeps the app's tool objects unchanged so `toolsHash` equals the app's `/health`.

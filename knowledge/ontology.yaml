@@ -62,12 +62,12 @@ conventions:
     live: "실행 중인 BULC 데스크톱 앱에 연결 — 편집이 화면에 바로 반영되고 프로젝트 열기·저장(project_*), 실행(sim_preflight → sim_start → sim_status), 결과 읽기(fire_*, evac_get_results), 화면 캡처(capture_view), result_* 가 동작합니다. 연결 여부·도구 집합은 bulc_connection_status 로 확인합니다. 서버는 앱의 발견 파일(BULC/bridge.json)로 주소·토큰을 찾습니다."
   app_versions:
     note: "도구 집합은 앱 버전마다 다릅니다. 실제 기준은 연결된 앱의 tools/list 입니다."
-    "0.89+": "project_info/open/save/new/export_fds/undo/redo, get_conventions, fds_apply_text, sim_preflight/start/status/stop/log_tail, results_detect, fire_results_summary/timeseries/compute_aset, output_add_tenability_slices, capture_view, evac_run/status/stop/get_results, arch_analyze_drawing/import_building/import_floorplan_report"
+    "0.90+": "project_info/open/save/new/export_fds/undo/redo, get_conventions, fds_apply_text, sim_preflight/start/status/stop/log_tail, results_detect, fire_results_summary/timeseries/compute_aset, output_add_tenability_slices, capture_view, evac_run/status/stop/get_results, arch_analyze_drawing/import_building/import_floorplan_report"
     "0.88 이하": "위 도구가 없습니다 — 열기·저장은 앱 파일 메뉴, 실행은 run_simulation(이 서버의 가드), 피난 실행·결과는 앱 EVAC 탭, 건축 평면은 bulc_drawing_intake 의 벽 후보 + add_wall 로 합니다."
   app_only_actions:
-    file_menu: "BULC 0.89 이상은 project_open / project_save / project_export_fds / project_new 로 앱의 현재 프로젝트를 열고 저장합니다(저장 안 된 변경·덮어쓰기는 사용자 확인 뒤). 그 이전 앱은 사용자가 앱의 파일 메뉴에서 합니다. new_project / open_project / save_project / export_fds 는 다른 서버의 이름입니다(GEN-014)."
-    evacuation_run: "피난 실행은 evac_run → evac_status → evac_get_results(0.89+). FED 연계·경보 연동 설정은 앱 EVAC 탭에서 사용자가 켭니다 — 켠 설정은 evac_run 입력에 들어갑니다(EVAC-004)."
-    architectural_drawing: "건축 평면 인식은 arch_analyze_drawing → arch_import_building(0.89+), 그림은 arch_import_floorplan_report. 앱 2D 편집기의 CAD 배경 기능은 사용자가 화면에서 쓰는 다른 경로입니다(DRW-004)."
+    file_menu: "BULC 0.90 이상은 project_open / project_save / project_export_fds / project_new 로 앱의 현재 프로젝트를 열고 저장합니다(저장 안 된 변경·덮어쓰기는 사용자 확인 뒤). 그 이전 앱은 사용자가 앱의 파일 메뉴에서 합니다. new_project / open_project / save_project / export_fds 는 다른 서버의 이름입니다(GEN-014)."
+    evacuation_run: "피난 실행은 evac_run → evac_status → evac_get_results(0.90+). FED 연계·경보 연동 설정은 앱 EVAC 탭에서 사용자가 켭니다 — 켠 설정은 evac_run 입력에 들어갑니다(EVAC-004)."
+    architectural_drawing: "건축 평면 인식은 arch_analyze_drawing → arch_import_building(0.90+), 그림은 arch_import_floorplan_report. 앱 2D 편집기의 CAD 배경 기능은 사용자가 화면에서 쓰는 다른 경로입니다(DRW-004)."
 
 areas:
   core: [Project, Story, Simulation, Ramp]
@@ -1087,7 +1087,7 @@ classes:
   ArchitecturalPlan:
     label: {en: Architectural floor plan, ko: 건축 평면도}
     parent: Drawing
-    description: "벽·문·창·계단·실 구획. BULC 0.89 이상은 arch_analyze_drawing(.dxf/.dwg/벡터 .pdf/그림)이 단위·벽 중심선·문·창·기둥·실명·층 표기를 인식하고, arch_import_building 이 한 번의 되돌리기 단계로 벽(&OBST)·문(Door_ HOLE)·창(Win_ HOLE)을 만듭니다(기본 dryRun). 그림은 LLM 이 직접 읽어 arch_import_floorplan_report 로 넣습니다. 구버전 앱은 bulc_drawing_intake 의 벽 후보로 add_wall 등을 씁니다."
+    description: "벽·문·창·계단·실 구획. BULC 0.90 이상은 arch_analyze_drawing(.dxf/.dwg/벡터 .pdf/그림)이 단위·벽 중심선·문·창·기둥·실명·층 표기를 인식하고, arch_import_building 이 한 번의 되돌리기 단계로 벽(&OBST)·문(Door_ HOLE)·창(Win_ HOLE)을 만듭니다(기본 dryRun). 그림은 LLM 이 직접 읽어 arch_import_floorplan_report 로 넣습니다. 구버전 앱은 bulc_drawing_intake 의 벽 후보로 add_wall 등을 씁니다."
     relations:
       yields: [Wall, Door, Window, Slab, Story]
     tools:

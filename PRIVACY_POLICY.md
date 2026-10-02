@@ -38,7 +38,7 @@ MCP 클라이언트는 도구 호출 결과를 대화의 일부로 사용자가 
 ### `rewrite_fds_via_ai` 도구 (구버전 앱)
 
 BULC 0.88 이하 앱에서는 `rewrite_fds_via_ai` 도구가 목록에 보일 수 있습니다. 이 도구는 현재 프로젝트의 FDS 덱 전체를 **BULC 앱에 설정된 AI 공급자**로 보내 편집을 요청합니다.
-이 서버는 이 도구에 외부 전송 표시(`openWorldHint`)와 안내 문구를 붙입니다. 쓰지 않으려면 `BULC_MCP_HIDE_TOOLS=rewrite_fds_via_ai` 로 숨기십시오. 0.89 부터는 앱 안 어시스턴트 전용이라 MCP 에 노출되지 않습니다.
+이 서버는 이 도구에 외부 전송 표시(`openWorldHint`)와 안내 문구를 붙입니다. 쓰지 않으려면 `BULC_MCP_HIDE_TOOLS=rewrite_fds_via_ai` 로 숨기십시오. 0.90 부터는 앱 안 어시스턴트 전용이라 MCP 에 노출되지 않습니다.
 
 ### 문의
 
@@ -84,7 +84,7 @@ For confidential drawings, consider an MCP client that uses a local model.
 
 BULC 0.88 and older may list `rewrite_fds_via_ai`, which sends the whole FDS deck of the current project to **the AI provider
 configured in the BULC app**. This server marks it as an external-transfer tool (`openWorldHint`) and says so in its description.
-Hide it with `BULC_MCP_HIDE_TOOLS=rewrite_fds_via_ai`. From 0.89 it is reserved for the in-app assistant and not exposed over MCP.
+Hide it with `BULC_MCP_HIDE_TOOLS=rewrite_fds_via_ai`. From 0.90 it is reserved for the in-app assistant and not exposed over MCP.
 
 ### Contact
 

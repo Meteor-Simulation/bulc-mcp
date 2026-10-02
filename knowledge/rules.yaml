@@ -72,7 +72,7 @@ rules:
     applies_to: [all]
     title: "목록에 없는 도구나 인자를 가정하지 않습니다"
     title_en: "Never assume a tool or argument exists"
-    condition: "tools/list 에 없는 도구(예: evac_add_exit, aset_report, import_architecture_drawing, start_simulation)를 부르거나 스키마에 없는 인자를 넣었습니다. 인자 검증기가 필수 누락·형식 오류·오타 키를 거절합니다. 앱 버전마다 도구가 다릅니다 — BULC 0.89 부터 project_*, sim_*, evac_run, fire_*, arch_*, capture_view 가 있고 그 이전 앱에는 없습니다."
+    condition: "tools/list 에 없는 도구(예: evac_add_exit, aset_report, import_architecture_drawing, start_simulation)를 부르거나 스키마에 없는 인자를 넣었습니다. 인자 검증기가 필수 누락·형식 오류·오타 키를 거절합니다. 앱 버전마다 도구가 다릅니다 — BULC 0.90 부터 project_*, sim_*, evac_run, fire_*, arch_*, capture_view 가 있고 그 이전 앱에는 없습니다."
     check: {tools: [bulc_find_tools, bulc_connection_status], how: "작업 시작 시 tools/list(또는 bulc_find_tools)로 실제 도구를 확인하고, 거절 메시지가 제안하는 인자 이름을 따릅니다. bulc_plan_check 가 없는 도구를 실제 도구로 안내합니다."}
     fix: {how: "있는 도구로 바꿉니다(출구 → add_door id='Door_…', ASET → fire_compute_aset, 건축 도면 → arch_analyze_drawing). 그 앱 버전에 도구가 없으면 사용자에게 앱 화면에서 할 일을 안내하고, 도구로 했다고 말하지 않습니다."}
 
@@ -127,7 +127,7 @@ rules:
     title_en: "Runs need the connected app (live mode); never report results you did not obtain"
     condition: "앱이 연결되지 않은 상태(스냅샷 모드)에서 해석이 실행된 것처럼 답했거나, 결과 파일·지표를 보지 않고 온도·HRR·ASET·RSET 값을 지어냈습니다. 결과 도구가 '결과가 없습니다'라고 답했는데 값을 보고했습니다."
     check: {tools: [bulc_connection_status, sim_status, results_detect, get_simulation_metrics], how: "sim_status 로 실행 중·종료·건강 지표(nan=0, Tmax ≤ 2500 K, |u| < 50 m/s)를 봅니다. results_detect 가 결과 파일 목록을 돌려줍니다. 연결되지 않았으면 사용자에게 앱 실행을 요청합니다."}
-    fix: {tools: [sim_preflight, sim_start, sim_status, fire_results_summary, fire_timeseries, fire_compute_aset, evac_get_results, run_simulation], how: "BULC 0.89 이상: sim_preflight → 조건 요약·사용자 확인 → sim_start {confirm: true} → sim_status 를 주기적으로 → 끝나면 fire_results_summary · fire_timeseries · fire_compute_aset 이 돌려준 값만 보고합니다. 피난은 evac_get_results. 구버전 앱(이 도구들이 없음): run_simulation(이 서버가 validate_project 뒤 실행) 후 앱 결과 화면에서 사용자가 확인합니다."}
+    fix: {tools: [sim_preflight, sim_start, sim_status, fire_results_summary, fire_timeseries, fire_compute_aset, evac_get_results, run_simulation], how: "BULC 0.90 이상: sim_preflight → 조건 요약·사용자 확인 → sim_start {confirm: true} → sim_status 를 주기적으로 → 끝나면 fire_results_summary · fire_timeseries · fire_compute_aset 이 돌려준 값만 보고합니다. 피난은 evac_get_results. 구버전 앱(이 도구들이 없음): run_simulation(이 서버가 validate_project 뒤 실행) 후 앱 결과 화면에서 사용자가 확인합니다."}
 
   - id: GEN-011
     domain: general
@@ -166,7 +166,7 @@ rules:
     applies_to: [Project]
     title: "프로젝트 열기·저장은 project_* 도구로 합니다 — 다른 서버의 파일 도구 이름을 쓰지 않습니다"
     title_en: "Open and save projects with the project_* tools; do not use other servers' file-tool names"
-    condition: "new_project / open_project / save_project / export_fds / import_fds 를 불렀습니다. 이 이름은 앱과 연결되지 않은 별도 세션(비공개 헤드리스 서버)의 도구라, 앱에서 고친 내용이 아닌 다른 프로젝트를 저장할 수 있습니다. BULC 앱(0.89 이상)의 파일 도구는 project_new / project_open / project_save / project_export_fds 이며 실행 중인 앱의 현재 프로젝트에 작용합니다. 0.88 이하 앱에는 파일 도구가 없습니다(Unknown tool). 저장되지 않은 편집을 버리는 discard_unsaved, 기존 파일을 바꾸는 overwrite 는 사용자 확인 없이 쓰면 작업을 잃습니다."
+    condition: "new_project / open_project / save_project / export_fds / import_fds 를 불렀습니다. 이 이름은 앱과 연결되지 않은 별도 세션(비공개 헤드리스 서버)의 도구라, 앱에서 고친 내용이 아닌 다른 프로젝트를 저장할 수 있습니다. BULC 앱(0.90 이상)의 파일 도구는 project_new / project_open / project_save / project_export_fds 이며 실행 중인 앱의 현재 프로젝트에 작용합니다. 0.88 이하 앱에는 파일 도구가 없습니다(Unknown tool). 저장되지 않은 편집을 버리는 discard_unsaved, 기존 파일을 바꾸는 overwrite 는 사용자 확인 없이 쓰면 작업을 잃습니다."
     check: {tools: [project_info, bulc_connection_status], how: "project_info 가 현재 파일 경로·저장되지 않은 변경(isDirty)·층·덱 경로를 돌려줍니다. tools/list 에 project_* 가 있는지 먼저 봅니다."}
     fix: {tools: [project_open, project_save, project_export_fds, project_new], how: "열기: project_open {path: 절대 경로(.bulc 또는 .fds)}. 저장: project_save {path?: '….bulc'} — 덱만 필요하면 project_export_fds {path: '….fds'}. 저장하지 않은 변경이 있으면 먼저 사용자에게 저장할지 묻고, discard_unsaved·overwrite 는 사용자가 동의한 뒤에만 true 로 줍니다. 구버전 앱(project_* 없음): 사용자에게 앱의 파일 메뉴에서 열기·저장을 요청합니다. run_simulation 은 프로젝트 저장과 별개로 문서 폴더의 bulc_<folder_name> 에 .fds 를 씁니다."}
 
@@ -190,7 +190,7 @@ rules:
     title_en: "Before running: validate, fix, summarize the conditions, get the user's go-ahead, then run"
     condition: "sim_preflight(또는 validate_project)를 돌리지 않았거나 오류가 남은 채로, 또는 사용자에게 해석 조건(격자·화원·시간·출력·엔진)을 알리지 않은 채 sim_start / run_simulation 을 불렀습니다. 사용자가 동의하지 않았는데 sim_start 에 confirm=true 를 넣었거나, 점검 오류를 force=true 로 무시했습니다. 해석은 몇 분에서 몇 시간 GPU 를 점유합니다."
     check: {tools: [sim_preflight, validate_project, get_config_summary, get_simulation_settings], how: "sim_preflight 는 validate_project 에 출력 주기·덱 참조·화원 위치·격자 해상도 점검을 더한 구조화 결과(규칙 ID 포함)를 돌려줍니다. ok=false 면 실행하지 않습니다."}
-    fix: {tools: [sim_preflight, sim_start, sim_status, run_simulation], how: "BULC 0.89 이상: sim_preflight 의 오류를 0 건으로 만든 뒤 조건(셀 수·화원·T_END·출력·엔진)을 요약해 사용자 확인을 받고 sim_start {confirm: true} 를 부릅니다. sim_start 는 직전에 점검을 다시 돌려 오류가 있으면 실행하지 않으며, force=true 는 사용자가 오류를 알고도 실행하겠다고 할 때만 씁니다. 진행은 sim_status. 구버전 앱: validate_project → 확인 → run_simulation(이 서버가 validate_project 를 다시 돌려 오류가 있으면 실행하지 않음)."}
+    fix: {tools: [sim_preflight, sim_start, sim_status, run_simulation], how: "BULC 0.90 이상: sim_preflight 의 오류를 0 건으로 만든 뒤 조건(셀 수·화원·T_END·출력·엔진)을 요약해 사용자 확인을 받고 sim_start {confirm: true} 를 부릅니다. sim_start 는 직전에 점검을 다시 돌려 오류가 있으면 실행하지 않으며, force=true 는 사용자가 오류를 알고도 실행하겠다고 할 때만 씁니다. 진행은 sim_status. 구버전 앱: validate_project → 확인 → run_simulation(이 서버가 validate_project 를 다시 돌려 오류가 있으면 실행하지 않음)."}
 
   - id: GEN-017
     domain: general
@@ -199,7 +199,7 @@ rules:
     applies_to: [Project]
     title: "전용 도구를 먼저 쓰고, 덱 원문 편집은 preview_fds → fds_apply_text(dryRun) 로 합니다"
     title_en: "Prefer dedicated tools; edit raw deck text with preview_fds → fds_apply_text (dryRun first)"
-    condition: "전용 도구(add_*, update_*, set_*)로 할 수 있는 편집을 덱 원문 통째 교체로 했거나, fds_apply_text 를 dryRun 없이 바로 적용해 앱 메타데이터(층·화원 짝·배관망 연결)가 사라졌습니다. 구버전 앱의 rewrite_fds_via_ai 는 덱 전체를 앱에 설정된 AI 공급자로 보내 다시 쓰게 하므로 결과가 결정적이지 않고 덱 내용이 외부로 나갑니다(0.89 부터는 앱 안 어시스턴트 전용이라 MCP 목록에 없습니다)."
+    condition: "전용 도구(add_*, update_*, set_*)로 할 수 있는 편집을 덱 원문 통째 교체로 했거나, fds_apply_text 를 dryRun 없이 바로 적용해 앱 메타데이터(층·화원 짝·배관망 연결)가 사라졌습니다. 구버전 앱의 rewrite_fds_via_ai 는 덱 전체를 앱에 설정된 AI 공급자로 보내 다시 쓰게 하므로 결과가 결정적이지 않고 덱 내용이 외부로 나갑니다(0.90 부터는 앱 안 어시스턴트 전용이라 MCP 목록에 없습니다)."
     check: {tools: [preview_fds, validate_project, fds_apply_text], how: "fds_apply_text 의 기본 dryRun 이 바뀌는 섹션 목록을 돌려줍니다 — 의도한 섹션만 바뀌는지 봅니다."}
     fix: {tools: [add_raw_namelist, fds_apply_text], how: "전용 도구가 없는 namelist 는 add_raw_namelist(SIM-006)를 먼저 검토합니다. 원문 편집이 꼭 필요하면 preview_fds 로 받은 덱을 고쳐 fds_apply_text {fdsText, dryRun: true} 로 확인한 뒤 sections 를 좁혀 dryRun:false 로 적용하고, validate_project 로 점검합니다(되돌리기: project_undo). rewrite_fds_via_ai 가 보이는 구버전 앱에서는 사용자에게 외부 전송 사실을 알리고 동의를 받은 뒤에만 씁니다."}
 
@@ -242,7 +242,7 @@ rules:
     applies_to: [PipeNode, Nozzle, HvacNode, HvacTerminal]
     title: "스프링클러 헤드·HVAC 단말 노드에는 겹치지 않는 label 을 줍니다"
     title_en: "Give sprinkler heads and HVAC terminals unique labels"
-    condition: "spr_add_node(type=sprinkler)·hvac_add_node(type=supply_diffuser|exhaust_grille)를 label 없이 연달아 만들었습니다. *_apply_to_fds 가 노드의 FDS ID(&DEVC·&PROP, HVAC &OBST·&SURF)를 label 로, label 이 없으면 'SPR_'/'HVAC_' + 노드 id 앞부분으로 정합니다. 노드 id 앞부분은 만든 시각이라 BULC 0.88 이하에서는 약 1.3 초 안에 만든 노드가 같은 ID 를 받아 덱에 'ID 중복'이 생기고 HVAC 면(SURF)이 하나로 합쳐졌습니다. 0.89 부터는 앱이 겹치는 이름을 늘려 고유하게 만들지만, 사람이 읽기 어려운 ID 가 됩니다. 같은 label 을 두 노드에 주는 것도 같은 문제를 만듭니다."
+    condition: "spr_add_node(type=sprinkler)·hvac_add_node(type=supply_diffuser|exhaust_grille)를 label 없이 연달아 만들었습니다. *_apply_to_fds 가 노드의 FDS ID(&DEVC·&PROP, HVAC &OBST·&SURF)를 label 로, label 이 없으면 'SPR_'/'HVAC_' + 노드 id 앞부분으로 정합니다. 노드 id 앞부분은 만든 시각이라 BULC 0.88 이하에서는 약 1.3 초 안에 만든 노드가 같은 ID 를 받아 덱에 'ID 중복'이 생기고 HVAC 면(SURF)이 하나로 합쳐졌습니다. 0.90 부터는 앱이 겹치는 이름을 늘려 고유하게 만들지만, 사람이 읽기 어려운 ID 가 됩니다. 같은 label 을 두 노드에 주는 것도 같은 문제를 만듭니다."
     check: {tools: [validate_project, preview_fds, spr_list_summary, hvac_list_summary], how: "validate_project 의 '디바이스(&DEVC) ID 중복', preview_fds {namelist: 'DEVC'} / {namelist: 'OBST'} 에서 SPR_·HVAC_ 이름이 겹치는지 봅니다."}
     fix: {tools: [spr_add_node, hvac_add_node, spr_update_node, hvac_update_node, spr_apply_to_fds, hvac_apply_to_fds], how: "헤드·단말마다 label 을 줍니다(예: 1F_H01, 1F_H02 … / EX1, SA1 …). 이미 만든 노드는 spr_update_node / hvac_update_node 로 label 을 고친 뒤 spr_apply_to_fds / hvac_apply_to_fds 를 다시 부릅니다(다시 적용하면 이전 이름의 항목을 지웁니다)."}
 
@@ -1059,7 +1059,7 @@ rules:
     title: "'Door_'·'Window_' HOLE 은 모두 출구가 됩니다 — 내부 문·창도 포함"
     title_en: "Every Door_/Window_ hole becomes an exit, including interior ones"
     condition: "피난자는 가장 가까운 출구로 갑니다. 실내 문이나 창을 'Door_'/'Window_' 로 만들면 피난자가 실내 문에서 '탈출'한 것으로 처리되어 RSET 이 짧게 나옵니다(앱 2D 편집기로 그린 창은 'Window_' 라 출구가 됩니다). 반대로 접두어가 없는 HOLE 은 피난 계산에서 벽이 뚫리지 않아 통행이 막힙니다(FDS 에서는 열려 있음). fire_compute_aset 의 기본 판정 위치도 같은 출구 목록입니다."
-    check: {tools: [list_obstacles, project_info], how: "구멍 id 접두어를 봅니다. arch_import_building 은 문을 'Door_…', 창을 'Win_…' 로 만듭니다(BULC 0.89+; 그 이전 개발판은 'Window_')."}
+    check: {tools: [list_obstacles, project_info], how: "구멍 id 접두어를 봅니다. arch_import_building 은 문을 'Door_…', 창을 'Win_…' 로 만듭니다(BULC 0.90+; 그 이전 개발판은 'Window_')."}
     fix: {how: "창은 'Win_' 처럼 다른 접두어로 만듭니다. 최종 출구가 아닌 실내 문이 통행에 필요하면 사용자에게 이 제약을 알리고, 앱의 피난 실행 창에서 출구 목록을 확인하게 합니다. 실내 구획이 단순하면 실내 문 없이 개구부를 크게 두는 단순화도 검토합니다."}
 
   - id: EVAC-004

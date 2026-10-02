@@ -1,6 +1,6 @@
 // Import a tool-definition export of the BULC app into src/tools-snapshot.json (schema v2).
 //
-//   node scripts/import-snapshot.mjs <export.json> --app-version 0.89.0 [--generated-at ISO]
+//   node scripts/import-snapshot.mjs <export.json> --app-version 0.90.0 [--generated-at ISO]
 //
 // The export holds names, descriptions and input schemas only (no implementation). This script
 //   1. checks the shape (names, descriptions, object input schemas, no duplicates),

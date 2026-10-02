@@ -3,7 +3,7 @@
 이 폴더는 BULC MCP 서버(화재·연기 해석, 피난, HVAC 제연, 스프링클러·물분무 수리계산)를 조작하는 LLM 에이전트가 참고하는 자료입니다.
 도구 사용법(인자·스키마)은 서버의 `tools/list` 가 알려 주고, 이 폴더는 **무엇을 어떤 순서로, 어떤 단위와 좌표로, 무엇을 확인하며** 해야 하는지를 알려 줍니다.
 
-기준: FDS 6.10.1, BULC 도구 목록(앱 0.89, 2026-10). 0.88 이하 앱에서 달라지는 점(프로젝트 파일·실행·피난 실행·건축 도면 도구가 없음)은 각 규칙의 fix 에 대안으로 적었습니다(`ontology.yaml` `conventions.app_versions`). 엔진 지원 범위가 바뀔 수 있는 규칙은 `confidence: engine_snapshot`, 법규 힌트는 `confidence: regulatory_verify` 로 표시했습니다.
+기준: FDS 6.10.1, BULC 도구 목록(앱 0.90, 2026-10). 0.88 이하 앱에서 달라지는 점(프로젝트 파일·실행·피난 실행·건축 도면 도구가 없음)은 각 규칙의 fix 에 대안으로 적었습니다(`ontology.yaml` `conventions.app_versions`). 엔진 지원 범위가 바뀔 수 있는 규칙은 `confidence: engine_snapshot`, 법규 힌트는 `confidence: regulatory_verify` 로 표시했습니다.
 
 *English summary: this folder is the knowledge pack an LLM agent reads while driving BULC — a domain ontology, 166 machine-readable
 rules (condition → check → fix) with 38 common LLM mistakes, six step-by-step playbooks, a Korean ↔ English ↔ FDS ↔ tool glossary

@@ -380,7 +380,7 @@ export const drawingIntake: LocalTool = {
     } else if (dxf && kind === "architectural_plan") {
       out.push(
         "",
-        `the BULC app recognises this plan itself (arch_analyze_drawing, BULC 0.89+); wall lines can also be listed here with extract_geometry=true${wallLayerGuess.length ? ` (wall-like layers: ${wallLayerGuess.slice(0, 6).join(", ")})` : " and wall_layers=[...]"}.`,
+        `the BULC app recognises this plan itself (arch_analyze_drawing, BULC 0.90+); wall lines can also be listed here with extract_geometry=true${wallLayerGuess.length ? ` (wall-like layers: ${wallLayerGuess.slice(0, 6).join(", ")})` : " and wall_layers=[...]"}.`,
       );
     }
 

@@ -9,7 +9,7 @@ export const projectSummary: LocalTool = {
     description:
       "Short summary of the project currently open in the BULC app: CHID, title, end time, mesh, and object counts " +
       "(obstacles, fire sources, vents, devices, evacuation agents, sprinkler heads, HVAC terminals). Needs the app. " +
-      "On BULC 0.89+ project_info gives more (file path, unsaved changes, stories, deck path). 현재 앱 프로젝트 요약입니다.",
+      "On BULC 0.90+ project_info gives more (file path, unsaved changes, stories, deck path). 현재 앱 프로젝트 요약입니다.",
     inputSchema: obj({}),
     annotations: { title: "Project summary", ...readOnly },
   },
@@ -33,7 +33,7 @@ export const runSimulation: LocalTool = {
     description:
       "Guarded run for any BULC version: writes the project open in BULC to Documents/bulc_<folder_name> and starts the simulation. " +
       "Before starting, this server runs the app's validate_project and refuses to start when it reports errors (점검 실패) — fix them " +
-      "first. When the app lists sim_preflight / sim_start (BULC 0.89+), prefer sim_preflight → user confirmation → sim_start {confirm: true}: " +
+      "first. When the app lists sim_preflight / sim_start (BULC 0.90+), prefer sim_preflight → user confirmation → sim_start {confirm: true}: " +
       "they also check output intervals and grid resolution and write the deck next to the saved project. Summarise the conditions " +
       "(mesh, fire, T_END, outputs, solver) and get the user's go-ahead before calling (GEN-016). Use a new folder_name per scenario (GEN-019). " +
       "실행 전에 validate_project 를 자동으로 돌리고, 오류가 있으면 실행하지 않습니다.",
@@ -77,8 +77,8 @@ export const runSimulation: LocalTool = {
           `- deck: ${r?.fdsPath ?? "(no path)"}`,
           `- output folder: ${r?.dir ?? "(no folder)"}`,
           warn ? `- validate_project: ${warn} warning(s) — 실행 전 경고를 사용자에게 알렸는지 확인하세요.` : "- validate_project: passed",
-          "진행 상황은 sim_status(0.89 이상) 또는 get_simulation_metrics 로 확인합니다(nan=0, Tmax ≤ 2500 K, |u| < 50 m/s, SIM-007). 끝나면 fire_results_summary 로 결과를 읽습니다(GEN-010).",
-          "Watch progress with sim_status (BULC 0.89+) or get_simulation_metrics; when it finishes read fire_results_summary.",
+          "진행 상황은 sim_status(0.90 이상) 또는 get_simulation_metrics 로 확인합니다(nan=0, Tmax ≤ 2500 K, |u| < 50 m/s, SIM-007). 끝나면 fire_results_summary 로 결과를 읽습니다(GEN-010).",
+          "Watch progress with sim_status (BULC 0.90+) or get_simulation_metrics; when it finishes read fire_results_summary.",
         ].join("\n"),
       );
     } catch (err) {
