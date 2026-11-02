@@ -79,9 +79,20 @@ update_dump_config {"dt_pl3d": 2, "dt_s3d": 1}
 
 화재 해석이 끝나 있어야 합니다: `sim_status {}` 가 끝났다고 하고 `results_detect {}` 가 .smv 와 Plot3D 를 보여 주는지 확인합니다.
 
-## 7. 앱에서 할 일(사용자 안내) — FED 연계·경보
+## 7. FED 연계·경보
 
-사용자에게 다음 순서를 안내합니다.
+BULC 0.101 이상은 도구로 설정합니다. 화재 결과(.smv)에서 호흡선 위험장을 만들고(`build: true`), 감지기를 가져와 작동 시각을 계산합니다.
+
+```
+evac_set_fed {"enabled": true, "smvPath": "<화재 결과>.smv", "build": true}
+evac_set_alarm {"enabled": true, "importDevices": true, "compute": true}
+evac_list_summary {}
+```
+
+- `evac_set_fed` 는 위험장(`<CHID>_fed.bin`)을 .smv 옆에 만들어 저장합니다. 위험장이 없으면 FED 는 피난 실행에서 빠집니다(EVAC-008).
+- `evac_set_alarm` 의 피난 개시 시각 = 첫 감지기 작동 + 경보 지연 + 피난 개시 소요입니다. 작동 시각을 계산하지 못하면 수동 감지 시각을 씁니다.
+
+0.100 이하 앱은 사용자에게 다음 순서를 안내합니다.
 
 1. EVAC 탭 → 피난 설정에서 **FED 연계**를 켜고 화재 결과(.smv)를 고릅니다. 호흡선 높이 1.8 m, 프레임 간격 2 s, FED 기준 1.0 이 기본값입니다.
 2. 판정 항목: 앱 기본은 FED 1.0·온도 60 °C·CO 1,400 ppm 을 켜고, 가시거리 5 m·O₂ 15 %·CO₂ 5 % 는 끕니다. 가시거리는 무력화 기준이 아니므로 켜지 않습니다(ASET-003).

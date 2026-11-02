@@ -392,6 +392,28 @@ rules:
     condition: "add_wall 로 비스듬한 벽을 한 번에 만들어 공간 하나를 통째로 막는 큰 직육면체가 생겼습니다."
     fix: {how: "대각 벽은 셀 크기 정도의 짧은 직교 벽 여러 개(계단 모양)로 나눠 넣거나, shape_add_polygon_prism + shape_export_obst(align_to_mesh=true) 로 복셀화합니다."}
 
+  - id: GEO-022
+    domain: geometry
+    severity: warning
+    confidence: guidance
+    applies_to: [Shape]
+    title: "셀보다 얇은 형상은 복셀 장애물에서 사라질 수 있습니다"
+    title_en: "A shape thinner than a mesh cell can vanish from the voxel obstruction"
+    condition: "배치한 형상 정의(BULC 0.101+ Shape Studio)의 치수(상자 폭·깊이·높이, 원통·구 지름, 압출 거리, 셸 두께 — 바인딩 적용 값)가 정의 복셀 크기(fds.cell, 없으면 가장 고운 MESH 셀)보다 작습니다. 셀 중심 판정 복셀화에서 통째로 빠지거나 벽에 구멍이 나 연기·열이 새어 나갑니다."
+    check: {tools: [shape_list, shape_get_tree], how: "배치가 있는 정의마다 보이는 노드 치수를 셀 크기와 비교합니다. fds_mode 'shell' 이면 두께 점검은 건너뜁니다."}
+    fix: {tools: [shape_set_definition, shape_set_params, shape_bind, auto_multimesh], how: "치수를 셀 이상으로 키우거나, 속이 빈 얇은 형상(탱크·덕트·후드)은 shape_set_definition {fds_mode: 'shell'}, 또는 그 부분 메시를 곱게(auto_multimesh) 합니다."}
+
+  - id: GEO-023
+    domain: geometry
+    severity: warning
+    confidence: verified
+    applies_to: [Shape]
+    title: "형상의 화재면은 평면에 둡니다"
+    title_en: "Put a shape fire face on a planar face"
+    condition: "화재면을 곡면(원통·원뿔 옆면, 구·토러스, 회전체 옆면, 원호 압출 옆면, 필렛 면)에 줬습니다. 복셀화하면 계단 모양 요철 전체에 화원 SURF 가 걸려 화원 면적·HRR 이 의도와 달라집니다."
+    check: {tools: [shape_get_faces], how: "shape_get_faces 로 화재면이 planar 인지 봅니다."}
+    fix: {tools: [shape_get_faces, shape_set_face, shape_edit_node], how: "shape_get_faces {select: {direction: '+Z', planar: true}} 로 평면을 골라 shape_set_face {select: …, fire: true, plan_confirmed: true} 로 다시 지정하거나, 화원용 평탄 상자를 따로 둡니다."}
+
   # ═════════════════════════ MESH ═════════════════════════
   - id: MESH-001
     domain: mesh
@@ -974,7 +996,7 @@ rules:
     title: "add_raw_namelist 로 도구가 다루는 그룹을 중복해 넣지 않습니다"
     title_en: "Do not duplicate tool-managed groups with add_raw_namelist"
     condition: "&MESH, &OBST, &VENT, &SURF, &REAC, &DEVC, &CTRL, &SLCF, &BNDF, &DUMP, &TIME, &MISC 를 원문으로 또 넣었습니다(중복 namelist 오류). 또는 6.10.1 에 없는 키를 넣었습니다(ERROR 101)."
-    fix: {tools: [list_raw_namelists, remove_raw_namelist], how: "원문은 &RADI, &PRES, &COMB, &ZONE, &MULT 처럼 도구가 없는 그룹에만 씁니다."}
+    fix: {tools: [list_raw_namelists, remove_raw_namelist], how: "원문은 &MULT 처럼 도구가 없는 그룹에만 씁니다. BULC 0.101 이상은 &ZONE 을 add_pressure_zone·set_zone_leakage 로, &RADI·&PRES·&COMB·&TIME·&MISC 의 전문가 키를 set_expert_settings 로 넣습니다(같은 그룹을 원문으로 또 넣지 않음). 그 이전 앱은 &RADI, &PRES, &COMB, &ZONE 도 원문으로 씁니다."}
 
   - id: SIM-007
     domain: simulation
@@ -1067,11 +1089,11 @@ rules:
     severity: info
     confidence: verified
     applies_to: [EvacSetup]
-    title: "피난 실행은 evac_run → evac_status → evac_get_results 로, FED 연계·경보 설정은 앱 화면에서 합니다"
-    title_en: "Run evacuation with evac_run → evac_status → evac_get_results; FED coupling and alarms are set in the app"
-    condition: "사용자 동의 없이 evac_run 을 confirm=true 로 불렀거나, evac_status 가 끝났다고 하기 전에 evac_get_results 를 읽어 이전 결과를 보고했습니다. 또는 FED 연계·경보 연동을 도구로 켰다고 말했습니다 — 이 설정 도구는 없습니다(evac_update_setup 은 모델·시간·dt 만). 0.88 이하 앱에는 evac_run·evac_status·evac_get_results 도 없습니다."
+    title: "피난 실행은 evac_run → evac_status → evac_get_results 로, FED 연계·경보는 evac_set_fed·evac_set_alarm(0.101+)으로 설정합니다"
+    title_en: "Run evacuation with evac_run → evac_status → evac_get_results; set FED coupling and alarms with evac_set_fed / evac_set_alarm (0.101+)"
+    condition: "사용자 동의 없이 evac_run 을 confirm=true 로 불렀거나, evac_status 가 끝났다고 하기 전에 evac_get_results 를 읽어 이전 결과를 보고했습니다. 또는 tools/list 에 evac_set_fed·evac_set_alarm 이 없는 앱(0.100 이하)에서 FED 연계·경보 연동을 도구로 켰다고 말했습니다(evac_update_setup 은 모델·시간·dt 만). 0.88 이하 앱에는 evac_run·evac_status·evac_get_results 도 없습니다."
     check: {tools: [evac_list_summary, evac_status, evac_get_results], how: "evac_list_summary 로 피난자·계단·여정을, evac_status 로 실행 상태를, evac_get_results 로 RSET(마지막 탈출)·출구별 통계·FED 사상자를 봅니다."}
-    fix: {tools: [evac_run, evac_status, evac_get_results], how: "피난자·출구를 확인하고 조건을 요약해 동의를 받은 뒤 evac_run {confirm: true} → evac_status 를 끝날 때까지 → evac_get_results. FED 연계(호흡선 1.8 m, 화재 결과 .smv)·경보 연동은 사용자에게 앱 EVAC 탭에서 켜 달라고 요청하고, 켠 뒤 evac_run 을 부르면 그 설정이 입력에 들어갑니다. 구버전 앱: 사용자에게 앱에서 저장·실행하도록 안내합니다."}
+    fix: {tools: [evac_set_fed, evac_set_alarm, evac_run, evac_status, evac_get_results], how: "피난자·출구를 확인하고 조건을 요약해 동의를 받은 뒤 evac_run {confirm: true} → evac_status 를 끝날 때까지 → evac_get_results. FED 연계는 0.101 이상에서 evac_set_fed {enabled: true, smvPath: <화재 결과 .smv>, build: true}(호흡선 1.8 m, 위험장이 없으면 FED 는 실행에서 빠짐), 경보 연동은 evac_set_alarm {enabled: true, importDevices: true, compute: true} 로 설정합니다. 그 이전 앱은 사용자에게 앱 EVAC 탭에서 켜 달라고 요청합니다 — 켠 뒤 evac_run 을 부르면 그 설정이 입력에 들어갑니다. 구버전 앱: 사용자에게 앱에서 저장·실행하도록 안내합니다."}
 
   - id: EVAC-005
     domain: evacuation
@@ -1112,6 +1134,17 @@ rules:
     title_en: "FED coupling needs 3D fire data"
     condition: "2D 슬라이스만 있어 위험장을 만들 수 없거나 CO 를 수율로 추정합니다. FED 위험장은 Smoke3D(그을음)·3D 슬라이스·Plot3D 에서 호흡선 높이 평면을 뽑습니다."
     fix: {tools: [set_plot3d_outputs, update_dump_config], how: "OUT-004 의 Plot3D 5칸 + DT_PL3D ≤ 2 s, DT_SMOKE3D 유지."}
+
+  - id: EVAC-011
+    domain: evacuation
+    severity: warning
+    confidence: verified
+    applies_to: [Alarm]
+    title: "경보 연동을 켰으면 감지기 작동 시각을 계산해 둡니다"
+    title_en: "With the alarm chain on, compute the detector activation time"
+    condition: "경보 연동을 켰지만 켜진 감지기가 없거나, 작동 시각을 계산하지 않았거나, 감지기가 작동하지 않았습니다. 그러면 수동 감지 시각(기본 0 s)으로 대체되어 피난이 화재와 무관하게 경보 지연 + 피난 개시 소요 뒤에 시작합니다."
+    check: {tools: [evac_list_summary], how: "evac_list_summary 의 경보 상태에서 감지 시각이 계산됐는지 봅니다."}
+    fix: {tools: [evac_set_alarm, add_smoke_detector, add_heat_detector], how: "BULC 0.101+: evac_set_alarm {importDevices: true, compute: true} 로 화재 감지기를 가져와 작동 시각을 계산합니다(감지기가 없으면 add_smoke_detector·add_heat_detector 로 먼저 둡니다). 화재 결과가 없어 계산할 수 없으면 근거 있는 manualDetectionTime 을 넣습니다(EVAC-004)."}
 
   # ═════════════════════════ HVAC / SMOKE CONTROL ═════════════════════════
   - id: HVAC-001

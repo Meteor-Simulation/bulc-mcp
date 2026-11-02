@@ -1,6 +1,6 @@
 {
   "name": "@meteor-simulation/bulc-mcp",
-  "version": "4.0.0",
+  "version": "4.1.0",
   "description": "MCP server for the BULC desktop app (fire/smoke CFD on FDS 6.10.1, evacuation, HVAC smoke control, sprinkler and water-spray hydraulics) with a bundled ontology, rule set and playbooks that keep LLM agents from making modelling mistakes.",
   "type": "module",
   "main": "build/server.js",

@@ -63,10 +63,11 @@ conventions:
   app_versions:
     note: "도구 집합은 앱 버전마다 다릅니다. 실제 기준은 연결된 앱의 tools/list 입니다."
     "0.90+": "project_info/open/save/new/export_fds/undo/redo, get_conventions, fds_apply_text, sim_preflight/start/status/stop/log_tail, results_detect, fire_results_summary/timeseries/compute_aset, output_add_tenability_slices, capture_view, evac_run/status/stop/get_results, arch_analyze_drawing/import_building/import_floorplan_report"
+    "0.101+": "BIM 평면(bim_import_ifc/export_ifc/get_model/derive_fds, 계단·승강기 bim_add_stair/add_elevator/list_vertical/update_*/remove_vertical), 압력 존·누설(add/update/remove/list_pressure_zones, set_zone_leakage, set_door_leakage, set_door_state), 피난 FED·경보·대기열(evac_set_fed, evac_set_alarm, evac_set_queue, evac_set_waiting_set), FDS 전문가 키(list_expert_keys, get/set_expert_settings), Shape Studio 정의·배치(shape_new_definition, shape_place, shape_sketch, shape_add_fillet/chamfer/shell, shape_measure, shape_studio …), 온톨로지 조회·점검(onto_describe/search/neighbors/validate, query_objects), rename_material, preview_material_kinetics, hvac_fds_namelist, spr_set_group"
     "0.88 이하": "위 도구가 없습니다 — 열기·저장은 앱 파일 메뉴, 실행은 run_simulation(이 서버의 가드), 피난 실행·결과는 앱 EVAC 탭, 건축 평면은 bulc_drawing_intake 의 벽 후보 + add_wall 로 합니다."
   app_only_actions:
     file_menu: "BULC 0.90 이상은 project_open / project_save / project_export_fds / project_new 로 앱의 현재 프로젝트를 열고 저장합니다(저장 안 된 변경·덮어쓰기는 사용자 확인 뒤). 그 이전 앱은 사용자가 앱의 파일 메뉴에서 합니다. new_project / open_project / save_project / export_fds 는 다른 서버의 이름입니다(GEN-014)."
-    evacuation_run: "피난 실행은 evac_run → evac_status → evac_get_results(0.90+). FED 연계·경보 연동 설정은 앱 EVAC 탭에서 사용자가 켭니다 — 켠 설정은 evac_run 입력에 들어갑니다(EVAC-004)."
+    evacuation_run: "피난 실행은 evac_run → evac_status → evac_get_results(0.90+). FED 연계·경보 연동은 0.101 이상에서 evac_set_fed(build=true 로 위험장 생성)·evac_set_alarm 으로 설정하고, 그 이전 앱은 사용자가 앱 EVAC 탭에서 켭니다 — 켠 설정은 evac_run 입력에 들어갑니다(EVAC-004)."
     architectural_drawing: "건축 평면 인식은 arch_analyze_drawing → arch_import_building(0.90+), 그림은 arch_import_floorplan_report. 앱 2D 편집기의 CAD 배경 기능은 사용자가 화면에서 쓰는 다른 경로입니다(DRW-004)."
 
 areas:
@@ -623,11 +624,11 @@ classes:
       hasJourney: Journey
       coupledWith: FedCoupling
     tools:
-      update: [evac_update_setup]
+      update: [evac_update_setup, evac_set_fed, evac_set_alarm, evac_set_queue, evac_set_waiting_set]
       read: [evac_list_summary]
       run: [evac_run, evac_status, evac_stop]
       results: [evac_get_results]
-    app_actions: "FED 연계·경보 연동 설정은 앱 EVAC 탭(conventions.app_only_actions.evacuation_run)"
+    app_actions: "FED 연계·경보 연동: 0.101+ 는 evac_set_fed·evac_set_alarm, 그 이전 앱은 앱 EVAC 탭(conventions.app_only_actions.evacuation_run)"
     rules: [EVAC-004, EVAC-008]
 
   Agent:
@@ -696,18 +697,22 @@ classes:
 
   FedCoupling:
     label: {en: FED fire coupling, ko: FED 화재 연계}
-    description: "화재 결과의 호흡선(기본 1.8 m) 위험장(T, 소광계수, CO, CO₂, O₂)을 피난 계산에 넣어 FED 누적·감속을 반영합니다. 3D 자료(Plot3D·3D 슬라이스·Smoke3D)가 필요하고, 현재 설정은 BULC 앱의 피난 설정 화면에서 합니다(MCP 도구 없음)."
+    description: "화재 결과의 호흡선(기본 1.8 m) 위험장(T, 소광계수, CO, CO₂, O₂)을 피난 계산에 넣어 FED 누적·감속을 반영합니다. 3D 자료(Plot3D·3D 슬라이스·Smoke3D)가 필요합니다. BULC 0.101 이상은 evac_set_fed(enabled, smvPath, build=true)로 설정하고, 그 이전 앱은 앱의 피난 설정 화면에서 합니다."
     properties:
       breathingHeight: {type: number, unit: m, default: 1.8}
       fedThreshold: {type: number, default: 1.0}
       frameInterval: {type: number, unit: s, default: 2}
     relations:
       reads: [Plot3D, Smoke3D, Slice]
+    tools:
+      update: [evac_set_fed]
     rules: [EVAC-008, OUT-004]
 
   Alarm:
     label: {en: Alarm chain, ko: 경보 연동}
-    description: "감지기 작동 시각 + 경보 지연 + 피난 개시 소요 → 피난 개시 시각. 앱의 피난 설정 화면에서 설정합니다."
+    description: "감지기 작동 시각 + 경보 지연 + 피난 개시 소요 → 피난 개시 시각. BULC 0.101 이상은 evac_set_alarm(importDevices·compute)으로, 그 이전 앱은 앱의 피난 설정 화면에서 설정합니다."
+    tools:
+      update: [evac_set_alarm]
 
   # ───────────────────────── HVAC ─────────────────────────
   HvacNetwork:

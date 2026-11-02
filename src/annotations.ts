@@ -63,6 +63,7 @@ export const FILE_WRITERS = new Set([
   "project_save",
   "project_export_fds",
   "capture_view", // savePath
+  "bim_export_ifc", // path (.ifc; replaces an existing file only with overwrite=true)
   "evac_run", // outputFolder
   "set_run_options", // fds_output_path: where runs write the deck and results
 ]);

@@ -3,6 +3,34 @@
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [4.1.0] — 2026-11-02
+
+Tool snapshot and knowledge pack for **BULC 0.101.0**. Older apps keep working with their own (smaller) tool sets.
+
+### Changed
+
+- Tool snapshot: BULC 0.101.0, **293 tools** (239 → 293, none removed; `toolsHash` b12663589b290264 = the app's `/health`).
+  New: BIM floor plan and IFC (`bim_import_ifc`, `bim_export_ifc`, `bim_get_model`, `bim_derive_fds`, stairs and elevators),
+  pressure zones, leakage and door states (`add_pressure_zone`, `set_zone_leakage`, `set_door_leakage`, `set_door_state` …),
+  evacuation FED / alarm / queue / waiting-set settings (`evac_set_fed`, `evac_set_alarm`, `evac_set_queue`,
+  `evac_set_waiting_set`), FDS expert keys (`list_expert_keys`, `get_expert_settings`, `set_expert_settings`), Shape Studio
+  definitions, placements, sketches, fillet / chamfer / shell and measuring (20 tools in the new `shapeext` category plus
+  `shape_add_fillet`, `shape_add_chamfer`, `shape_add_shell`), ontology look-ups (`onto_describe`, `onto_search`,
+  `onto_neighbors`, `onto_validate`, `query_objects`), `rename_material`, `preview_material_kinetics`, `hvac_fds_namelist`,
+  `spr_set_group`. New `BULC_MCP_TOOLSETS` categories: `shapeext`, `bim`, `pressure`, `expert`, `ontology`.
+- `bulc_drawing_intake`: IFC files get a `bim_import_ifc` sequence (dry run → replace or merge after the user agrees →
+  `bim_derive_fds`) instead of "IFC is not read by the bridge"; older apps are told to export a DXF plan.
+- `bim_export_ifc` is marked as a file writer.
+- Knowledge pack: FED coupling and the alarm chain are set with `evac_set_fed` / `evac_set_alarm` on 0.101+ (EVAC-004, playbook 02,
+  `FedCoupling` / `Alarm` / `EvacSetup` classes); `&ZONE` and the expert groups are no longer raw-namelist-only (SIM-006);
+  `conventions.app_versions` lists the 0.101 tools.
+
+### Added
+
+- Rules cited by the 0.101 tool descriptions: **EVAC-011** (compute the detector activation time when the alarm chain is on),
+  **GEO-022** (shapes thinner than a mesh cell vanish from the voxel obstruction), **GEO-023** (put shape fire faces on planar
+  faces) — 169 rules.
+
 ## [4.0.0] — unreleased
 
 First release under the Meteor-Simulation organisation. Continues `bulc-mcp-server` 3.0.0 (the thin bridge client).

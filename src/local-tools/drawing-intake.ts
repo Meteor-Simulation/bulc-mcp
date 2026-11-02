@@ -76,6 +76,22 @@ function sequence(kind: Kind, p: string, opts: { units?: string; layers?: string
   const P = JSON.stringify(p);
   switch (kind) {
     case "architectural_plan":
+      if (/\.ifc$/i.test(p))
+        return [
+          "bulc_connection_status {}   ← bim_import_ifc needs BULC 0.101+; older apps: ask the user to export a DXF floor plan instead",
+          "project_info {}   ← file, unsaved changes, stories",
+          `bim_import_ifc {"path": ${P}, "mode": "replace", "dry_run": true}   ← per-class counts, unit, approximations, skipped ids, extent vs mesh — tabulate for the user`,
+          "(ask) replace the current BIM model and storeys, or merge into it? which storeys (storey_filter)? which doors are final exits (EVAC-003)",
+          `bim_import_ifc {"path": ${P}, "mode": "replace" | "merge"}   ← one undo step (project_undo); derived obstacles / holes in the same step`,
+          "bim_get_model {} → bim_derive_fds {}   ← derived FDS objects, approximations and drift between the BIM model and the project",
+          "capture_view {\"view\": \"3d\"}   ← check the result visually",
+          "bulc_mesh_advisor {\"hrr_kw\": <design HRR>, \"domain_xb\": [...]} → set_mesh {...} / auto_multimesh {...}",
+          "(only if the user asked for a fire) add_fire {...} — GEN-015",
+          "output_add_tenability_slices {}; set_time {\"t_end\": ...}",
+          "sim_preflight {}   ← ok=false → fix, then summarise the conditions and ask (GEN-016)",
+          "project_save {\"path\": \"<absolute>.bulc\"} → sim_start {\"confirm\": true} → sim_status {} … → fire_results_summary {}",
+          "bulc_plan_check {\"steps\": [...]} before you start calling edit tools",
+        ];
       return [
         "bulc_connection_status {}",
         "project_info {}   ← file, unsaved changes, stories (zMin, height). Older BULC: get_project_summary {} + draw_list_stories {}",
@@ -311,7 +327,10 @@ export const drawingIntake: LocalTool = {
         if (c.IFCDUCTSEGMENT) bump("hvac_plan", 2, "IFC ducts");
         if (c.IFCPIPESEGMENT || c.IFCFIRESUPPRESSIONTERMINAL) bump("sprinkler_plan", 2, "IFC pipes / fire-suppression terminals");
       } else facts.push("not an IFC STEP file");
-      facts.push("IFC is not read by the BULC bridge tools; use the app's CAD/BIM import (scope depends on the app version) or extract walls manually");
+      facts.push(
+        "BULC 0.101+ imports IFC4 / IFC2X3 with bim_import_ifc (dry_run first, then mode replace or merge after the user agrees); " +
+          "older apps do not read IFC through the bridge — use the app's import or extract walls manually",
+      );
     } else {
       const img = sniffImage(readHead(p, 256 * 1024));
       facts.push(img ? `${img.format.toUpperCase()} image ${img.width}×${img.height} px — no units; the scale must come from the user (DRW-001)` : "image");
