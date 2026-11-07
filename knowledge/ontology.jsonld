@@ -86,9 +86,9 @@
       "label": {
         "en": "BULC fire / evacuation / HVAC / sprinkler domain ontology"
       },
-      "schema:dateModified": "2026-10-02",
+      "schema:dateModified": "2026-11-07",
       "bulc:fdsVersion": "6.10.1",
-      "bulc:conventions": "{\"units\": {\"length\": \"m (도면 DXF/DWG 는 보통 mm — 1 mm = 0.001 m)\", \"duct_and_pipe_size\": \"mm (덕트 지름·폭·높이, 배관 호칭경)\", \"time\": \"s\", \"temperature\": \"°C (FDS 덱의 TMPA, TMP_FRONT, ACTIVATION_TEMPERATURE 모두 섭씨). 엔진 실행 지표 Tmax 는 K.\", \"heat_release_rate\": \"kW (HRR), kW/m² (HRRPUA = 단위 면적당 발열량)\", \"heat_flux\": \"kW/m²\", \"mass_flux\": \"kg/(m²·s)\", \"volume_flow_fds\": \"m³/s (FDS VOLUME_FLOW)\", \"volume_flow_hvac_module\": \"CFM (BULC HVAC 모듈 입력). 1 CFM = 0.000471947 m³/s, 1 m³/h = 0.5886 CFM, 1 m³/min = 35.31 CFM\", \"water_flow\": \"L/min\", \"pressure_pipe_network\": \"MPa (배관망 수력계산·요구 방사압·펌프). 0.1 MPa = 1 bar ≈ 10.2 m 수두\", \"pressure_fds_sprinkler\": \"bar (FDS &PROP OPERATING_PRESSURE, add_sprinkler 의 operating_pressure)\", \"pressure_hvac\": \"Pa\", \"k_factor\": \"L/(min·bar^½) (미터계). 미국 gpm/psi^½ 값 × 14.41. Q = K·√P (P 는 bar)\", \"rti\": \"(m·s)^½\", \"droplet_diameter\": \"µm\", \"yields\": \"kg/kg (연료 질량당 생성 질량)\", \"concentrations_aset\": \"CO ppm, O₂·CO₂ 부피 %, 가시거리 m\"}, \"coordinates\": {\"axes\": \"x, y = 평면(도면) 좌표, z = 연직(위가 +). FDS 와 BULC 모두 z-up 입니다.\", \"origin\": \"프로젝트 원점은 사용자가 정합니다. 도면을 옮길 때는 한 기준점(예: 도면 좌하단 기둥 중심)을 (0,0) 으로 정하고 기록합니다.\", \"image_y_flip\": \"이미지(PNG/JPG/PDF 렌더) 픽셀 좌표는 y 가 아래로 증가합니다. 모델 y = (이미지 높이 − 픽셀 y) × 축척.\", \"xb\": \"XB = [x1, x2, y1, y2, z1, z2] (각 축 min, max 쌍). [x1, y1, z1, x2, y2, z2] 순서가 아닙니다.\", \"point\": \"XYZ = [x, y, z]\", \"plane\": \"평면(VENT, 화원 면, 경계면)은 한 축의 min = max 입니다. 예: 바닥 화원 XB=[4,5,4,5,0,0]\", \"faces\": \"면 순서(SURF_ID6) = [-X, +X, -Y, +Y, -Z, +Z]\", \"story_elevation\": \"층 높이 zMin 은 draw_list_stories 로 확인합니다. 기본값: 1F zMin=0, 층고 3.0 m, 층간 슬래브 0.2 m → 2F zMin=3.2 m\"}, \"floor_identifiers\": {\"story_id\": \"draw 층 id (1부터). draw_update_story / draw_remove_story / spr_* 도구의 floorIndex·targetFloorIndex 가 이 id 를 받습니다.\", \"evac_floor_index\": \"피난(EVAC)·HVAC 도구의 floorIndex 는 층을 높이순으로 정렬한 0부터의 순번입니다(1F → 0, 2F → 1).\", \"warning\": \"같은 이름(floorIndex)이 도구마다 다른 뜻입니다 — rules.yaml EVAC-001 참조.\"}, \"ids\": {\"uniqueness\": \"같은 namelist 그룹 안에서 ID 는 유일해야 합니다(OBST, HOLE, VENT, DEVC, CTRL, SLCF, SURF, MATL …).\", \"generated_ids\": \"배관망(spr_*)·HVAC(hvac_*)·피난(evac_*) 노드 id 는 스토어가 만듭니다. 만든 직후 spr_list_summary / hvac_list_summary / evac_list_summary 로 id 를 읽어 다음 호출에 씁니다.\", \"chid\": \"프로젝트를 저장하면 CHID 가 저장 파일 이름으로 바뀝니다(GEN-009).\"}, \"modes\": {\"snapshot\": \"BULC 앱이 실행 중이 아님 — 서버가 내장 도구 목록(스냅샷)만 보여 줍니다. 지식 도구(bulc_knowledge_search, bulc_get_rules, bulc_plan_check, bulc_drawing_intake, bulc_check_deck, bulc_mesh_advisor)는 동작하지만 앱 도구 호출은 '앱을 실행하세요' 오류로 끝납니다. 이 상태에서 편집·실행이 됐다고 말하지 않습니다(GEN-018).\", \"live\": \"실행 중인 BULC 데스크톱 앱에 연결 — 편집이 화면에 바로 반영되고 프로젝트 열기·저장(project_*), 실행(sim_preflight → sim_start → sim_status), 결과 읽기(fire_*, evac_get_results), 화면 캡처(capture_view), result_* 가 동작합니다. 연결 여부·도구 집합은 bulc_connection_status 로 확인합니다. 서버는 앱의 발견 파일(BULC/bridge.json)로 주소·토큰을 찾습니다.\"}, \"app_versions\": {\"note\": \"도구 집합은 앱 버전마다 다릅니다. 실제 기준은 연결된 앱의 tools/list 입니다.\", \"0.90+\": \"project_info/open/save/new/export_fds/undo/redo, get_conventions, fds_apply_text, sim_preflight/start/status/stop/log_tail, results_detect, fire_results_summary/timeseries/compute_aset, output_add_tenability_slices, capture_view, evac_run/status/stop/get_results, arch_analyze_drawing/import_building/import_floorplan_report\", \"0.101+\": \"BIM 평면(bim_import_ifc/export_ifc/get_model/derive_fds, 계단·승강기 bim_add_stair/add_elevator/list_vertical/update_*/remove_vertical), 압력 존·누설(add/update/remove/list_pressure_zones, set_zone_leakage, set_door_leakage, set_door_state), 피난 FED·경보·대기열(evac_set_fed, evac_set_alarm, evac_set_queue, evac_set_waiting_set), FDS 전문가 키(list_expert_keys, get/set_expert_settings), Shape Studio 정의·배치(shape_new_definition, shape_place, shape_sketch, shape_add_fillet/chamfer/shell, shape_measure, shape_studio …), 온톨로지 조회·점검(onto_describe/search/neighbors/validate, query_objects), rename_material, preview_material_kinetics, hvac_fds_namelist, spr_set_group\", \"0.88 이하\": \"위 도구가 없습니다 — 열기·저장은 앱 파일 메뉴, 실행은 run_simulation(이 서버의 가드), 피난 실행·결과는 앱 EVAC 탭, 건축 평면은 bulc_drawing_intake 의 벽 후보 + add_wall 로 합니다.\"}, \"app_only_actions\": {\"file_menu\": \"BULC 0.90 이상은 project_open / project_save / project_export_fds / project_new 로 앱의 현재 프로젝트를 열고 저장합니다(저장 안 된 변경·덮어쓰기는 사용자 확인 뒤). 그 이전 앱은 사용자가 앱의 파일 메뉴에서 합니다. new_project / open_project / save_project / export_fds 는 다른 서버의 이름입니다(GEN-014).\", \"evacuation_run\": \"피난 실행은 evac_run → evac_status → evac_get_results(0.90+). FED 연계·경보 연동은 0.101 이상에서 evac_set_fed(build=true 로 위험장 생성)·evac_set_alarm 으로 설정하고, 그 이전 앱은 사용자가 앱 EVAC 탭에서 켭니다 — 켠 설정은 evac_run 입력에 들어갑니다(EVAC-004).\", \"architectural_drawing\": \"건축 평면 인식은 arch_analyze_drawing → arch_import_building(0.90+), 그림은 arch_import_floorplan_report. 앱 2D 편집기의 CAD 배경 기능은 사용자가 화면에서 쓰는 다른 경로입니다(DRW-004).\"}}"
+      "bulc:conventions": "{\"units\": {\"length\": \"m (도면 DXF/DWG 는 보통 mm — 1 mm = 0.001 m)\", \"duct_and_pipe_size\": \"mm (덕트 지름·폭·높이, 배관 호칭경)\", \"time\": \"s\", \"temperature\": \"°C (FDS 덱의 TMPA, TMP_FRONT, ACTIVATION_TEMPERATURE 모두 섭씨). 엔진 실행 지표 Tmax 는 K.\", \"heat_release_rate\": \"kW (HRR), kW/m² (HRRPUA = 단위 면적당 발열량)\", \"heat_flux\": \"kW/m²\", \"mass_flux\": \"kg/(m²·s)\", \"volume_flow_fds\": \"m³/s (FDS VOLUME_FLOW)\", \"volume_flow_hvac_module\": \"CFM (BULC HVAC 모듈 입력). 1 CFM = 0.000471947 m³/s, 1 m³/h = 0.5886 CFM, 1 m³/min = 35.31 CFM\", \"water_flow\": \"L/min\", \"pressure_pipe_network\": \"MPa (배관망 수력계산·요구 방사압·펌프). 0.1 MPa = 1 bar ≈ 10.2 m 수두\", \"pressure_fds_sprinkler\": \"bar (FDS &PROP OPERATING_PRESSURE, add_sprinkler 의 operating_pressure)\", \"pressure_hvac\": \"Pa\", \"k_factor\": \"L/(min·bar^½) (미터계). 미국 gpm/psi^½ 값 × 14.41. Q = K·√P (P 는 bar)\", \"rti\": \"(m·s)^½\", \"droplet_diameter\": \"µm\", \"yields\": \"kg/kg (연료 질량당 생성 질량)\", \"concentrations_aset\": \"CO ppm, O₂·CO₂ 부피 %, 가시거리 m\"}, \"coordinates\": {\"axes\": \"x, y = 평면(도면) 좌표, z = 연직(위가 +). FDS 와 BULC 모두 z-up 입니다.\", \"origin\": \"프로젝트 원점은 사용자가 정합니다. 도면을 옮길 때는 한 기준점(예: 도면 좌하단 기둥 중심)을 (0,0) 으로 정하고 기록합니다.\", \"image_y_flip\": \"이미지(PNG/JPG/PDF 렌더) 픽셀 좌표는 y 가 아래로 증가합니다. 모델 y = (이미지 높이 − 픽셀 y) × 축척.\", \"xb\": \"XB = [x1, x2, y1, y2, z1, z2] (각 축 min, max 쌍). [x1, y1, z1, x2, y2, z2] 순서가 아닙니다.\", \"point\": \"XYZ = [x, y, z]\", \"plane\": \"평면(VENT, 화원 면, 경계면)은 한 축의 min = max 입니다. 예: 바닥 화원 XB=[4,5,4,5,0,0]\", \"faces\": \"면 순서(SURF_ID6) = [-X, +X, -Y, +Y, -Z, +Z]\", \"story_elevation\": \"층 높이 zMin 은 draw_list_stories 로 확인합니다. 기본값: 1F zMin=0, 층고 3.0 m, 층간 슬래브 0.2 m → 2F zMin=3.2 m\"}, \"floor_identifiers\": {\"story_id\": \"draw 층 id (1F = 1, B1 은 음수 등 목록에 적힌 id). draw_update_story / draw_remove_story / spr_* / hvac_* 도구의 floorIndex·targetFloorIndex, capture_view·view_set 의 story 가 이 id 를 받습니다.\", \"evac_floor_index\": \"피난(evac_*) 도구의 floorIndex 만 draw_list_stories 목록 순서의 0부터 순번입니다(가장 낮은 층 = 0 — 지하가 없으면 1F → 0, B1 이 있으면 B1 → 0·1F → 1).\", \"warning\": \"같은 이름(floorIndex)이 도구마다 다른 뜻입니다 — rules.yaml EVAC-001 참조.\"}, \"ids\": {\"uniqueness\": \"같은 namelist 그룹 안에서 ID 는 유일해야 합니다(OBST, HOLE, VENT, DEVC, CTRL, SLCF, SURF, MATL …).\", \"generated_ids\": \"배관망(spr_*)·HVAC(hvac_*)·피난(evac_*) 노드 id 는 스토어가 만듭니다. 만든 직후 spr_list_summary / hvac_list_summary / evac_list_summary 로 id 를 읽어 다음 호출에 씁니다.\", \"chid\": \"프로젝트를 저장하면 CHID 가 저장 파일 이름으로 바뀝니다(GEN-009).\"}, \"modes\": {\"snapshot\": \"BULC 앱이 실행 중이 아님 — 서버가 내장 도구 목록(스냅샷)만 보여 줍니다. 지식 도구(bulc_knowledge_search, bulc_get_rules, bulc_plan_check, bulc_drawing_intake, bulc_check_deck, bulc_mesh_advisor)는 동작하지만 앱 도구 호출은 '앱을 실행하세요' 오류로 끝납니다. 이 상태에서 편집·실행이 됐다고 말하지 않습니다(GEN-018).\", \"live\": \"실행 중인 BULC 데스크톱 앱에 연결 — 편집이 화면에 바로 반영되고 프로젝트 열기·저장(project_*), 실행(sim_preflight → sim_start → sim_status), 결과 읽기(fire_*, evac_get_results), 화면 캡처(capture_view), result_* 가 동작합니다. 연결 여부·도구 집합은 bulc_connection_status 로 확인합니다. 서버는 앱의 발견 파일(BULC/bridge.json)로 주소·토큰을 찾습니다.\"}, \"app_versions\": {\"note\": \"도구 집합은 앱 버전마다 다릅니다. 실제 기준은 연결된 앱의 tools/list 입니다.\", \"0.90+\": \"project_info/open/save/new/export_fds/undo/redo, get_conventions, fds_apply_text, sim_preflight/start/status/stop/log_tail, results_detect, fire_results_summary/timeseries/compute_aset, output_add_tenability_slices, capture_view, evac_run/status/stop/get_results, arch_analyze_drawing/import_building/import_floorplan_report\", \"0.101+\": \"BIM 평면(bim_import_ifc/export_ifc/get_model/derive_fds, 계단·승강기 bim_add_stair/add_elevator/list_vertical/update_*/remove_vertical), 압력 존·누설(add/update/remove/list_pressure_zones, set_zone_leakage, set_door_leakage, set_door_state), 피난 FED·경보·대기열(evac_set_fed, evac_set_alarm, evac_set_queue, evac_set_waiting_set), FDS 전문가 키(list_expert_keys, get/set_expert_settings), Shape Studio 정의·배치(shape_new_definition, shape_place, shape_sketch, shape_add_fillet/chamfer/shell, shape_measure, shape_studio …), 온톨로지 조회·점검(onto_describe/search/neighbors/validate, query_objects), rename_material, preview_material_kinetics, hvac_fds_namelist, spr_set_group\", \"0.103+\": \"결과 뷰어에 결과 세트 열기(results_open) → result_get_state 의 datasets(id·읽음) → result_set_active_dataset(읽지 않은 항목은 읽기 요청) → capture_view {view:result}; result_set_legend_range auto_mode; view_set 의 focus·focusXb(화면 가운데)·hideObjects·showObjects(물체 하나씩 숨기기)·smokePreview(3D 연기 미리보기 — 개략, FDS 결과 아님); draw_add_story below(지하층). 헤드리스 서버(앱 없음)에서는 결과 뷰어·화면 도구가 실패로 알립니다\", \"0.88 이하\": \"위 도구가 없습니다 — 열기·저장은 앱 파일 메뉴, 실행은 run_simulation(이 서버의 가드), 피난 실행·결과는 앱 EVAC 탭, 건축 평면은 bulc_drawing_intake 의 벽 후보 + add_wall 로 합니다.\"}, \"app_only_actions\": {\"file_menu\": \"BULC 0.90 이상은 project_open / project_save / project_export_fds / project_new 로 앱의 현재 프로젝트를 열고 저장합니다(저장 안 된 변경·덮어쓰기는 사용자 확인 뒤). 그 이전 앱은 사용자가 앱의 파일 메뉴에서 합니다. new_project / open_project / save_project / export_fds 는 다른 서버의 이름입니다(GEN-014).\", \"evacuation_run\": \"피난 실행은 evac_run → evac_status → evac_get_results(0.90+). FED 연계·경보 연동은 0.101 이상에서 evac_set_fed(build=true 로 위험장 생성)·evac_set_alarm 으로 설정하고, 그 이전 앱은 사용자가 앱 EVAC 탭에서 켭니다 — 켠 설정은 evac_run 입력에 들어갑니다(EVAC-004).\", \"architectural_drawing\": \"건축 평면 인식은 arch_analyze_drawing → arch_import_building(0.90+), 그림은 arch_import_floorplan_report. 앱 2D 편집기의 CAD 배경 기능은 사용자가 화면에서 쓰는 다른 경로입니다(DRW-004).\"}}"
     },
     {
       "@id": "bulc:Project",
@@ -435,7 +435,9 @@
       ],
       "seeRule": [
         "rule:FIRE-004",
-        "rule:FIRE-008"
+        "rule:FIRE-008",
+        "rule:FIRE-015",
+        "rule:FIRE-017"
       ]
     },
     {
@@ -456,6 +458,43 @@
       "domainIncludes": "bulc:Ramp",
       "valueType": "array of [t, f]",
       "unit": "s, 0–1 비율"
+    },
+    {
+      "@id": "bulc:RawNamelist",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "Raw namelist line",
+        "ko": "원문 namelist 줄"
+      },
+      "comment": "앱이 모델로 다루지 않는 namelist(예: &MULT)를 &TAIL 바로 앞에 그대로 쓰는 줄. 앱이 다루는 그룹(&MESH·&OBST·&VENT·&SURF·&ZONE …)은 전용 도구로 넣습니다 — 같은 namelist 가 두 번 나가면 FDS 오류입니다.",
+      "area": "core",
+      "fdsNamelist": [
+        "(줄 그대로)"
+      ],
+      "createdBy": [
+        "tool:add_raw_namelist"
+      ],
+      "readBy": [
+        "tool:list_raw_namelists"
+      ],
+      "deletedBy": [
+        "tool:remove_raw_namelist"
+      ],
+      "seeRule": [
+        "rule:SIM-006",
+        "rule:SIM-014",
+        "rule:HVAC-015"
+      ]
+    },
+    {
+      "@id": "bulc:RawNamelist.line",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "line"
+      },
+      "domainIncludes": "bulc:RawNamelist",
+      "valueType": "string",
+      "note": "'&' 로 시작하고 '/' 로 끝남"
     },
     {
       "@id": "bulc:Mesh",
@@ -1032,6 +1071,52 @@
       ]
     },
     {
+      "@id": "bulc:ShapeInstance",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "Shape placement",
+        "ko": "형상 배치"
+      },
+      "comment": "Shape Studio 정의(Shape)를 프로젝트에 놓은 배치(위치·회전·배율). 배치마다 복셀 장애물(OBST) 또는 GEOM 이 파생되며, 메시 밖으로 나간 부분은 FDS 가 잘라 냅니다.",
+      "area": "geometry",
+      "createdBy": [
+        "tool:shape_place"
+      ],
+      "readBy": [
+        "tool:shape_list"
+      ],
+      "updatedBy": [
+        "tool:shape_move_instance",
+        "tool:shape_set_instance"
+      ],
+      "deletedBy": [
+        "tool:shape_remove_instance"
+      ],
+      "seeRule": [
+        "rule:GEO-006",
+        "rule:GEO-024"
+      ]
+    },
+    {
+      "@id": "bulc:ShapeInstance.id",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "id"
+      },
+      "domainIncludes": "bulc:ShapeInstance",
+      "valueType": "string"
+    },
+    {
+      "@id": "bulc:ShapeInstance.position",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "position"
+      },
+      "domainIncludes": "bulc:ShapeInstance",
+      "valueType": "point",
+      "unit": "m"
+    },
+    {
       "@id": "bulc:Geom",
       "@type": "rdfs:Class",
       "label": {
@@ -1143,16 +1228,31 @@
         "tool:add_material_from_library"
       ],
       "readBy": [
-        "tool:list_material_library"
+        "tool:list_material_library",
+        "tool:preview_material_kinetics"
       ],
       "updatedBy": [
-        "tool:update_material"
+        "tool:update_material",
+        "tool:rename_material"
       ],
       "deletedBy": [
         "tool:remove_material"
       ],
       "seeRule": [
-        "rule:SURF-001"
+        "rule:SURF-001",
+        "rule:SURF-005",
+        "rule:SURF-006",
+        "rule:MATL-001",
+        "rule:MATL-002",
+        "rule:MATL-003",
+        "rule:MATL-004",
+        "rule:MATL-005",
+        "rule:MATL-006",
+        "rule:MATL-007",
+        "rule:MATL-008",
+        "rule:MATL-009",
+        "rule:MATL-010",
+        "rule:MATL-011"
       ]
     },
     {
@@ -1298,6 +1398,106 @@
         "rule:HVAC-004",
         "rule:VENT-005"
       ]
+    },
+    {
+      "@id": "bulc:PressureZone",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "Pressure zone",
+        "ko": "압력 존"
+      },
+      "comment": "&ZONE — 밀폐 구획의 배경 압력을 따로 푸는 영역. 시드 점(XYZ)에서 기체 셀을 채워 범위가 정해집니다. 앱은 존을 id 로 들고 있다가 덱을 쓸 때 존 번호와 숫자 LEAK_PATH 를 다시 계산합니다(원문 &ZONE 은 쓰지 않음).",
+      "area": "boundaries",
+      "fdsNamelist": [
+        "&ZONE ID, XYZ, LEAK_AREA"
+      ],
+      "createdBy": [
+        "tool:add_pressure_zone"
+      ],
+      "readBy": [
+        "tool:list_pressure_zones"
+      ],
+      "updatedBy": [
+        "tool:update_pressure_zone"
+      ],
+      "deletedBy": [
+        "tool:remove_pressure_zone"
+      ],
+      "seeRule": [
+        "rule:GEO-019",
+        "rule:GEO-020",
+        "rule:SIM-012",
+        "rule:SIM-013",
+        "rule:SIM-014"
+      ]
+    },
+    {
+      "@id": "bulc:PressureZone.id",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "id"
+      },
+      "domainIncludes": "bulc:PressureZone",
+      "valueType": "string",
+      "note": "유일, 'AMBIENT' 금지"
+    },
+    {
+      "@id": "bulc:PressureZone.xyz",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "xyz"
+      },
+      "domainIncludes": "bulc:PressureZone",
+      "valueType": "point",
+      "unit": "m",
+      "note": "존 안 기체 셀의 시드 점(벽·가구 안 금지)"
+    },
+    {
+      "@id": "bulc:ZoneLeak",
+      "@type": "rdfs:Class",
+      "label": {
+        "en": "Zone-pair leakage",
+        "ko": "존 쌍 누설"
+      },
+      "comment": "두 압력 존(또는 존과 외기) 사이의 구조 누설 면적. 숫자 LEAK_PATH 표면을 붙인 벽·벤트나 존 경로 문이 쌍의 두 존에 닿아야 계산됩니다. 문 한 짝의 틈은 문 누설(set_door_leakage)로 줍니다.",
+      "area": "boundaries",
+      "fdsNamelist": [
+        "&ZONE LEAK_AREA(n)",
+        "&SURF LEAK_PATH"
+      ],
+      "readBy": [
+        "tool:list_pressure_zones"
+      ],
+      "updatedBy": [
+        "tool:set_zone_leakage",
+        "tool:set_door_leakage",
+        "tool:set_door_state"
+      ],
+      "seeRule": [
+        "rule:GEO-019",
+        "rule:SIM-012",
+        "rule:SIM-014"
+      ]
+    },
+    {
+      "@id": "bulc:ZoneLeak.area_m2",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "area_m2"
+      },
+      "domainIncludes": "bulc:ZoneLeak",
+      "valueType": "number",
+      "unit": "m²"
+    },
+    {
+      "@id": "bulc:ZoneLeak.leak_surface",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "leak_surface"
+      },
+      "domainIncludes": "bulc:ZoneLeak",
+      "valueType": "string",
+      "note": "누설 경로로 쓸 표면 ID"
     },
     {
       "@id": "bulc:Fire",
@@ -2122,7 +2322,7 @@
       },
       "domainIncludes": "bulc:Agent",
       "valueType": "integer",
-      "note": "0부터의 층 순번(1F = 0)"
+      "note": "draw_list_stories 목록 순서의 0부터 순번(가장 낮은 층 = 0 — 지하가 없으면 1F = 0)"
     },
     {
       "@id": "bulc:Agent.desiredSpeed",
@@ -2422,6 +2622,8 @@
       ],
       "seeRule": [
         "rule:HVAC-002",
+        "rule:HVAC-007",
+        "rule:HVAC-008",
         "rule:EVAC-001",
         "rule:GEN-021"
       ]
@@ -2480,7 +2682,7 @@
       },
       "domainIncludes": "bulc:HvacNode",
       "valueType": "integer",
-      "note": "0부터의 층 순번"
+      "note": "층 id(Story.id, 1F = 1) — 피난의 0부터 순번이 아님. z 는 그 층 높이 안"
     },
     {
       "@id": "bulc:HvacNode.label",
@@ -4003,12 +4205,28 @@
         "bulc:Door",
         "bulc:DrawingCandidate",
         "bulc:Nozzle",
-        "bulc:OpenBoundary"
+        "bulc:OpenBoundary",
+        "bulc:ShapeInstance"
       ],
       "rangeIncludes": [
         "bulc:Exit",
+        "bulc:Geom",
+        "bulc:Obstacle",
         "bulc:PipeNetwork",
         "bulc:SprinklerDevice"
+      ]
+    },
+    {
+      "@id": "bulc:between",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "between"
+      },
+      "domainIncludes": [
+        "bulc:ZoneLeak"
+      ],
+      "rangeIncludes": [
+        "bulc:PressureZone"
       ]
     },
     {
@@ -4417,6 +4635,19 @@
       ]
     },
     {
+      "@id": "bulc:hasLeak",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "hasLeak"
+      },
+      "domainIncludes": [
+        "bulc:PressureZone"
+      ],
+      "rangeIncludes": [
+        "bulc:ZoneLeak"
+      ]
+    },
+    {
       "@id": "bulc:hasMesh",
       "@type": "rdf:Property",
       "label": {
@@ -4672,6 +4903,19 @@
       ],
       "rangeIncludes": [
         "bulc:Mesh"
+      ]
+    },
+    {
+      "@id": "bulc:instanceOf",
+      "@type": "rdf:Property",
+      "label": {
+        "en": "instanceOf"
+      },
+      "domainIncludes": [
+        "bulc:ShapeInstance"
+      ],
+      "rangeIncludes": [
+        "bulc:Shape"
       ]
     },
     {
@@ -5012,6 +5256,13 @@
       "@type": "bulc:McpTool",
       "label": {
         "en": "add_obstacle"
+      }
+    },
+    {
+      "@id": "tool:add_pressure_zone",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "add_pressure_zone"
       }
     },
     {
@@ -5673,6 +5924,13 @@
       }
     },
     {
+      "@id": "tool:list_pressure_zones",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "list_pressure_zones"
+      }
+    },
+    {
       "@id": "tool:list_raw_namelists",
       "@type": "bulc:McpTool",
       "label": {
@@ -5726,6 +5984,13 @@
       "@type": "bulc:McpTool",
       "label": {
         "en": "preview_fds"
+      }
+    },
+    {
+      "@id": "tool:preview_material_kinetics",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "preview_material_kinetics"
       }
     },
     {
@@ -5834,6 +6099,13 @@
       }
     },
     {
+      "@id": "tool:remove_pressure_zone",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "remove_pressure_zone"
+      }
+    },
+    {
       "@id": "tool:remove_prop",
       "@type": "bulc:McpTool",
       "label": {
@@ -5883,6 +6155,13 @@
       }
     },
     {
+      "@id": "tool:rename_material",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "rename_material"
+      }
+    },
+    {
       "@id": "tool:results_detect",
       "@type": "bulc:McpTool",
       "label": {
@@ -5915,6 +6194,20 @@
       "@type": "bulc:McpTool",
       "label": {
         "en": "set_chid"
+      }
+    },
+    {
+      "@id": "tool:set_door_leakage",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "set_door_leakage"
+      }
+    },
+    {
+      "@id": "tool:set_door_state",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "set_door_state"
       }
     },
     {
@@ -5992,6 +6285,13 @@
       "@type": "bulc:McpTool",
       "label": {
         "en": "set_turbulence_model"
+      }
+    },
+    {
+      "@id": "tool:set_zone_leakage",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "set_zone_leakage"
       }
     },
     {
@@ -6142,6 +6442,13 @@
       }
     },
     {
+      "@id": "tool:shape_list",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "shape_list"
+      }
+    },
+    {
       "@id": "tool:shape_mirror",
       "@type": "bulc:McpTool",
       "label": {
@@ -6149,10 +6456,24 @@
       }
     },
     {
+      "@id": "tool:shape_move_instance",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "shape_move_instance"
+      }
+    },
+    {
       "@id": "tool:shape_new_document",
       "@type": "bulc:McpTool",
       "label": {
         "en": "shape_new_document"
+      }
+    },
+    {
+      "@id": "tool:shape_place",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "shape_place"
       }
     },
     {
@@ -6177,10 +6498,24 @@
       }
     },
     {
+      "@id": "tool:shape_remove_instance",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "shape_remove_instance"
+      }
+    },
+    {
       "@id": "tool:shape_screenshot",
       "@type": "bulc:McpTool",
       "label": {
         "en": "shape_screenshot"
+      }
+    },
+    {
+      "@id": "tool:shape_set_instance",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "shape_set_instance"
       }
     },
     {
@@ -6524,6 +6859,13 @@
       "@type": "bulc:McpTool",
       "label": {
         "en": "update_obstacle"
+      }
+    },
+    {
+      "@id": "tool:update_pressure_zone",
+      "@type": "bulc:McpTool",
+      "label": {
+        "en": "update_pressure_zone"
       }
     },
     {

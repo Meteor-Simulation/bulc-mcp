@@ -1,11 +1,11 @@
 {
   "schemaVersion": 2,
   "generatedFrom": "BULC desktop app — AI tool registry (names, descriptions and input schemas only)",
-  "appVersion": "0.101.0",
-  "generatedAt": "2026-11-02T07:16:24.305Z",
-  "toolCount": 293,
-  "sha256": "b12663589b29026493d945195de883523fe2e6429dfd3ae5ade6da3241d0eca5",
-  "toolsHash": "b12663589b290264",
+  "appVersion": "0.103.0",
+  "generatedAt": "2026-11-07T08:42:03.851Z",
+  "toolCount": 298,
+  "sha256": "009e6dc801dc0d512c3371f403aa4e2f22c8e9c03b3f82e4452c796de28c9e54",
+  "toolsHash": "009e6dc801dc0d51",
   "tools": [
     {
       "name": "add_obstacle",
@@ -2837,7 +2837,7 @@
     },
     {
       "name": "add_raw_namelist",
-      "description": "Add a raw namelist line emitted verbatim just before &TAIL — for namelists the GUI does not model (e.g. \"&MULT ID='M1', DX=1., I_UPPER=3 /\"). Must start with & and end with /. For the global groups &RADI/&PRES/&COMB/&WIND/&CLIP prefer set_expert_settings (validated, one line per group). Use the dedicated tools for anything the GUI does model (&MESH/&OBST/&VENT/&SURF/&REAC/&DEVC/&CTRL/&SLCF/&BNDF/&DUMP/&TIME/&MISC; &ZONE → add_pressure_zone / set_zone_leakage) — a duplicate namelist is an FDS error.",
+      "description": "Add a raw namelist line emitted verbatim just before &TAIL — for namelists the GUI does not model (e.g. \"&MULT ID='M1', DX=1., I_UPPER=3 /\"). Must start with & and end with /. For the global groups &RADI/&PRES/&COMB/&WIND/&CLIP prefer set_expert_settings (validated, one line per group). Use the dedicated tools for anything the GUI does model (&MESH/&OBST/&VENT/&SURF/&REAC/&DEVC/&CTRL/&SLCF/&BNDF/&DUMP/&TIME/&MISC; &ZONE → add_pressure_zone / set_zone_leakage) — a duplicate namelist is an FDS error. &MOTION, &TRNX/&TRNY/&TRNZ, &CSVF, &ISOF, &SM3D and &RADF lines are not kept verbatim: they become project settings (checked like the GUI) and then do not appear in list_raw_namelists / remove_raw_namelist — read them with preview_fds and change or remove them with fds_apply_text.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -10334,10 +10334,15 @@
     },
     {
       "name": "draw_add_story",
-      "description": "Add a new building story (floor level)",
+      "description": "Add a new building story (floor level) on top of the highest story, or with below=true under the lowest story (a basement: id = lowest id − 1, named B1, B2 … — the GUI \"add story below\"). A story below shifts every evacuation floorIndex up by one (evac_* use a 0-based ordinal); story ids used by spr_* / hvac_* / draw_* do not change. Read the new id with draw_list_stories.",
       "inputSchema": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "below": {
+            "type": "boolean",
+            "description": "true = add under the lowest story (basement); default false = on top"
+          }
+        }
       },
       "category": "draw",
       "annotations": {
@@ -10541,7 +10546,7 @@
     },
     {
       "name": "place_furniture",
-      "description": "Place a furniture/item at a position (x, y = item centre). Doors auto-snap to the nearest wall (within 1.5 m) and create a wall opening (hole), exactly like the GUI; windows are placed like furniture (use add_window for an opening). Other items are dropped like the GUI floor plan: z only picks the story (the one containing z, default 0), and the item lands on the highest surface under its centre inside that story (furniture top or that floor), never on upper slabs, roofs or wall tops. The reply reports the final XB. Items with fire data are placed as fire sources automatically. Changes reflect to the 2D/3D view immediately.",
+      "description": "Place a furniture/item at a position (x, y = item centre). Doors auto-snap to the nearest wall (within 1.5 m) and create a wall opening (hole), exactly like the GUI; windows are placed like furniture (use add_window for an opening). Other items are dropped like the GUI floor plan: z only picks the story (the one containing z, default 0), and the item lands on the highest surface under its centre inside that story (furniture top or that floor), never on upper slabs, roofs or wall tops. The reply reports the final XB. Items with fire data (fire category or preset) are placed as fire sources automatically — there is no switch for it; change the fire afterwards with set_fds_properties / update_fire. Changes reflect to the 2D/3D view immediately.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -10560,10 +10565,6 @@
           "z": {
             "type": "number",
             "description": "Height (m, default 0) that picks the story; doors use it as the door bottom"
-          },
-          "as_fire_source": {
-            "type": "boolean",
-            "description": "Place as fire source (uses furniture fire data)"
           }
         },
         "required": [
@@ -10582,7 +10583,7 @@
     },
     {
       "name": "result_get_state",
-      "description": "Get the result viewer current state: active dataset, current time, colormap, legend range, playback, particles, view-lock, graph probe count. Read this before setting values.",
+      "description": "Get the result viewer current state: whether results are loaded (hasResults, resultDir), the datasets of the result tree (datasets: id, type, label, loaded — the ids result_set_active_dataset takes), active dataset, current time, colormap, legend range and auto mode, playback, particles, view-lock, graph probe count. Read this before setting values. Results load in the app after a run or from File > Open .smv; capture_view {view:\"result\"} opens the viewer.",
       "inputSchema": {
         "type": "object",
         "properties": {}
@@ -10619,7 +10620,7 @@
     },
     {
       "name": "result_add_graph_probe",
-      "description": "Add a graph probe to extract time-series data. type=point needs xyz; type=line needs start & end. slot: primary or compare.",
+      "description": "Add a graph probe (point or line) to the result viewer's graph window, which opens and plots it in the app; the values are not returned here (for numbers use fire_timeseries on device CSVs). type=point needs xyz; type=line needs start & end. slot: primary or compare. Not available for multi-mesh results (the app does not probe them yet).",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -10786,7 +10787,7 @@
     },
     {
       "name": "result_set_legend_range",
-      "description": "Set the result colorbar (legend) min/max range. Use null for auto.",
+      "description": "Set the result colorbar (legend) min/max range. Use null for auto. auto_mode = how an automatic range is taken: 'global' (all frames — colours keep their meaning while playing, default) or 'frame' (current frame only).",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -10803,6 +10804,14 @@
               "null"
             ],
             "description": "범례 최대 (null=자동)"
+          },
+          "auto_mode": {
+            "type": "string",
+            "enum": [
+              "global",
+              "frame"
+            ],
+            "description": "자동 범례 범위: 'global' 전 프레임 / 'frame' 현재 프레임"
           }
         }
       },
@@ -10816,7 +10825,7 @@
     },
     {
       "name": "result_set_active_dataset",
-      "description": "Select the active result dataset by id. Node id shapes: slcf-<n> (slice), pl3d-var-<n> (3D data), s3d-<n> (smoke), bndf-<n> (boundary surface, .bf), prt5-<n> (particles), csv-hrr / csv-devc (time series).",
+      "description": "Select the active result dataset by id — a dataset that is not loaded yet is read first, the same as clicking it in the result tree (read when the result viewer is open; capture_view {view:\"result\"} opens it). result_get_state lists the ids (datasets). Node id shapes: slcf-<n> (slice), pl3d-var-<n> (3D data), s3d-<n> (smoke), bndf-<n> (boundary surface, .bf), prt5-<n> (particles), csv-hrr / csv-devc (time series).",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -13554,7 +13563,8 @@
         "destructiveHint": false,
         "idempotentHint": true,
         "openWorldHint": false
-      }
+      },
+      "liveOnly": true
     },
     {
       "name": "shape_preview_voxels",
@@ -15850,6 +15860,225 @@
         "idempotentHint": false,
         "openWorldHint": false
       }
+    },
+    {
+      "name": "view_get_state",
+      "description": "Read the current model view (display only): 2D plan or 3D, the story shown in the 2D plan (story id), the 3D render mode, which display layers are on with their element counts (IFC-imported walls, doors, windows, slabs, structure, stairs, finishes, furniture, sprinkler, HVAC, piping, electrical, equipment), mesh outline / OPEN boundary visibility, the objects hidden one by one and the 3D smoke preview (on/off, playing, quality, speed, density). Change it with view_set_layers / view_set; count elements with view_count_elements.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "category": "view",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "view_set_layers",
+      "description": "Show or hide parts of the model view by display layer — e.g. \"show only sprinklers\" {only:[\"sprinkler\"]}, \"hide piping\" {hide:[\"pipe\"]}, \"walls, doors and windows only\" {preset:\"default\"}, \"show everything\" {preset:\"all\"}. Layers: wall, door, window, slab, structure, stair, finish, furniture, sprinkler, hvac, pipe, electrical, equipment, other; groups mep / architecture; Korean names work too (스프링클러, 공조, 덕트, 배관, 벽, 문, 창, 바닥, 지붕, 기둥, 보, 계단, 마감, 천장, 가구, 전기, 조명, 설비기기). Applied in order preset → only → show / hide. Also mesh (mesh outline), openBoundaries (OPEN boundary faces) and unhideObjects (objects hidden one by one). Display only: hidden layers stay in the FDS deck. Layers exist for IFC-imported elements; objects without a layer (drawn, read from .fds) always show. Returns the new visibility with counts.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "preset": {
+            "type": "string",
+            "enum": [
+              "default",
+              "all",
+              "none"
+            ],
+            "description": "default = walls, doors, windows only; all = every layer; none = no layer"
+          },
+          "only": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Show only these layers (all others hidden)"
+          },
+          "show": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Turn these layers on"
+          },
+          "hide": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Turn these layers off"
+          },
+          "mesh": {
+            "type": "boolean",
+            "description": "Show the mesh outline"
+          },
+          "openBoundaries": {
+            "type": "boolean",
+            "description": "Show OPEN boundary faces"
+          },
+          "unhideObjects": {
+            "type": "boolean",
+            "description": "true = show again the objects hidden one by one (3D right-click Hide)"
+          }
+        }
+      },
+      "category": "view",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "view_set",
+      "description": "Change how the model is viewed (display only, the FDS deck is not changed): view = 2d (floor plan) | 3d; story = story id shown in the 2D plan (1F = 1 — view_get_state / draw_list_stories list them); renderMode = solid-edge | solid | wireframe | xray | realistic (3D). story alone switches to the 2D plan, renderMode alone switches to 3D. focus = an object id (obstacle, hole, vent, fire, device) or focusXb = a box to centre the 2D / 3D camera on. hideObjects / showObjects = obstacle ids to hide or show again one by one (a wall group goes together). smokePreview = the 3D smoke preview (rough pre-run flow, not FDS results): {enabled, running, quality fast|normal|fine, speed 0 (max)|1|2|4, density 0.1–10, restart}. To show / hide layers use view_set_layers; for a screenshot use capture_view.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "view": {
+            "type": "string",
+            "enum": [
+              "2d",
+              "3d"
+            ],
+            "description": "2d = floor plan, 3d = 3D view"
+          },
+          "story": {
+            "type": "number",
+            "description": "Story id shown in the 2D plan (1F = 1, not a 0-based index)"
+          },
+          "renderMode": {
+            "type": "string",
+            "enum": [
+              "solid-edge",
+              "solid",
+              "wireframe",
+              "xray",
+              "realistic"
+            ],
+            "description": "3D render mode"
+          },
+          "focus": {
+            "type": "string",
+            "description": "Object id to centre the view on (obstacle, hole, vent, fire, device)"
+          },
+          "focusXb": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            },
+            "minItems": 6,
+            "maxItems": 6,
+            "description": "Box [x1,x2,y1,y2,z1,z2] (m) to centre the view on"
+          },
+          "hideObjects": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Obstacle ids to hide (display only)"
+          },
+          "showObjects": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Hidden obstacle ids to show again"
+          },
+          "smokePreview": {
+            "type": "object",
+            "description": "3D smoke preview settings (only the given keys change)",
+            "properties": {
+              "enabled": {
+                "type": "boolean"
+              },
+              "running": {
+                "type": "boolean",
+                "description": "false = pause"
+              },
+              "quality": {
+                "type": "string",
+                "enum": [
+                  "fast",
+                  "normal",
+                  "fine"
+                ]
+              },
+              "speed": {
+                "type": "number",
+                "enum": [
+                  0,
+                  1,
+                  2,
+                  4
+                ],
+                "description": "0 = as fast as possible"
+              },
+              "density": {
+                "type": "number",
+                "description": "Smoke density display factor 0.1–10 (1 = physical)"
+              },
+              "restart": {
+                "type": "boolean",
+                "description": "true = restart the preview from t = 0"
+              }
+            }
+          }
+        }
+      },
+      "category": "view",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "view_count_elements",
+      "description": "Count model elements whether shown or hidden — answers \"how many sprinkler heads / air terminals / ducts / doors?\". Sprinklers are reported by source: IFC geometry heads (imported model, geometry only — not hydraulic SPR heads), SPR pipe-network heads (hydraulic calculation) and FDS deck sprinklers / detectors; HVAC likewise: IFC air terminals, ducts, dampers, fans vs HVAC-module diffusers, grilles, air handlers, ducts vs FDS HVAC terminals. Also piping, electrical, equipment and per-layer counts (walls, doors, windows, slabs …). topic = a layer or group name (sprinkler, hvac, pipe, electrical, equipment, mep, architecture; Korean names too) to report only that part; default all. Read-only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "topic": {
+            "type": "string",
+            "description": "Layer or group to count (default: all)"
+          }
+        }
+      },
+      "category": "view",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "results_open",
+      "description": "Load the results of a deck into the app's result viewer and open it — the same as the viewer's Load SMV: reads the .smv next to the deck (named by its &HEAD CHID), its &GEOM geometry, grid and the HRR curve, replacing the results shown now. Then list the datasets with result_get_state, load one with result_set_active_dataset and look with capture_view {view:\"result\"}. fdsPath defaults to the project deck / last run. Display only (no files are written). Live app only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "fdsPath": {
+            "type": "string",
+            "description": "Absolute .fds path (default: the project deck / last run)"
+          }
+        }
+      },
+      "category": "project",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "liveOnly": true
     },
     {
       "name": "onto_search",

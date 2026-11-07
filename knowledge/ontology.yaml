@@ -15,7 +15,7 @@
 schema_version: 1
 id: bulc-ontology
 title: BULC fire / evacuation / HVAC / sprinkler domain ontology
-updated: "2026-10-02"
+updated: "2026-11-07"
 fds_version: "6.10.1"
 namespace: "urn:bulc:onto:"
 languages: [ko, en]
@@ -50,8 +50,8 @@ conventions:
     faces: "면 순서(SURF_ID6) = [-X, +X, -Y, +Y, -Z, +Z]"
     story_elevation: "층 높이 zMin 은 draw_list_stories 로 확인합니다. 기본값: 1F zMin=0, 층고 3.0 m, 층간 슬래브 0.2 m → 2F zMin=3.2 m"
   floor_identifiers:
-    story_id: "draw 층 id (1부터). draw_update_story / draw_remove_story / spr_* 도구의 floorIndex·targetFloorIndex 가 이 id 를 받습니다."
-    evac_floor_index: "피난(EVAC)·HVAC 도구의 floorIndex 는 층을 높이순으로 정렬한 0부터의 순번입니다(1F → 0, 2F → 1)."
+    story_id: "draw 층 id (1F = 1, B1 은 음수 등 목록에 적힌 id). draw_update_story / draw_remove_story / spr_* / hvac_* 도구의 floorIndex·targetFloorIndex, capture_view·view_set 의 story 가 이 id 를 받습니다."
+    evac_floor_index: "피난(evac_*) 도구의 floorIndex 만 draw_list_stories 목록 순서의 0부터 순번입니다(가장 낮은 층 = 0 — 지하가 없으면 1F → 0, B1 이 있으면 B1 → 0·1F → 1)."
     warning: "같은 이름(floorIndex)이 도구마다 다른 뜻입니다 — rules.yaml EVAC-001 참조."
   ids:
     uniqueness: "같은 namelist 그룹 안에서 ID 는 유일해야 합니다(OBST, HOLE, VENT, DEVC, CTRL, SLCF, SURF, MATL …)."
@@ -64,6 +64,7 @@ conventions:
     note: "도구 집합은 앱 버전마다 다릅니다. 실제 기준은 연결된 앱의 tools/list 입니다."
     "0.90+": "project_info/open/save/new/export_fds/undo/redo, get_conventions, fds_apply_text, sim_preflight/start/status/stop/log_tail, results_detect, fire_results_summary/timeseries/compute_aset, output_add_tenability_slices, capture_view, evac_run/status/stop/get_results, arch_analyze_drawing/import_building/import_floorplan_report"
     "0.101+": "BIM 평면(bim_import_ifc/export_ifc/get_model/derive_fds, 계단·승강기 bim_add_stair/add_elevator/list_vertical/update_*/remove_vertical), 압력 존·누설(add/update/remove/list_pressure_zones, set_zone_leakage, set_door_leakage, set_door_state), 피난 FED·경보·대기열(evac_set_fed, evac_set_alarm, evac_set_queue, evac_set_waiting_set), FDS 전문가 키(list_expert_keys, get/set_expert_settings), Shape Studio 정의·배치(shape_new_definition, shape_place, shape_sketch, shape_add_fillet/chamfer/shell, shape_measure, shape_studio …), 온톨로지 조회·점검(onto_describe/search/neighbors/validate, query_objects), rename_material, preview_material_kinetics, hvac_fds_namelist, spr_set_group"
+    "0.103+": "결과 뷰어에 결과 세트 열기(results_open) → result_get_state 의 datasets(id·읽음) → result_set_active_dataset(읽지 않은 항목은 읽기 요청) → capture_view {view:result}; result_set_legend_range auto_mode; view_set 의 focus·focusXb(화면 가운데)·hideObjects·showObjects(물체 하나씩 숨기기)·smokePreview(3D 연기 미리보기 — 개략, FDS 결과 아님); draw_add_story below(지하층). 헤드리스 서버(앱 없음)에서는 결과 뷰어·화면 도구가 실패로 알립니다"
     "0.88 이하": "위 도구가 없습니다 — 열기·저장은 앱 파일 메뉴, 실행은 run_simulation(이 서버의 가드), 피난 실행·결과는 앱 EVAC 탭, 건축 평면은 bulc_drawing_intake 의 벽 후보 + add_wall 로 합니다."
   app_only_actions:
     file_menu: "BULC 0.90 이상은 project_open / project_save / project_export_fds / project_new 로 앱의 현재 프로젝트를 열고 저장합니다(저장 안 된 변경·덮어쓰기는 사용자 확인 뒤). 그 이전 앱은 사용자가 앱의 파일 메뉴에서 합니다. new_project / open_project / save_project / export_fds 는 다른 서버의 이름입니다(GEN-014)."
@@ -71,9 +72,9 @@ conventions:
     architectural_drawing: "건축 평면 인식은 arch_analyze_drawing → arch_import_building(0.90+), 그림은 arch_import_floorplan_report. 앱 2D 편집기의 CAD 배경 기능은 사용자가 화면에서 쓰는 다른 경로입니다(DRW-004)."
 
 areas:
-  core: [Project, Story, Simulation, Ramp]
-  geometry: [Mesh, Obstacle, Wall, Slab, Opening, Door, Window, Hole, FurnitureItem, Shape, Geom, Surface, Material]
-  boundaries: [Vent, OpenBoundary, SupplyExhaustVent]
+  core: [Project, Story, Simulation, Ramp, RawNamelist]
+  geometry: [Mesh, Obstacle, Wall, Slab, Opening, Door, Window, Hole, FurnitureItem, Shape, ShapeInstance, Geom, Surface, Material]
+  boundaries: [Vent, OpenBoundary, SupplyExhaustVent, PressureZone, ZoneLeak]
   fire: [Fire, Reaction, Species]
   devices: [Device, Thermocouple, HeatDetector, SmokeDetector, SprinklerDevice, Prop, Control]
   outputs: [Output, Slice, BoundaryOutput, Plot3D, Smoke3D, DeviceCsv, DumpSettings]
@@ -178,7 +179,19 @@ classes:
       create: [add_ramp, add_fire]
       update: [update_ramp]
       delete: [remove_ramp]
-    rules: [FIRE-004, FIRE-008]
+    rules: [FIRE-004, FIRE-008, FIRE-015, FIRE-017]
+
+  RawNamelist:
+    label: {en: Raw namelist line, ko: 원문 namelist 줄}
+    description: "앱이 모델로 다루지 않는 namelist(예: &MULT)를 &TAIL 바로 앞에 그대로 쓰는 줄. 앱이 다루는 그룹(&MESH·&OBST·&VENT·&SURF·&ZONE …)은 전용 도구로 넣습니다 — 같은 namelist 가 두 번 나가면 FDS 오류입니다."
+    fds: ["(줄 그대로)"]
+    properties:
+      line: {type: string, note: "'&' 로 시작하고 '/' 로 끝남"}
+    tools:
+      create: [add_raw_namelist]
+      read: [list_raw_namelists]
+      delete: [remove_raw_namelist]
+    rules: [SIM-006, SIM-014, HVAC-015]
 
   # ───────────────────────── geometry ─────────────────────────
   Mesh:
@@ -327,6 +340,22 @@ classes:
       delete: [shape_delete_node]
     rules: [GEO-009, GEO-010]
 
+  ShapeInstance:
+    label: {en: Shape placement, ko: 형상 배치}
+    description: "Shape Studio 정의(Shape)를 프로젝트에 놓은 배치(위치·회전·배율). 배치마다 복셀 장애물(OBST) 또는 GEOM 이 파생되며, 메시 밖으로 나간 부분은 FDS 가 잘라 냅니다."
+    properties:
+      id: {type: string}
+      position: {type: point, unit: m}
+    relations:
+      instanceOf: Shape
+      becomes: [Obstacle, Geom]
+    tools:
+      create: [shape_place]
+      read: [shape_list]
+      update: [shape_move_instance, shape_set_instance]
+      delete: [shape_remove_instance]
+    rules: [GEO-006, GEO-024]
+
   Geom:
     label: {en: GEOM triangulated surface, ko: GEOM 삼각망}
     description: "&GEOM 삼각형 면. 계단 근사 없이 곡면을 표현하지만 수밀(watertight) 면이어야 합니다."
@@ -365,10 +394,10 @@ classes:
       specific_heat: {type: number, unit: "kJ/(kg·K)"}
     tools:
       create: [add_material, add_material_from_library]
-      read: [list_material_library]
-      update: [update_material]
+      read: [list_material_library, preview_material_kinetics]
+      update: [update_material, rename_material]
       delete: [remove_material]
-    rules: [SURF-001]
+    rules: [SURF-001, SURF-005, SURF-006, MATL-001, MATL-002, MATL-003, MATL-004, MATL-005, MATL-006, MATL-007, MATL-008, MATL-009, MATL-010, MATL-011]
 
   # ───────────────────────── boundaries ─────────────────────────
   Vent:
@@ -404,6 +433,36 @@ classes:
     tools:
       create: [hvac_apply_to_fds, set_fds_properties, add_vent]
     rules: [HVAC-003, HVAC-004, VENT-005]
+
+  PressureZone:
+    label: {en: Pressure zone, ko: 압력 존}
+    description: "&ZONE — 밀폐 구획의 배경 압력을 따로 푸는 영역. 시드 점(XYZ)에서 기체 셀을 채워 범위가 정해집니다. 앱은 존을 id 로 들고 있다가 덱을 쓸 때 존 번호와 숫자 LEAK_PATH 를 다시 계산합니다(원문 &ZONE 은 쓰지 않음)."
+    fds: ["&ZONE ID, XYZ, LEAK_AREA"]
+    properties:
+      id: {type: string, note: "유일, 'AMBIENT' 금지"}
+      xyz: {type: point, unit: m, note: "존 안 기체 셀의 시드 점(벽·가구 안 금지)"}
+    relations:
+      hasLeak: ZoneLeak
+    tools:
+      create: [add_pressure_zone]
+      read: [list_pressure_zones]
+      update: [update_pressure_zone]
+      delete: [remove_pressure_zone]
+    rules: [GEO-019, GEO-020, SIM-012, SIM-013, SIM-014]
+
+  ZoneLeak:
+    label: {en: Zone-pair leakage, ko: 존 쌍 누설}
+    description: "두 압력 존(또는 존과 외기) 사이의 구조 누설 면적. 숫자 LEAK_PATH 표면을 붙인 벽·벤트나 존 경로 문이 쌍의 두 존에 닿아야 계산됩니다. 문 한 짝의 틈은 문 누설(set_door_leakage)로 줍니다."
+    fds: ["&ZONE LEAK_AREA(n)", "&SURF LEAK_PATH"]
+    properties:
+      area_m2: {type: number, unit: m²}
+      leak_surface: {type: string, note: "누설 경로로 쓸 표면 ID"}
+    relations:
+      between: PressureZone
+    tools:
+      read: [list_pressure_zones]
+      update: [set_zone_leakage, set_door_leakage, set_door_state]
+    rules: [GEO-019, SIM-012, SIM-014]
 
   # ───────────────────────── fire ─────────────────────────
   Fire:
@@ -636,7 +695,7 @@ classes:
     properties:
       x: {type: number, unit: m}
       y: {type: number, unit: m}
-      floorIndex: {type: integer, note: "0부터의 층 순번(1F = 0)"}
+      floorIndex: {type: integer, note: "draw_list_stories 목록 순서의 0부터 순번(가장 낮은 층 = 0 — 지하가 없으면 1F = 0)"}
       desiredSpeed: {type: number, unit: "m/s", default: 1.2}
       maxSpeed: {type: number, unit: "m/s", default: 1.8}
     relations:
@@ -737,13 +796,13 @@ classes:
       x: {type: number, unit: m}
       y: {type: number, unit: m}
       z: {type: number, unit: m, default: 3.0}
-      floorIndex: {type: integer, note: "0부터의 층 순번"}
+      floorIndex: {type: integer, note: "층 id(Story.id, 1F = 1) — 피난의 0부터 순번이 아님. z 는 그 층 높이 안"}
       label: {type: string, note: "급기·배기 단말은 겹치지 않게(SA1, EX1 …) — FDS &OBST ID 가 됩니다(GEN-021)"}
     tools:
       create: [hvac_add_node]
       update: [hvac_update_node]
       delete: [hvac_remove_node]
-    rules: [HVAC-002, EVAC-001, GEN-021]
+    rules: [HVAC-002, HVAC-007, HVAC-008, EVAC-001, GEN-021]
 
   Duct:
     label: {en: Duct, ko: 덕트}

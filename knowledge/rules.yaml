@@ -15,7 +15,7 @@
 #   engine_snapshot   : 엔진 지원 범위(2026-10 기준). 엔진 업데이트로 바뀔 수 있으므로 실행 로그 경고를 함께 확인
 
 schema_version: 1
-updated: "2026-10-02"
+updated: "2026-11-07"
 fds_version: "6.10.1"
 
 rules:
@@ -414,6 +414,94 @@ rules:
     check: {tools: [shape_get_faces], how: "shape_get_faces 로 화재면이 planar 인지 봅니다."}
     fix: {tools: [shape_get_faces, shape_set_face, shape_edit_node], how: "shape_get_faces {select: {direction: '+Z', planar: true}} 로 평면을 골라 shape_set_face {select: …, fire: true, plan_confirmed: true} 로 다시 지정하거나, 화원용 평탄 상자를 따로 둡니다."}
 
+  - id: GEO-015
+    domain: geometry
+    severity: warning
+    confidence: verified
+    applies_to: [Opening]
+    title: "개구부(HOLE)는 장애물과 겹쳐야 효과가 있습니다"
+    title_en: "A hole only has an effect where it overlaps an obstruction"
+    condition: "BIM 이 아닌 벽(add_obstacle 상자, 헤드리스 MCP 에서 BIM 모델이 생기기 전의 벽)을 옮기거나(transform_obstacle·update_obstacle) 지운 뒤 그 벽의 문·창 HOLE 이 허공에 남았거나, add_hole·update_hole 좌표를 잘못 넣어 HOLE 이 어떤 장애물과도 겹치지 않습니다. FDS 는 경고 없이 무시하고, 'Door_'/'Window_' 구멍이면 피난 계산이 허공의 출구로 씁니다. BIM 평면도 벽의 문·창은 벽에 소속돼 함께 옮겨지고 지워지므로 이렇게 남지 않습니다."
+    check: {tools: [], how: "덱에 &OBST 로 나가는 어떤 장애물과도 양의 부피로 겹치지 않는 HOLE(문·창 포함)."}
+    fix: {tools: [update_hole, remove_hole], how: "BIM 평면도 벽이면 벽을 transform_obstacle·update_obstacle·remove_obstacle 로 고치면 소속 문·창이 따라가거나 함께 지워집니다 — 이 위반은 BIM 이 아닌 구멍에서 생깁니다. BIM 이 아닌 벽을 옮긴 뒤에는 그 벽의 HOLE 을 update_hole 로 함께 옮기고, 벽을 지웠으면 remove_hole 로 구멍도 지웁니다."}
+
+  - id: GEO-016
+    domain: geometry
+    severity: error
+    confidence: guidance
+    applies_to: [Obstacle]
+    title: "장애물 surf_ids 는 1개(SURF_ID)·3개(SURF_IDS 윗/옆/아랫면)·6개(SURF_ID6) 중 하나입니다"
+    title_en: "Obstruction surf_ids must have 1 (SURF_ID), 3 (SURF_IDS top/sides/bottom) or 6 (SURF_ID6) entries"
+    condition: "surf_ids 를 4·5·7개 이상 주면 생성기가 SURF_IDS 로 그대로 내보내 FDS 가 &OBST 줄을 읽지 못하고(배열 크기 초과) 멈춥니다. 2개면 아랫면이 기본 SURF 로 남습니다."
+    check: {tools: [], how: "화재·HVAC 프리셋(생성기가 surf_ids 대신 프리셋 SURF 를 씀)·감지기 프리셋·3D 전용을 뺀 장애물과 그 복셀의 surf_ids 길이가 0·1·3·6 이 아니면 위반(2개는 경고, 그 밖은 오류)."}
+    fix: {tools: [update_obstacle, assign_surface], how: "면마다 다르게 주려면 6개 [-X,+X,-Y,+Y,-Z,+Z], 윗/옆/아랫면이면 3개, 아니면 1개로 줍니다. BIM 평면도 벽·슬래브(파생 객체)는 SURF 를 하나만 가집니다 — update_obstacle·assign_surface 의 첫 값만 그 BIM 요소에 남으므로 1개로 줍니다(면마다 다른 SURF 는 add_obstacle 로 만든 일반 장애물에 줍니다)."}
+
+  - id: GEO-017
+    domain: geometry
+    severity: warning
+    confidence: verified
+    applies_to: [Obstacle]
+    title: "같은 XB 의 장애물을 두 번 만들지 않습니다"
+    title_en: "Do not create the same obstruction twice"
+    condition: "arch_import_building 을 mode append(기본)로 다시 실행했거나 같은 add_wall·add_obstacle 을 반복해 같은 자리에 같은 장애물이 겹쳤습니다. 계산 결과는 거의 같지만 객체 수·벽 수·피난 실 구획이 이중이 되고, 나중에 하나만 고치면 어긋납니다."
+    check: {tools: [], how: "덱에 &OBST 로 나가는 장애물 중 XB(0.1 mm 반올림)가 앞 장애물과 같은 것."}
+    fix: {tools: [remove_obstacle, arch_import_building, bim_remove_vertical], how: "다시 가져올 때는 mode:'replace' 와 같은 idPrefix 를 쓰고, 이미 생긴 중복은 remove_obstacle 로 지웁니다. BIM 평면도 벽이면 remove_obstacle 이 그 벽 전체(사선 벽의 모든 조각)를 소속 문·창과 함께 지우므로, 지운 뒤 문·창이 남았는지 list_obstacles 로 확인하고 사라졌으면 남은 벽에 add_door·add_window 로 다시 냅니다. 계단·승강기 소유 벽은 지우면 그 계단·승강기 전체가 지워집니다 — 겹친 계단·승강기는 bim_remove_vertical·bim_update_stair·bim_update_elevator 로 고칩니다."}
+
+  - id: GEO-018
+    domain: geometry
+    severity: warning
+    confidence: verified
+    applies_to: [Story, Slab, Wall]
+    title: "층 정보(zMin·층고)는 그 층의 바닥 판·벽·천장 판 높이와 같아야 합니다"
+    title_en: "Story info (zMin, height) must match the floor slab, walls and ceiling slab of that story"
+    condition: "기하를 층고 × 층 번호로 어림해 2F 벽·슬래브가 z 3.0 인데 층 정보 zMin 은 3.2 이거나, draw_update_story(또는 앱의 층 편집)로 층고를 바꿔 그 층 벽 높이·천장 판·지붕·BIM 이 아닌 장애물·메시가 옛 높이에 남았습니다(BIM 요소는 층 바닥을 따라 옮겨지지만 벽 높이·천장 판 높이는 그대로입니다). 층 기준 도구(2D 편집·층 판정·스프링클러 자동 배치 높이·피난 층)와 형상 기준 판정이 서로 다른 높이를 써서 결과가 갈립니다."
+    check: {tools: [draw_list_stories, list_obstacles], how: "층마다 벽(Wall·wall_line 또는 카탈로그 가구가 아닌 수직 판; 아랫면이 가장 가까운 층 zMin ± 0.5 m)의 아랫면·윗면 최빈값과, 그 벽 발자국과 겹치는 평면 1 m² 이상 수평 판 중 윗면이 zMin ± 0.5 m 인 바닥 판(벽 아랫면에 가장 가까운 것)·밑면이 벽 윗면 ± 0.05 m 인 천장 판을 찾는다. 바닥 판 윗면이 zMin 과 0.05 m 넘게 다르고 벽 아랫면과 맞으면 zMin 불일치, 벽 윗면이 천장 판과 맞는데 (바닥 높이 + height)와 0.05 m 넘게 다르면 층고 불일치. 바닥 판이 zMin 과 맞고 벽만 다른 경우는 GEO-002, 벽만 짧은 경우(그리기 벽 높이 < 층고)는 위반이 아니다."}
+    fix: {tools: [draw_update_story, transform_obstacle, update_obstacle, set_mesh], how: "어느 쪽이 맞는지 정합니다. 기하가 맞으면 층 정보를 draw_update_story 로 고치고(zMin 은 아래층 zMin + 층고 + 층간 두께), 층 정보가 맞으면 벽·슬래브를 transform_obstacle(move)·update_obstacle(xb)로 옮기고(BIM 벽·슬래브는 BIM 요소가 함께 바뀜 — 사선 벽은 이동만) 메시 상단을 set_mesh 로 맞춥니다. draw_update_story 는 BIM 요소(평면도·add_wall/add_door/add_window/add_floor 로 편입된 벽·슬래브·문·창, 계단·승강기)를 그 층 바닥을 따라 옮기지만 벽 높이·천장 판 높이는 바꾸지 않고(계단·승강기 소유 벽만 새 층고로 다시 맞춤), BIM 이 아닌 장애물·자동 층간 슬래브·메시는 옮기지 않습니다. 층을 지우면(draw_remove_story) 그 층의 BIM 벽·슬래브·공간이 지워지고 그 층에 벽이 있는 계단·승강기는 전체가 지워집니다."}
+
+  - id: GEO-019
+    domain: geometry
+    severity: error
+    confidence: verified
+    applies_to: [PressureZone, ZoneLeak]
+    title: "압력 존은 유일한 이름과, 존 안 기체 셀에 놓인 시드 점(XYZ)을 가져야 합니다"
+    title_en: "A pressure zone needs a unique id and a seed point (XYZ) in the gas of the zone"
+    condition: "시드 점이 벽·가구 같은 고체 안이면 FDS 가 'XYZ point for ZONE … is inside a solid obstruction' 으로 멈춥니다. 시드가 모든 메시 밖이면 오류 없이 셀 없는 존이 되어 누설·출력이 의미를 잃습니다(경고). 명시 존 체적이 MINIMUM_ZONE_VOLUME 보다 작으면 FDS 가 그 존을 지우고 뒤 존 번호를 당겨 누설 경로가 어긋나며, 다중 메시에서 XYZ 없이 쓴 존은 MPI 프로세스마다 시드가 달라질 수 있습니다(경고). 이름이 비었거나 외기 예약어 'AMBIENT' 거나 겹치면 존 참조가 어긋나고, 지운 존을 가리키는 존 쌍 누설은 덱에 쓰이지 않습니다."
+    check: {tools: [list_pressure_zones], how: "FDS 6.10.1 과 같은 격자 스냅(NINT((x−x0)·1/dx))으로 장애물·제어 HOLE 메움을 고체화하고 시드 셀 상태를 본다(PZ-SEED-SOLID·PZ-SEED-OUT). 존 체적 < MINIMUM_ZONE_VOLUME 은 PZ-MINVOL, 다중 메시의 XYZ 없는 존은 PZ-NOXYZ. 이름 검사(PZ-ID), 없는 존을 가리키는 쌍은 PZ-LEAK-STALE."}
+    fix: {tools: [update_pressure_zone, remove_pressure_zone, list_pressure_zones], how: "시드는 실 안 바닥에서 1 m 남짓 높이의 빈 공간에 둡니다(add_pressure_zone room {story_id, x, y} 가 그렇게 잡습니다). 벽 두께 안·가구 위를 피하고, 고칠 때는 update_pressure_zone(xyz). 이름은 'AMBIENT' 가 아닌 유일한 값으로 씁니다."}
+
+  - id: GEO-020
+    domain: geometry
+    severity: error
+    confidence: verified
+    applies_to: [PressureZone]
+    title: "두 명시 압력 존은 서로 다른 밀폐 영역이어야 합니다"
+    title_en: "Two explicit pressure zones must be different sealed regions"
+    condition: "두 시드가 열린 문·틈으로 이어진 한 영역에 있으면 FDS 가 ERROR(872) 로, 메시 경계에서 다른 존이 만나면 ERROR(873) 으로 멈춥니다. 시각·감지기로 여닫는 문(제어 HOLE)의 메움은 처음 상태와 관계없이 존을 나누므로 오류가 아닙니다(CPU 실측: 처음 열린 closes_at 문 양쪽 존 정상). 명시 존이 OPEN 경계와 이어지는 것도 오류가 아니며 그 존은 외기압으로 유지됩니다(SIM-012)."
+    check: {tools: [list_pressure_zones], how: "명시 존 순서대로 시드에서 6방향 범람(제거 가능 고체로는 들어가되 다시 기체로 나오지 못함 — func.f90:4844), 다른 존 번호를 만나면 PZ-OVERLAP, 메시 경계에서 만나면 PZ-MESH."}
+    fix: {tools: [set_door_state, remove_pressure_zone, update_pressure_zone], how: "두 존 사이 문을 set_door_state 로 닫거나(closed) 시각·감지기 상태로 바꾸고, 정말 한 공간이면 존 하나를 remove_pressure_zone 으로 지웁니다. 다중 메시면 존 경계가 메시 경계와 겹치지 않게 메시를 나눕니다."}
+
+  - id: GEO-021
+    domain: geometry
+    severity: error
+    confidence: verified
+    applies_to: [Hole, Door]
+    title: "닫힌 문 누설 패치는 문 자리 벽(한 셀 이상 두께)의 고정 면에 놓여야 하고, 감지기·제어 연동 문은 실재하는 장치를 가리켜야 합니다"
+    title_en: "A closed-door leak patch needs a wall at least one cell thick and a fixed face; a device-controlled door needs an existing device or control"
+    condition: "문 자리에서 벽을 찾지 못했거나, 벽이 한 셀보다 얇거나(FDS ERROR 421/422), 문이 계산 영역 밖이거나, 시각·감지기로 여닫는 문 위에 인방(고정 벽)이 없어 국부 누설 벤트를 둘 곳이 없습니다 — 메움은 제거 가능 장애물이라 그 위 누설 벤트는 ERROR(564) 입니다(CPU 실측). 존 누설 경로 문은 양쪽이 명시 존(또는 외기)이어야 합니다(ERROR 346~348). 감지기·제어 연동인데 장치·제어가 없습니다."
+    check: {tools: [list_pressure_zones, set_door_leakage], how: "문 계획 검사가 낸 문제(DL-NOWALL·THIN·OUTSIDE·NOLINTEL·ZONEPATH-*)와 연동 장치 존재(DL-CTRL — 사용자 장치 + 배치 감지기 DEVC 이름)."}
+    fix: {tools: [set_door_leakage, set_door_state, add_pressure_zone], how: "벽을 한 셀 이상 두껍게 하거나 문을 벽 높이보다 낮게(인방이 남게) 합니다. 인방이 없는 여닫는 문은 set_door_leakage(model='zone_path') 로 바꾸고 문 양쪽에 압력 존을 둡니다. 연동 문은 set_door_state(devc_id=있는 장치)."}
+
+  - id: GEO-024
+    domain: geometry
+    severity: warning
+    confidence: verified
+    applies_to: [ShapeInstance]
+    title: "형상 배치는 계산 영역 안에 둡니다"
+    title_en: "Keep shape instances inside the computational domain"
+    condition: "배치의 파생 복셀 장애물 XB 일부가 모든 메시 밖으로 나갑니다 — FDS 는 메시 밖 부분을 조용히 잘라 냅니다(통째로 밖이면 GEO-006)."
+    check: {tools: [shape_list, list_meshes], how: "숨기지 않은 배치마다 같은 id 의 파생 장애물(shape 표지) XB 가 메시와 겹치는데 꼭짓점 8개 중 하나라도 어느 메시에도 들지 않으면 위반(겹치지 않으면 GEO-006 이 알린다)."}
+    fix: {tools: [shape_move_instance, set_mesh, auto_multimesh], how: "shape_move_instance 로 옮기거나 set_mesh·auto_multimesh 로 메시를 넓힙니다."}
+
   # ═════════════════════════ MESH ═════════════════════════
   - id: MESH-001
     domain: mesh
@@ -737,6 +825,61 @@ rules:
     condition: "같은 자리에 add_fire 와 가구 화원(place_furniture as_fire_source)·set_fds_properties 화원을 겹쳐 HRR 이 더해졌습니다."
     check: {tools: [list_obstacles, preview_fds], how: "HRRPUA 를 가진 SURF 를 가리키는 OBST/VENT 를 셉니다."}
 
+  - id: FIRE-015
+    domain: fire
+    severity: error
+    confidence: verified
+    applies_to: [Fire, Surface, Obstacle, Ramp]
+    title: "화원·표면이 가리키는 HRR 램프(RAMP_Q)는 정의돼 있어야 합니다"
+    title_en: "The HRR ramp (RAMP_Q) referenced by a fire or surface must exist"
+    condition: "update_fire(ramp_id=…) 를 add_ramp 없이 썼거나, remove_ramp 로 쓰던 램프를 지웠거나, 대소문자를 다르게 적었습니다. 생성기는 정의 없는 화원 RAMP_Q·노즐 FLOW_RAMP 를 덱에서 빼고 RAMP_REF_DROPPED 경고 주석을 남기므로, 덱은 멈추지 않지만 곡선 없이 처음부터 최대 HRR(노즐은 전 유량)로 계산됩니다. 덱 원문 램프(ramp_sources)를 그대로 옮겨 실은 곡선은 이름 참조로 유지합니다. 일반 표면의 RAMP_Q 는 그대로 나가므로 CPU FDS 는 ERROR(391) 'RAMP … not found' 로 멈추고(read.f90:10123), 실행 전 점검이 그 덱의 실행을 막습니다."
+    check: {tools: [], how: "Fire.ramp_id, manual 표면 reaction.ramp.ramp_id, 화재 프리셋 장애물 ramp_id(ramp_points 가 없거나 유효한 점이 없음)를 config.ramps 키와 정확히 대조."}
+    fix: {tools: [add_ramp, update_fire], how: "add_ramp(id, points) 로 정의하거나 update_fire(index, ramp_id='') 로 끊습니다. 램프 id 는 대소문자까지 같아야 합니다."}
+
+  - id: FIRE-016
+    domain: fire
+    severity: error
+    confidence: verified
+    applies_to: [Fire]
+    title: "화원 XB 는 면(두께 0 축 하나) 또는 상자여야 합니다"
+    title_en: "A fire XB must be a plane (one zero-thickness axis) or a box"
+    condition: "두께 0 축이 둘 이상(선·점)입니다 — 예: [x1,y1,z1,x2,y2,z2] 로 잘못 써서 두 축이 납작해졌습니다. 생성기는 이런 화원을 덱에서 조용히 빼므로 불이 나지 않습니다. (XB 가 6개 수가 아니거나 min > max 인 경우는 GEN-003 이 알립니다.)"
+    check: {tools: [], how: "원본 XB 의 축별 두께가 1e-9 m 미만인 축 수를 셉니다(생성기와 같은 판정)."}
+    fix: {tools: [update_fire], how: "update_fire(index, xb=[x1,x2,y1,y2,z,z])"}
+
+  - id: FIRE-017
+    domain: fire
+    severity: error
+    confidence: verified
+    applies_to: [Ramp]
+    title: "램프는 점 2개 이상, T 가 엄격히 증가해야 합니다"
+    title_en: "A ramp needs at least two points with strictly increasing T"
+    condition: "계단처럼 [[0,0],[0,1]] 로 같은 T 를 두 번 썼거나, 점을 하나만 줬거나, [T, F] 가 아닌 점이 있습니다. 참조된 램프면 CPU FDS 는 ERROR(392) 'has only one point' 또는 ERROR(394) 'T must be monotonically increasing' 으로 멈춥니다(read.f90:10124, :10194). (2026-10-11 전 앱은 add_fire 의 growth 에 6 s 미만 time_to_peak 를 주면 정수 반올림으로 T 가 겹쳤습니다 — 지금은 0.01 s 로 반올림하고 0 이하는 거절합니다.) 생성기는 이 표를 그대로 쓰지 않고 T 정렬·같은 T 정리를 하며, 한 점은 같은 값 두 점으로 써서 RAMP_TABLE_FIXED 경고 주석을 남깁니다(유효한 점이 없으면 &RAMP 를 쓰지 않습니다). 덱 원문 줄 그대로 나가는 램프(종속·외부·X·Z 램프 — config.ramp_sources)는 T·F 표 판정에서 뺍니다."
+    check: {tools: [], how: "모든 램프를 보되(덱 원문 줄 그대로 나가는 ramp_sources 램프는 제외), 설정 어딘가에서 참조되는 램프(키 이름에 ramp 가 든 문자열 필드)만 error, 참조 없는 램프는 warning(FDS 가 읽지 않음)."}
+    fix: {tools: [update_ramp, add_ramp], how: "계단은 [[0,0],[0.1,1]] 처럼 T 를 조금 띄웁니다. 점은 시간 순으로 2개 이상."}
+
+  - id: FIRE-018
+    domain: fire
+    severity: error
+    confidence: verified
+    applies_to: [Obstacle]
+    title: "점화 조건이 온도인 화원(화재 설정)은 화재면에 비반응 재료 층이 있어야 합니다"
+    title_en: "An obstacle fire with a temperature ignition condition needs non-reacting material layers on its fire faces"
+    condition: "set_fds_properties(fds_override={fire_ignition:{mode:'temperature'}}) 에 표면층(layers)도 고급 키 MATL_ID 도 없거나, 층 재료에 열분해 반응이 있습니다. 층이 없으면 표면 온도를 계산하지 않아 CPU FDS(read.f90:9445 SPECIFIED_TEMPERATURE)와 GPU 모두 점화하지 않고, 반응 재료 층과 점화 온도를 함께 쓰면 CPU FDS 가 ERROR(335)로 멈춥니다(read.f90:8708-8714)."
+    check: {tools: [], how: "화재 프리셋 장애물의 fire_ignition.mode 가 temperature 일 때 layers(고급에 표면층 키가 있으면 고급 MATL_ID) 재료가 있는지, 그 재료가 열분해 반응이 없는지 봅니다."}
+    fix: {tools: [set_fds_properties], how: "fire_ignition={mode:'temperature', temperature_c:300, layers:[{thickness:0.001, materials:[{matl_id:'POLYESTER_FABRIC_THERMAL', mass_fraction:1}]}, {thickness:0.05, materials:[{matl_id:'PU_FOAM_THERMAL', mass_fraction:1}]}]} 처럼 비반응 재료(*_THERMAL)로 층을 줍니다(층을 비우면 이 기본 층이 들어갑니다). 점화 시각은 바깥 층의 재료·두께에 민감합니다."}
+
+  - id: FIRE-019
+    domain: fire
+    severity: warning
+    confidence: verified
+    applies_to: [Obstacle]
+    title: "화원 장애물의 화재면은 기체와 닿는 면(옆면·윗면)이어야 탑니다"
+    title_en: "A fire face of an obstacle fire burns only where it is exposed to gas (sides or top)"
+    condition: "화재 설정(fds_override.fire_faces 또는 extra_fire_surfaces[k].fire_faces)의 화재면이 바닥·벽·다른 장애물에 붙어 있거나 메시 경계에 놓여, 면 바깥 첫 칸이 기체가 아닙니다. CPU FDS 와 GPU 는 기체와 닿은 면 칸만 태우므로 그 면은 타지 않고(GPU 로그 [E-SIDE] '기체와 닿은 칸이 없어 타지 않습니다'), 화재면이 전부 그러면 화원이 불이 나지 않습니다. 바닥 위 상자의 −Z 면이 대표적입니다."
+    check: {tools: [], how: "화재 프리셋 장애물의 화재면마다 격자 칸 중심에서 바깥으로 셀 크기 1/4 만큼 나간 점이 모두 다른 고체(3D 전용·감지기 프리셋 제외) 안이거나 메시 밖이면 위반입니다. HOLE 안의 점은 기체로 봅니다."}
+    fix: {tools: [set_fds_properties], how: "set_fds_properties(fds_override={fire_faces:[…]}) 또는 extra_fire_surfaces[k].fire_faces 에서 그 면을 끄고 기체와 닿는 면을 켭니다."}
+
   # ═════════════════════════ SURFACES ═════════════════════════
   - id: SURF-001
     domain: surface
@@ -758,6 +901,162 @@ rules:
     title_en: "Some SURF keys are ignored by the GPU engine"
     condition: "NET_HEAT_FLUX, CONVECTIVE_HEAT_FLUX, EXTERNAL_FLUX(열유속 경계), MASS_FRACTION(질량분율 경계), PART_ID·PARTICLE_MASS_FLUX(표면 입자 주입), PROFILE, VEL_T 에 결과가 달려 있습니다. GPU 엔진은 이 키를 쓰지 않습니다."
     fix: {how: "이 조건이 결과를 좌우하면 solver_type=cpu_openmp 로 FDS 6.10.1 대조를 검토합니다. 모르면 사용자에게 알립니다."}
+
+  - id: MATL-001
+    domain: surface
+    severity: error
+    confidence: verified
+    applies_to: [Material]
+    title: "열분해 반응마다 A 와 E 를 함께 주거나, REFERENCE_TEMPERATURE 로 FDS 가 유도하게 합니다"
+    title_en: "Give both A and E for each pyrolysis reaction, or REFERENCE_TEMPERATURE so FDS derives them"
+    condition: "A·E 중 하나만 있거나 둘 다 없는데 REFERENCE_TEMPERATURE 도 없습니다(반응열만 있는 반응 포함). CPU FDS 6.10.1 은 ERROR(251) 'Set REFERENCE_TEMPERATURE or E, A' 로 멈춥니다(read.f90:6997-7000). 반응 1개에 A·E·TREF·반응열이 모두 없으면 FDS 는 반응을 만들지 않고 수율을 무시합니다(경고). 기준 온도·승온 속도·열분해 범위가 0 이하이면 유도값이 정의되지 않습니다(오류)."
+    check: {tools: [validate_project, preview_material_kinetics], how: "덱에 나가는 재료에 열분해 검증을 돌립니다. A·E 음수는 미지정(FDS 센티널 −1), 구 데이터의 A=0·E=0 짝도 미지정."}
+    fix: {tools: [update_material, preview_material_kinetics], how: "update_material(reactions=[{rate_model:'reference', reference_temperature_c: TGA 피크 °C}]) 또는 {rate_model:'arrhenius', a, e_kj_per_kmol} 로 둘 다 줍니다. E 단위는 kJ/kmol(=J/mol) — kJ/mol 값은 ×1000. preview_material_kinetics 로 피크 온도를 확인합니다."}
+
+  - id: MATL-002
+    domain: surface
+    severity: error
+    confidence: verified
+    applies_to: [Material]
+    title: "액체 재료(BOILING_TEMPERATURE)는 기화열(HEAT_OF_REACTION)을 0 보다 크게 줍니다"
+    title_en: "A liquid material (BOILING_TEMPERATURE) needs a heat of vaporization (HEAT_OF_REACTION) > 0"
+    condition: "BOILING_TEMPERATURE 가 있는 재료에 HEAT_OF_REACTION 이 없거나 0 이하입니다. CPU FDS 는 ERROR(252)로 멈춥니다(read.f90:7011). 예전 GUI 는 '행 추가'가 액체의 스칼라 기화열 반응을 버려 이 상태를 만들었습니다."
+    check: {tools: [], how: "액체 재료(BOILING_TEMPERATURE < 50000 °C) 이고 첫 반응의 heat_of_reaction ≤ 0 또는 없음."}
+    fix: {tools: [update_material], how: "update_material(id, heat_of_vaporization=…) — kJ/kg (예: 헵탄 316, 에탄올 837)."}
+
+  - id: MATL-003
+    domain: surface
+    severity: error
+    confidence: verified
+    applies_to: [Material]
+    title: "액체 재료는 증기 종(SPEC_ID)을 하나만 줍니다 — FDS 는 액체 반응을 1개로 강제합니다"
+    title_en: "A liquid material has exactly one vapor species (SPEC_ID); FDS forces one reaction"
+    condition: "액체 재료에 생성 기체 종이 2개 이상입니다 — CPU FDS ERROR(263)(read.f90:7369). 반응이 2개 이상이면 FDS 는 첫 반응만 씁니다(경고)."
+    fix: {tools: [update_material], how: "update_material(id, vapor_spec_id=…) 로 증기 종 하나만 둡니다."}
+
+  - id: MATL-004
+    domain: surface
+    severity: error
+    confidence: verified
+    applies_to: [Material]
+    title: "반응마다 기체·잔류물·입자 수율 합 Σν 를 1 로 맞춥니다(1 초과는 오류, 1 미만은 질량 소실)"
+    title_en: "Make the gas, residue and particle yields of each reaction sum to 1 (above 1 is an error, below 1 loses mass)"
+    condition: "Σν > 1.001 이면 CPU FDS 는 ERROR(265)로 멈춥니다(read.f90:7470). Σν < 1 이면 반응한 질량 일부가 사라지고, 수율이 0 이면 'No product yields' 경고입니다(read.f90:7003)."
+    fix: {tools: [update_material], how: "gas_yields 와 residues 의 nu 를 다시 나눕니다(예: 목재 기체 0.8 + CHAR 0.2)."}
+
+  - id: MATL-005
+    domain: surface
+    severity: error
+    confidence: verified
+    applies_to: [Material, Species, Reaction]
+    title: "생성 기체 종(SPEC_ID)은 덱에서 추적되는 종이어야 하고, 생성물이 둘 이상이면 모두 지정합니다"
+    title_en: "Each gaseous product needs a SPEC_ID that the deck tracks; with two or more products, name every one"
+    condition: "SPEC_ID 가 비어 있고 덱 연료로 채울 수도 없거나(ERROR 262, read.f90:7363) 추적되지 않는 종입니다(ERROR 264, read.f90:7396). 'WATER VAPOR' 같은 1차 종은 &SPEC 으로 선언해야 추적됩니다. 연료(&REAC FUEL)가 없는 덱에서 라이브러리 재료를 쓰면 SPEC_ID 를 채울 수 없습니다."
+    check: {tools: [], how: "추적 종 = 사용자 &SPEC + &REAC 연료(주 반응·화원 프리셋·노즐) + AIR·PRODUCTS + (스프링클러가 있으면) WATER VAPOR — 생성기 방출 규칙. 실행 전 점검은 덱 텍스트로 같은 판정을 합니다."}
+    fix: {tools: [update_material, add_species, update_reaction], how: "update_reaction(fuel=…) 로 연료를 정하거나 gas_yields 의 spec_id 를 지정하고, 1차 종이면 add_species(id='WATER VAPOR') 로 선언합니다."}
+
+  - id: MATL-006
+    domain: surface
+    severity: error
+    confidence: verified
+    applies_to: [Material]
+    title: "열분해 잔류물(NU_MATL→MATL_ID)이 가리키는 재료는 프로젝트나 내장 라이브러리에 있어야 합니다"
+    title_en: "The residue material (NU_MATL → MATL_ID) must exist in the project or the built-in library"
+    condition: "잔류 재료가 어디에도 없거나 수율만 있고 MATL_ID 가 비었습니다. FDS 6.10.1 은 ERROR(257)(read.f90:7205), GPU 엔진도 같은 오류로 멈춥니다. 잔류물로 쓰이는 재료를 지운 경우 GUI·MCP 는 삭제를 거절합니다."
+    fix: {tools: [add_material_from_library, update_material], how: "add_material_from_library(library_id='CHAR') 등으로 잔류 재료를 만들거나 residues 를 고칩니다."}
+
+  - id: MATL-007
+    domain: surface
+    severity: error
+    confidence: guidance
+    applies_to: [Material, Reaction]
+    title: "N_O2 > 0(산화 반응)이면 덱에 산소가 정의돼 있어야 합니다(단순 화학 &REAC 또는 OXYGEN 종)"
+    title_en: "N_O2 > 0 (oxidation) needs oxygen in the deck (a simple-chemistry &REAC or an OXYGEN species)"
+    condition: "N_O2 > 0 인 반응이 있는데 &REAC 도 OXYGEN 종도 없습니다 — CPU FDS ERROR(256)(read.f90:7149). GPU 엔진은 N_O2 를 반응률에 쓰지만(표면 앞 기체 셀의 O2) 이 입력 오류로 멈추지는 않으므로, 산소가 없으면 CPU 와 결과가 달라집니다."
+    fix: {tools: [update_reaction, add_species, update_material], how: "update_reaction(fuel=…) 로 단순 화학을 켜거나 add_species(id='OXYGEN') 을 선언합니다."}
+
+  - id: MATL-008
+    domain: surface
+    severity: warning
+    confidence: verified
+    applies_to: [Material]
+    title: "기준 온도(REFERENCE_TEMPERATURE)로 줄 때는 A·E 를 함께 주지 않고, 1차 반응(N_S=1)으로 두며, REFERENCE_RATE 와 PYROLYSIS_RANGE 를 함께 주지 않습니다"
+    title_en: "With REFERENCE_TEMPERATURE do not also give A/E, keep N_S = 1, and do not combine REFERENCE_RATE with PYROLYSIS_RANGE"
+    condition: "FDS 6.10.1 은 A·E 와 TREF 를 함께 받으면 거부하지 않고 유도값으로 A·E 를 덮어씁니다(read.f90:7168). 유도식은 1차 반응을 가정합니다(사용자 안내서 2971 각주). REFERENCE_RATE 를 주면 PYROLYSIS_RANGE 는 무시됩니다."
+    fix: {tools: [update_material], how: "하나의 형식만 남깁니다 — 재료 편집기의 [A·E 로 고정]·[기준 온도 형식으로 변환] 은 같은 반응으로 정확히 바꿉니다."}
+
+  - id: MATL-009
+    domain: surface
+    severity: warning
+    confidence: guidance
+    applies_to: [Material]
+    title: "E 는 kJ/kmol(= J/mol)로 넣습니다 — 문헌의 kJ/mol 값은 ×1000"
+    title_en: "Enter E in kJ/kmol (= J/mol) — multiply literature kJ/mol values by 1000"
+    condition: "0 < E < 1000 kJ/kmol 은 kJ/mol 값을 그대로 넣은 흔적입니다(반응이 상온에서 바로 일어납니다). E > 10⁶ 도 이례적입니다."
+    fix: {tools: [update_material], how: "188 kJ/mol → e_kj_per_kmol=188000. preview_material_kinetics 로 피크 온도가 TGA 와 맞는지 봅니다."}
+
+  - id: MATL-010
+    domain: surface
+    severity: info
+    confidence: guidance
+    applies_to: [Material]
+    title: "ln A 나 E/(R·T_p) 가 88 을 넘는 반응은 피크가 매우 좁습니다 — 단위와 열분해 범위를 확인합니다"
+    title_en: "A reaction with ln A or E/(R·T_p) above 88 has an extremely narrow peak — check the units and the pyrolysis range"
+    condition: "기준 온도 300 °C 에서 PYROLYSIS_RANGE 가 약 35 K 보다 좁으면 E/(R·T_p) 가 88 을 넘습니다. 예전 GPU 엔진은 단정밀도 exp 가 넘쳐 반응이 조용히 0 이 됐으나, 지금 엔진은 ln A 로 계산해 넘치지 않습니다 — 남은 의미는 입력 실수의 흔적입니다."
+    fix: {tools: [update_material], how: "의도한 값이면 그대로 둡니다. 아니면 E 단위(kJ/kmol)와 pyrolysis_range_k 를 다시 봅니다."}
+
+  - id: MATL-011
+    domain: surface
+    severity: error
+    confidence: verified
+    applies_to: [Material]
+    title: "재료 하나의 열분해 반응은 10개까지입니다"
+    title_en: "A material can have at most 10 pyrolysis reactions"
+    condition: "FDS 배열 한도 MAX_REACTIONS=10(prec.f90) 을 넘었습니다 — FDS 는 namelist 읽기에서 멈춥니다."
+    fix: {tools: [update_material], how: "반응을 합치거나 재료를 성분별로 나눕니다(표면 층의 질량분율로 섞습니다)."}
+
+  - id: SURF-006
+    domain: surface
+    severity: error
+    confidence: verified
+    applies_to: [Surface, Material]
+    title: "열분해 반응이 있는 재료 층에는 점화 온도(IGNITION_TEMPERATURE)를 주지 않습니다 — 재료 반응이 착화를 정합니다"
+    title_en: "Do not give IGNITION_TEMPERATURE to a surface with reacting material layers — the material kinetics decide ignition"
+    condition: "표면 층 재료에 반응(열분해 또는 액체 증발)이 있는데 점화를 '온도'로 두었습니다. CPU FDS 는 ERROR(335)로 멈춥니다(read.f90:8710-8712)."
+    fix: {tools: [update_surface], how: "update_surface(id, ignition='immediate') 로 점화 온도를 빼거나, 지정 점화가 필요하면 층을 비반응 재료로 바꿉니다."}
+
+  - id: SURF-003
+    domain: surface
+    severity: error
+    confidence: verified
+    applies_to: [Surface]
+    title: "고정 표면 온도·순 열유속·대류 열유속(그리고 ADIABATIC)은 한 표면에 하나만 줍니다"
+    title_en: "Give only one of fixed temperature, net heat flux, convective heat flux (or ADIABATIC) per surface"
+    condition: "TMP_FRONT 와 NET_HEAT_FLUX(ERROR 338), NET_HEAT_FLUX 와 CONVECTIVE_HEAT_FLUX(ERROR 337), ADIABATIC 과 열유속(ERROR 336)을 함께 줬습니다(read.f90:8726-8738). update_surface 는 열 키를 덮어쓰기만 하고 지우지 못해서, 고정 온도 표면에 열유속을 더하면 이 상태가 됩니다."
+    check: {tools: [], how: "thermal.tmp_front·net_heat_flux·convective_heat_flux(≠0) 와 surface_type='adiabatic' 의 조합을 봅니다."}
+    fix: {tools: [remove_surface, add_surface], how: "하나만 남깁니다 — 바꾸려면 remove_surface 후 add_surface 로 다시 만듭니다."}
+
+  - id: SURF-004
+    domain: surface
+    severity: error
+    confidence: verified
+    applies_to: [Surface, Material]
+    title: "표면 HRRPUA·MLRPUA(지정 연소)와 열분해 재료 층을 함께 쓰지 않습니다"
+    title_en: "Do not combine a specified HRRPUA/MLRPUA with pyrolysing material layers"
+    condition: "add_surface_from_library 로 목재·플라스틱 표면을 가져온 뒤 update_surface(hrrpua=…) 로 화원 표면처럼 만들었습니다. 층 재료가 열분해 반응(A·E 또는 REFERENCE_TEMPERATURE)이나 BOILING_TEMPERATURE 를 가지면 CPU FDS 는 ERROR(357)로 멈춥니다(read.f90:9204-9207)."
+    check: {tools: [], how: "reaction.mode='manual' 이고 HRRPUA/MLRPUA > 0 인 표면의 층 재료(프로젝트 또는 내장 라이브러리)의 반응을 봅니다."}
+    fix: {tools: [update_surface], how: "화원 표면이면 층을 비활성 재료로 바꾸거나 층을 빼고(burner), 재료 열분해로 태우려면 reaction_mode='material' 로 둡니다."}
+
+  - id: SURF-005
+    domain: surface
+    severity: error
+    confidence: guidance
+    applies_to: [Material]
+    title: "MATL 물성은 FDS 단위로 넣습니다 — 비열 kJ/(kg·K), 밀도 kg/m³(> 0), 열전도율 W/(m·K), 방사율 0–1"
+    title_en: "Enter MATL properties in FDS units — specific heat kJ/(kg·K), density kg/m³ (> 0), conductivity W/(m·K), emissivity 0–1"
+    condition: "비열을 J/(kg·K) 값(예: 880)으로 넣어 벽이 1,000배 느리게 데워지거나, 밀도 0(CPU FDS ERROR 253 — read.f90:7021)·램프 없는 열전도율 0(254)·비열 0(255)·g/cm³ 값을 넣었습니다."
+    check: {tools: [], how: "재료 편집기 인라인 검증과 같은 함수: specific_heat > 20 · density ≤ 0 · 램프 없는 conductivity ≤ 0 · 램프 없는 specific_heat ≤ 0 → error, 10 < specific_heat ≤ 20(FDS 경고) · density > 25,000 · conductivity > 500 · emissivity ∉ [0, 1] → warning."}
+    fix: {tools: [update_material], how: "비열 20 kJ/(kg·K) 초과는 거의 확실히 J 단위 — 1,000 으로 나눕니다(콘크리트 0.88, 석고 1.09, 강철 0.46)."}
 
   # ═════════════════════════ DEVICES / CONTROLS ═════════════════════════
   - id: DEVC-001
@@ -1050,6 +1349,39 @@ rules:
     condition: "사용자 SURF 를 'INERT' 같은 예약 이름으로 만들어 예약 동작을 덮었습니다."
     fix: {how: "사용자 표면은 다른 이름(예: CONCRETE_200)을 씁니다."}
 
+  - id: SIM-012
+    domain: simulation
+    severity: warning
+    confidence: verified
+    applies_to: [ZoneLeak, PressureZone]
+    title: "존 쌍 누설(&ZONE LEAK_AREA)은 그 쌍을 가리키는 누설 면(숫자 LEAK_PATH 표면이 붙은 벽·벤트, 존 경로 문)이 쌍의 두 존(외기 제외) 모두에 닿아야 계산됩니다"
+    title_en: "Zone-pair leakage (&ZONE LEAK_AREA) is computed only when leak faces (numeric LEAK_PATH surface on walls/vents, or a zone-path door) touch both zones of the pair (the ambient excepted)"
+    condition: "LEAK_AREA 를 주었지만 그 쌍의 LEAK_PATH 표면이 덱의 장애물·벤트에 쓰이지 않아 FDS 6.10.1 이 오류 없이 누설을 무시합니다(hvac.f90 — 누설 덕트는 LEAK_PATH 로만 생김, PZ-LEAK-NOPATH). 누설 경로 면이 있어도 쌍의 한쪽 존(외기 제외)의 기체에 닿은 면이 없으면 그 노드의 면적이 0 이라 FDS 가 덕트 면적을 0 으로 두어 역시 오류 없이 누설 0 입니다(hvac.f90 COLLAPSE_HVAC_BC·DETERMINE_FIXED_ELEMENTS — 벽 한쪽 벤트에만 표면을 준 경우, 쌍이 아닌 존 벽에 준 경우, 외기 쌍인데 외기 쪽 면에만 준 경우, PZ-LEAK-ONESIDE, CPU 실측 gate_G6 one_A·one_B). 누설을 준 존이 OPEN 경계와 이어져 외기압으로 유지되면 그 누설도 효과가 없습니다. 같은 쌍의 존 경로 문들이 서로 다른 압력 지수를 가지면 쌍당 계수 한 벌로 합쳐지고, 압력 지수가 0.5–1.0 밖이면(0.5 미만은 Δp=0 에서 발산) 결과를 믿기 어렵습니다."
+    check: {tools: [list_pressure_zones, preview_fds], how: "쌍마다 덱에 쓰이는 LEAK_PATH 표면(장애물·벤트·GEOM SURF_ID, SURF_DEFAULT)과 존 경로 문 계획을 찾는다(PZ-LEAK-NOPATH). 있으면 그 면을 FDS 처럼 격자에 스냅해 벽 셀(한쪽 기체·다른 쪽 고체나 영역 밖)마다 기체 셀의 존을 세고, 쌍의 외기 아닌 존에 면이 없으면 PZ-LEAK-ONESIDE. 존 영역 판정이 OPEN 연결이면 누설을 준 존만 PZ-OPEN, 존 경로 문 지수 혼재 PZ-LEAK-MIXED, 지수 범위 DL-EXPONENT. 덱 점검의 같은 판정은 validate_project 가 이 규칙으로 낸다."}
+    fix: {tools: [set_zone_leakage, assign_surface, set_door_leakage], how: "set_zone_leakage(leak_surface=표면 ID)로 표면을 누설 경로로 지정하고 assign_surface 로 두 존 사이의 두께 있는 벽 장애물 전체(양쪽 면)에 배정하거나, 그 쌍의 문을 set_door_leakage(model='zone_path')로 바꿉니다. 벤트로 줄 때는 벽 양쪽 면에 하나씩 둡니다(외기 쌍은 존 쪽 면). 한 문 틈만 새는 경우는 국부 누설(set_door_leakage 기본)이 더 정확합니다."}
+
+  - id: SIM-013
+    domain: simulation
+    severity: warning
+    confidence: guidance
+    applies_to: [PressureZone, Fire]
+    title: "화원이 든 밀폐 영역(명시·자동 압력 존)에는 누설이나 급배기가 있어야 압력이 현실적입니다"
+    title_en: "A sealed region (explicit or automatic zone) that holds a fire needs leakage or supply/exhaust for a realistic pressure"
+    condition: "OPEN 경계와 이어지지 않은 영역에 화원이 있는데 그 존에 존 쌍 누설·문 누설·HVAC 가 없습니다. FDS 는 밀폐 영역을 자동으로 압력 존으로 만들고 누설이 없으면 배경압이 수천 Pa 까지 올라 산소가 줄고 화재가 꺼질 수 있습니다(CPU 실측 V3 0–60 s 약 2,300 Pa)."
+    check: {tools: [list_pressure_zones], how: "존·누설·문 상태 설정이 있거나 OPEN 벤트 없이 화원이 있는 프로젝트만 영역 판정을 한다. 화원 = 화원 장애물·config.fires·버너 표면(HRRPUA·MLRPUA)을 쓴 &VENT·&OBST. 화원 면 바로 바깥 기체 셀의 존이 OPEN 과 이어지지 않고, 그 존에 누설(쌍 면적·덱에 나가는 문 누설)·원문 &HVAC·HVAC 단말이 없으면 위반(PZ-SEALED-FIRE)."}
+    fix: {tools: [set_door_leakage, set_zone_leakage, set_open_boundary], how: "실제 건물의 틈새를 set_door_leakage(닫힌 문)·set_zone_leakage(벽·바닥 구조 누설)로 주거나, 외기와 통하는 개구부를 열린 문·OPEN 벤트로 둡니다. 밀폐 실 시험을 의도했다면 그대로 둡니다."}
+
+  - id: SIM-014
+    domain: simulation
+    severity: error
+    confidence: verified
+    applies_to: [PressureZone, ZoneLeak, Surface, RawNamelist]
+    title: "덱의 &ZONE 은 XYZ 로 시드를 주고, 존 쌍 누설은 한쪽에만 쓰고, 누설 경로는 숫자 LEAK_PATH 로 씁니다"
+    title_en: "In the deck, &ZONE takes XYZ, each pair's LEAK_AREA is written once, and leak paths use numeric LEAK_PATH"
+    condition: "&ZONE XB(구버전 문법)는 FDS 6.10.1 에서 ERROR(101), 같은 쌍의 LEAK_AREA 를 두 존이 모두 쓰면 ERROR(871), LEAK_PATH 와 LEAK_PATH_ID 를 함께 쓰면 ERROR(315), LEAK_PATH_ID 의 존이 없거나 같은 존이거나 번호가 범위 밖이면 ERROR(346~349) 입니다. 또 LEAK_PATH_ID 만 쓴 경로는 오류 없이 누설이 0 으로 계산됩니다(READ_HVAC 가 ID 해석보다 먼저 실행 — CPU 실측)."
+    check: {tools: [validate_project, preview_fds], how: "생성 덱 점검이 ERROR 101·871·315·346~349 와 LEAK_PATH_ID 경고를 내고 validate_project 가 이 규칙으로 보고한다. 실행 전 점검도 같은 함수."}
+    fix: {tools: [set_zone_leakage, add_pressure_zone, fds_apply_text], how: "압력 존은 add_pressure_zone·set_zone_leakage 로만 넣습니다(add_raw_namelist 는 &ZONE 을 거절). GUI 는 존 id 로 들고 있다가 저장할 때 숫자 LEAK_PATH=i,j 와 LEAK_AREA(n) 을 다시 계산합니다. 가져온 덱의 LEAK_PATH_ID 덱을 저장하면 누설이 생겨 원본 FDS 결과와 달라질 수 있습니다."}
+
   # ═════════════════════════ EVACUATION ═════════════════════════
   - id: EVAC-001
     domain: evacuation
@@ -1058,9 +1390,9 @@ rules:
     applies_to: [Agent, Stair, HvacNode, PipeNode, Story]
     title: "floorIndex 는 도구마다 뜻이 다릅니다"
     title_en: "floorIndex means different things in different tools"
-    condition: "evac_*·hvac_* 의 floorIndex 는 0부터의 층 순번(1F = 0, 2F = 1)이고, spr_*(spr_add_node, spr_auto_layout, spr_add_drain, spr_add_riser targetFloorIndex)과 draw_update_story 의 id 는 층 id(1F = 1)입니다. 섞으면 피난자·노드가 한 층씩 어긋납니다."
-    check: {tools: [draw_list_stories, evac_list_summary, spr_list_summary]}
-    fix: {how: "draw_list_stories 로 층을 읽고, EVAC/HVAC 에는 (정렬 순번), SPR 에는 (층 id)를 넣습니다. spr_add_node 는 floorIndex 를 생략하면 z 가 든 층으로 정해지므로 z 를 정확히 주는 편이 안전합니다."}
+    condition: "evac_* 의 floorIndex 는 draw_list_stories 목록 순서의 0부터 층 순번(가장 낮은 층 = 0 — 지하가 없으면 1F = 0·2F = 1, B1 이 있으면 B1 = 0·1F = 1)이고, spr_*(spr_add_node, spr_auto_layout, spr_add_drain, spr_add_riser targetFloorIndex)·hvac_*(hvac_add_node, hvac_update_node)·draw_update_story 와 capture_view·view_set 의 story 는 층 id(1F = 1)입니다. 섞으면 피난자·노드가 한 층씩 어긋나고, 맨 위층에 층 id 를 넣으면 없는 층이 됩니다."
+    check: {tools: [draw_list_stories, evac_list_summary, spr_list_summary, hvac_list_summary]}
+    fix: {how: "draw_list_stories 로 층을 읽고, EVAC 에는 목록 순서의 0부터 순번, SPR·HVAC 에는 층 id 를 넣습니다(BULC 0.101 이전 지식 팩은 HVAC 를 순번으로 적었으나 앱은 층 id 를 받습니다). spr_add_node 는 floorIndex 를 생략하면 z 가 든 층으로 정해지므로 z 를 정확히 주는 편이 안전합니다."}
 
   - id: EVAC-002
     domain: evacuation
@@ -1146,6 +1478,39 @@ rules:
     check: {tools: [evac_list_summary], how: "evac_list_summary 의 경보 상태에서 감지 시각이 계산됐는지 봅니다."}
     fix: {tools: [evac_set_alarm, add_smoke_detector, add_heat_detector], how: "BULC 0.101+: evac_set_alarm {importDevices: true, compute: true} 로 화재 감지기를 가져와 작동 시각을 계산합니다(감지기가 없으면 add_smoke_detector·add_heat_detector 로 먼저 둡니다). 화재 결과가 없어 계산할 수 없으면 근거 있는 manualDetectionTime 을 넣습니다(EVAC-004)."}
 
+  - id: EVAC-009
+    domain: evacuation
+    severity: warning
+    confidence: guidance
+    applies_to: [Stair]
+    title: "피난 계단 폭 widthCm 은 cm 입니다"
+    title_en: "Evacuation stair width widthCm is in centimetres"
+    condition: "계단 폭에 m 값(1.2)이나 mm 값(1200)을 넣었습니다 — 1.2 cm·12 m 계단이 되어 계단 통과 인원이 100배·10배 어긋납니다(엔진 입력은 widthCm / 100 m). 대기열 폭(width)은 m 라 단위가 다릅니다."
+    check: {tools: [], how: "widthCm < 30(m 값으로 봄)·> 1000(mm 값으로 봄)·≤ 0 이면 경고."}
+    fix: {tools: [evac_update_stair, evac_add_stair], how: "evac_add_stair(widthCm=120) 처럼 cm 로 넣고, 잘못 넣었으면 evac_update_stair {widthCm} 으로 고칩니다."}
+
+  - id: EVAC-010
+    domain: evacuation
+    severity: warning
+    confidence: verified
+    applies_to: [RsetEstimate, EvacSetup]
+    title: "계산 끝까지 탈출하지 못한 피난자가 있으면 마지막 탈출 시각은 RSET 하한입니다"
+    title_en: "If agents remain at the end of the run, the last exit time is only a lower bound of RSET"
+    condition: "결과의 탈출 인원이 전체(무력화 제외)보다 적은데 마지막 탈출 시각을 RSET 으로 보고했습니다. simulationTime(기본 60 s)이 짧거나, 출구·계단·배치 문제로 피난자가 갇혔습니다."
+    check: {tools: [evac_get_results, evac_status], how: "lastResultSummary(라이브) 또는 lastResult(헤드리스)에서 전체 − 탈출 − 무력화 > 0 이면 경고(재순환 모드 제외)."}
+    fix: {tools: [evac_update_setup, evac_run], how: "evac_get_results 의 evacuated·remaining 을 먼저 봅니다. 남은 인원이 있으면 갇힌 원인(EVAC-002·005·006)을 고치고 evac_update_setup(simulationTime 늘림) 뒤 다시 실행합니다. 하한값을 RSET 으로 보고하지 않습니다(GEN-010)."}
+
+  - id: EVAC-012
+    domain: evacuation
+    severity: warning
+    confidence: guidance
+    applies_to: [Agent]
+    title: "피난자 속도는 m/s 이고 희망 속도는 최대 속도 이하입니다"
+    title_en: "Agent speeds are in m/s and desiredSpeed ≤ maxSpeed"
+    condition: "희망 속도에 km/h 값(4.3)을 넣었거나 0 이하로 두었거나, 최대 속도보다 크게 두었습니다. maxSpeed 를 주지 않으면 도구가 max(1.8, 희망 × 1.25)로 정하지만, 손으로 준 maxSpeed 가 희망 속도보다 작으면 모순이 됩니다."
+    check: {tools: [], how: "desiredSpeed ≤ 0 또는 > 3 m/s, maxSpeed < desiredSpeed 면 경고."}
+    fix: {tools: [evac_update_agent], how: "보행 속도는 m/s(성인 약 1.2, 고령자 0.8, 서두름 1.9–2.5)로 넣고, 희망 속도를 높이면 evac_update_agent 로 maxSpeed 도 함께 올립니다."}
+
   # ═════════════════════════ HVAC / SMOKE CONTROL ═════════════════════════
   - id: HVAC-001
     domain: hvac
@@ -1206,6 +1571,105 @@ rules:
     title_en: "Decide when smoke control starts"
     condition: "제연 배기·급기가 t=0 부터 돌고 있어 감지 지연이 반영되지 않았습니다."
     fix: {tools: [set_fds_properties, get_object_properties, preview_fds], how: "HVAC 단말의 fds_override 램프로 기동 시각을 줍니다. 예: set_fds_properties(id, fds_override={ramp_up_mode:'custom', ramp_up_points:[[0,0],[60,0],[75,1]]}) → 60 s 까지 정지, 75 s 에 전량(덱에 RAMP_V 로 들어감). 기동 시각은 감지기 작동 시각 + 연동 지연으로 정하고 근거를 적습니다. 감지기와 직접 연동하는 제어가 꼭 필요하면 사용자와 정하고 preview_fds 로 확인합니다."}
+
+  - id: HVAC-007
+    domain: hvac
+    severity: warning
+    confidence: verified
+    applies_to: [HvacNode]
+    title: "HVAC 노드의 floorIndex 는 있는 층 id(Story.id, 1F = 1)이고 z 는 그 층 높이 안이어야 합니다"
+    title_en: "An HVAC node's floorIndex is an existing story id (Story.id, 1F = 1) and its z lies within that story"
+    condition: "피난(evac_*) 규약처럼 0부터 순번을 floorIndex 에 넣었거나(B1 이 있으면 B1 로 배정됨), 윗층 노드에 z 를 직접 주면서 층 zMin 을 더하지 않았습니다(예: 2F 에 z = 3.0). 노드가 다른 층 평면에 그려지고 단말이 엉뚱한 높이에 생깁니다."
+    check: {tools: [draw_list_stories, hvac_list_summary], how: "floorIndex 가 draw 층 목록의 id 인지, z 가 [zMin − 0.05, zMin + 층고 + 0.25] 안인지 봅니다(층 목록이 없으면 건너뜀)."}
+    fix: {tools: [hvac_update_node, draw_list_stories], how: "hvac_update_node(id, floorIndex=<층 id>, z=<zMin + 층고 − 0.1>) 뒤 반영했던 단말이면 hvac_apply_to_fds 를 다시 부릅니다."}
+
+  - id: HVAC-008
+    domain: hvac
+    severity: error
+    confidence: verified
+    applies_to: [HvacNode, SupplyDiffuser, ExhaustGrille, AirHandler]
+    title: "디퓨저는 supply_diffuser 노드, 그릴은 exhaust_grille 노드, 공조기는 fan 노드에 하나씩 붙어야 합니다"
+    title_en: "Diffusers go on supply_diffuser nodes, grilles on exhaust_grille nodes, air handlers on fan nodes — one each"
+    condition: "hvac_add_node(type=supply_diffuser) 는 단말 자리만 만들고 디퓨저를 만들지 않습니다(GUI 배치는 함께 만듦). 장비 없는 단말 노드는 설계 풍량 0 → 덱에 유량 0(VEL=0, 급배기 없음) 단말로 나가고, 배기 노드에 디퓨저를 붙이면 hvac_apply_to_fds 가 그 풍량으로 배기 단말을 만들어 급배기가 뒤바뀝니다. junction 노드의 장비는 무시되고, fan 이 아닌 노드의 공조기는 풍량 계산에 쓰이지 않습니다."
+    check: {tools: [], how: "장비 nodeId 의 노드 type 과 단말 노드별 장비 수(0·2 이상)를 봅니다. 급배기 뒤바뀜은 error, 나머지는 warning."}
+    fix: {tools: [hvac_add_supply_diffuser, hvac_add_exhaust_grille, hvac_remove_supply_diffuser, hvac_remove_exhaust_grille, hvac_update_node], how: "hvac_add_node 응답의 id(또는 직접 준 id)로 supply_diffuser 노드에는 hvac_add_supply_diffuser, exhaust_grille 노드에는 hvac_add_exhaust_grille, fan 노드에는 hvac_add_air_handler 를 하나씩 부릅니다(종류가 다른 노드·이미 장비가 있는 노드는 도구가 거절합니다)."}
+
+  - id: HVAC-009
+    domain: hvac
+    severity: error
+    confidence: verified
+    applies_to: [Duct, SupplyDiffuser, ExhaustGrille, AirHandler]
+    title: "덕트 양 끝과 디퓨저·그릴·공조기의 nodeId 는 있는 HVAC 노드여야 합니다"
+    title_en: "Duct ends and equipment nodeIds must reference existing HVAC nodes"
+    condition: "도구(2026-11-01 부터)는 없는 노드·같은 노드끼리의 덕트·종류가 다른 노드의 장비를 거절하지만, 예전 파일·사이드카에는 남아 있을 수 있습니다. 끝 노드가 없는 덕트는 풍량 계산에서 건너뛰고, 노드가 없는 장비는 hvac_apply_to_fds 가 조용히 버립니다. 양 끝이 같은 덕트는 의미가 없습니다."
+    check: {tools: [hvac_list_summary], how: "hvac 스토어가 실린 경우에만, 덕트 startNodeId·endNodeId 와 장비 nodeId 가 nodes 의 id 인지 봅니다."}
+    fix: {tools: [hvac_remove_duct, hvac_list_summary, hvac_add_duct, hvac_remove_supply_diffuser, hvac_remove_exhaust_grille, hvac_remove_air_handler], how: "hvac_add_node 응답의 id 또는 hvac_list_summary 로 읽은 id 만 씁니다. 틀린 덕트·장비는 지우고 다시 만듭니다."}
+
+  - id: HVAC-010
+    domain: hvac
+    severity: error
+    confidence: verified
+    applies_to: [Duct, HvacNetwork]
+    title: "덕트 지름·폭·높이는 mm 입니다(m 값 금지)"
+    title_en: "Duct diameter, width and height are in mm (not m)"
+    condition: "hvac_add_duct·hvac_update_duct·hvac_set_defaults 에 0.3 같은 m 값을 넣었습니다. 단면이 1,000²배 작아져 풍속 계산이 수백만 배로 틀립니다. 덕트 규격 최소는 Ø100·200×100 mm 입니다."
+    check: {tools: [], how: "쓰이는 치수(원형 diameter, 사각 width·height)와 기본값이 50 mm 미만이면 오류로 봅니다."}
+    fix: {tools: [hvac_update_duct, hvac_set_defaults], how: "m 로 받은 치수는 × 1000 해서 넣습니다(Ø0.3 m → diameter=300). 원형은 diameter, 사각은 width·height 만 쓰입니다."}
+
+  - id: HVAC-011
+    domain: hvac
+    severity: warning
+    confidence: verified
+    applies_to: [HvacResults]
+    title: "팬 노드가 있는 덕트망에서 단말은 덕트로 팬과 이어져야 합니다"
+    title_en: "With a fan node present, every terminal must be connected to a fan through ducts"
+    condition: "hvac_run_calc 는 팬 노드에서 덕트를 따라 정압을 전파하므로, 팬과 이어지지 않은 단말의 풍량은 0 이 됩니다. 계산 뒤 hvac_apply_to_fds 가 그 0 을 써서 덱에는 유량 0(VEL=0) 단말이 나가 급배기가 일어나지 않습니다(HVAC-003)."
+    check: {tools: [], how: "fan 노드에서 (있는 노드끼리의) 덕트를 따라 BFS 해 닿지 않는 급기·배기 노드를 찾습니다."}
+    fix: {tools: [hvac_add_duct, hvac_list_summary, hvac_run_calc], how: "hvac_list_summary 로 덕트 목록을 보고 빠진 구간을 hvac_add_duct 로 이은 뒤 hvac_run_calc → hvac_apply_to_fds 를 부릅니다. 팬 노드가 없으면 계산하지 않고 설계 CFM 이 쓰입니다."}
+
+  - id: HVAC-012
+    domain: hvac
+    severity: warning
+    confidence: verified
+    applies_to: [HvacNode, SupplyDiffuser, ExhaustGrille, HvacTerminal]
+    title: "덕트망을 고치면 hvac_apply_to_fds 로 덱 단말을 다시 맞춥니다"
+    title_en: "Re-apply the duct network to the deck after changing it"
+    condition: "덕트망만으로는 덱에 아무것도 실리지 않습니다. 반영 뒤 단말 노드를 더하거나 풍량·종류를 바꾸고 다시 반영하지 않으면 덱은 예전 값입니다(덕트망을 고치면 계산 결과도 지워집니다). 반영이 만든 단말은 노드 표식(fds_override.hvac_node_id)을 가져 다시 반영하면 지운 노드의 단말이 지워지지만, 표식이 없는 예전 HVAC_ 단말은 남습니다."
+    check: {tools: [], how: "단말 노드 → &OBST ID로 덱 단말을 찾아 반영 여부·방향·유량(계산값 또는 설계 CFM × 0.000471947)을 비교하고, 노드 표식(hvac_node_id)의 노드가 없는 단말과 표식 없이 대응 노드도 없는 HVAC_ 단말을 찾습니다. 계산 결과가 없는 스냅샷에서는 설계값보다 큰 유량만 틀렸다고 봅니다."}
+    fix: {tools: [hvac_apply_to_fds, hvac_run_calc, remove_obstacle], how: "덕트망을 고친 뒤 hvac_run_calc → hvac_apply_to_fds 를 부릅니다. 다시 반영하면 방향·유량·급기 온도만 바뀌고, 노드를 품고 격자에 맞는 단말 상자는 손으로 고친 크기를, 손으로 준 램프·접선 유속·프로파일·추가 면은 그대로 유지합니다(노드를 옮겼거나 격자에 안 맞으면 새 상자). 표식 없는 예전 단말이 고아로 남았으면 remove_obstacle 로 지웁니다."}
+
+  - id: HVAC-013
+    domain: hvac
+    severity: warning
+    confidence: guidance
+    applies_to: [SupplyDiffuser, ExhaustGrille]
+    title: "단말 풍량이 CFM 으로 보기 어려우면 단위를 확인합니다"
+    title_en: "Check the unit when a terminal airflow is implausible as CFM"
+    condition: "단말 하나가 4,000 CFM(≈ 6,800 m³/h) 이상이면 m³/h 를 그대로 넣었을 수 있고, 10 CFM 미만이면 m³/s 를 넣었을 수 있습니다(예: 0.6 m³/s 를 0.6 CFM 으로 — 1,271 CFM 이어야 함). 큰 제연 배출구는 실제로 클 수 있어 경고만 합니다. 디퓨저·그릴 추가·수정 도구도 10 CFM 미만이면 응답에 Note 를 붙입니다."
+    check: {tools: [], how: "디퓨저·그릴 airflowCFM ≥ 4,000 또는 0 < airflowCFM < 10 을 경고합니다(0 이하는 HVAC-003)."}
+    fix: {tools: [hvac_update_supply_diffuser, hvac_update_exhaust_grille], how: "사용자가 준 단위를 다시 보고 CFM 으로 바꿉니다(m³/h × 0.5886, m³/s × 2118.9). 실제로 큰 단말이면 단말 면 크기도 키웁니다(HVAC-004)."}
+
+  - id: HVAC-014
+    domain: hvac
+    severity: warning
+    confidence: verified
+    applies_to: [HvacTerminal]
+    title: "HVAC 단말 상자는 메시 안에서 격자선에 맞고 한 변이 셀 1개 이상이어야 합니다"
+    title_en: "An HVAC terminal box must lie inside the mesh, on grid lines, at least one cell wide"
+    condition: "FDS 는 장애물 XB 를 가장 가까운 셀 면으로 옮깁니다. 단말 상자가 셀보다 작거나(0.2 m 격자에 0.2 m 단말이 격자선에 걸침) 유량 면이 격자선에서 셀 크기의 25 % 이상 어긋나면, 격자에 맞추면서 단말이 사라지거나 두 배로 커져 면 유속(VEL)이 의도와 달라집니다(0.04 m² 로 계산한 VEL 을 0.16 m² 에 쓰면 풍량 4배). 상자가 메시 밖으로 나가면 그 부분은 계산에서 빠집니다(천장 높이 노드에 예전 ±0.1 m 상자를 만들면 위 절반이 메시 상단 밖)."
+    check: {tools: [list_meshes, preview_fds], how: "덱 단말마다 상자가 들어가는 메시(가장 가는 메시)를 찾아, 상자가 어느 메시에도 다 들어가지 않거나, SUPPLY/EXHAUST 면 좌표가 격자선에서 셀 크기의 25 % 이상 떨어졌거나, 유량 면의 두 변 중 하나가 셀 크기보다 작으면 경고합니다."}
+    fix: {tools: [hvac_apply_to_fds, update_obstacle, preview_fds], how: "hvac_apply_to_fds 를 다시 부르면 격자에 안 맞는 단말(유량 면이 격자선에서 어긋남·셀보다 작음·메시 밖)은 층 안 노드면 천장 아랫면·격자에 맞춰 다시 만들어집니다(격자에 맞고 노드를 품은 상자는 손으로 고친 크기를 유지). 손으로 고칠 때는 update_obstacle(id, xb=[…])로 XB 를 격자선(메시 원점 + 셀 크기 배수)에 맞추고 한 변을 셀 1개 이상으로 둡니다. 예: 0.2 m 격자(원점 0), 천장 2.6 m, 중심 (4, 2) → xb=[3.8, 4.2, 1.8, 2.2, 2.4, 2.6]."}
+
+  - id: HVAC-015
+    domain: hvac
+    severity: error
+    confidence: verified
+    applies_to: [Door, Hole, RawNamelist]
+    title: "국부 누설 &HVAC TYPE_ID='LEAK' 은 ID·VENT_ID·VENT2_ID·AREA 를 갖고, 누설 벤트는 고정된 보통 벽 면 한 존 안에 있어야 합니다"
+    title_en: "A localized leak &HVAC TYPE_ID='LEAK' needs ID, VENT_ID, VENT2_ID and AREA; its vents must sit on fixed ordinary wall faces inside one zone"
+    condition: "필수 키 누락(ERROR 527~531, VENT_ID='AMBIENT' 는 529 — 외기는 VENT2_ID 에만), 없는 벤트(545), 누설 벤트 SURF_ID='HVAC'(562)·DEVC_ID/CTRL_ID(563)·유량·열분해 표면(543)·LEAK_PATH 표면(544), 누설 벤트가 제거 가능 장애물(여닫는 HOLE 의 메움) 위(564 — CPU 실측), 두께 0 장애물 위(422)·누설 경로 표면이 두께 0 장애물에(421), 벤트가 두 압력 존에 걸침(552)."
+    check: {tools: [validate_project, preview_fds], how: "생성 덱 점검이 ERROR 527~531·543~545·562~564·421·422 를, 압력 존 검사가 552 를 내고 validate_project 가 이 규칙으로 보고한다."}
+    fix: {tools: [set_door_leakage, set_door_state, list_raw_namelists, remove_raw_namelist], how: "문 누설은 set_door_leakage 로 넣으면 생성기가 이 제약을 지켜 씁니다(여닫는 문은 문 위 인방 띠, 바깥이 영역 밖이면 VENT2_ID='AMBIENT', 벽 표면이 맞지 않으면 INERT). 원문 &HVAC LEAK 은 덱 점검 메시지대로 고치거나 문 누설로 옮깁니다."}
 
   # ═════════════════════════ SPRINKLER / WATER SPRAY ═════════════════════════
   - id: SPR-001
@@ -1570,6 +2034,17 @@ rules:
     condition: "압력 등급을 확인하지 않았습니다. 검토는 운전점 압력과 무유량(체절·정압) 압력 + 정수두의 최댓값으로 봅니다. 대표 등급: KS D 3507·KS D 3576 1.2 MPa(NFTC 103), SGP 1.0 MPa(관례), 플랜지 JIS 5K 0.7 · 10K 1.4 · 16K 2.2 · 20K 3.4 MPa, EN PNxx = xx/10 MPa, ASME Class 150 1.96 MPa(38 °C). 그 밖 강관은 ASME B31.1 두께 식(부식 여유 탄소강 기본 1.0 mm)."
     fix: {tools: [spr_design_review], how: "등급 표기가 없는 밸브·플랜지는 defaultFlangeClass 로 지정해 검토합니다. 선급·사양서 값이 우선입니다."}
 
+  - id: SPR-055
+    domain: sprinkler
+    severity: warning
+    confidence: verified
+    applies_to: [PipeNode]
+    title: "배관 노드 floorIndex 는 층 id(1F = 1)입니다"
+    title_en: "Pipe-node floorIndex is the story id (1F = 1)"
+    condition: "층 목록(draw stories)이 있는데 노드 floorIndex 와 같은 id 의 층이 없거나(floor_unknown — 피난식 0부터 순번 1F → 0 을 넣음), floorIndex 층과 다른 층 높이에 z 가 있습니다(floor_z_mismatch). 입상관 판정·층별 표시·층 필터가 어긋납니다."
+    check: {tools: [spr_design_review, draw_list_stories], how: ""}
+    fix: {tools: [spr_update_node, draw_list_stories], how: "draw_list_stories 로 층 id 를 읽어 spr_* 의 floorIndex 에 그대로 넣습니다(EVAC 의 0부터 순번과 다름, HVAC 와 같음). 생략하면 z 가 든 층으로 정해지므로 z 를 정확히 주는 편이 안전합니다."}
+
   # ═════════════════════════ ASET / RSET ═════════════════════════
   - id: ASET-001
     domain: aset
@@ -1844,7 +2319,7 @@ common_mistakes:
   - id: LLM-014
     mistake: "EVAC floorIndex 에 층 id(1부터)를 넣음"
     consequence: "피난자가 한 층 위에 놓임"
-    correct: "EVAC/HVAC = 0부터 순번, SPR = 층 id"
+    correct: "EVAC = 목록 순서 0부터 순번(가장 낮은 층 = 0), SPR·HVAC·draw = 층 id"
     rules: [EVAC-001]
   - id: LLM-015
     mistake: "실내 문·창을 'Door_'/'Window_' 로 만듦"

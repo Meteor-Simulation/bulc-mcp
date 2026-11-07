@@ -3,6 +3,41 @@
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [4.2.0] — 2026-11-07
+
+Tool snapshot and knowledge pack for **BULC 0.103.0**. Older apps keep working with their own (smaller) tool sets.
+
+### Changed
+
+- Tool snapshot: BULC 0.103.0, **298 tools** (293 → 298, none removed; `toolsHash` 009e6dc801dc0d51 = the app's `/health`).
+  New: `results_open` (load a deck's results into the app's result viewer — live app only) and the view tools `view_get_state`,
+  `view_set_layers`, `view_set`, `view_count_elements` (display layers, 2D/3D, story, render mode, element counts; new category `view`).
+- App tools that did nothing without the app now say so: the result viewer tools (`result_set_*`, `result_toggle_playback`,
+  `result_add_graph_probe` …), `shape_preview_voxels`, `shape_screenshot` (now marked live-app-only) and `set_run_options` return an
+  error instead of a success message when no app screen is attached.
+- `result_get_state` lists the result datasets (id, type, label, loaded) and whether results are loaded; `result_set_active_dataset`
+  loads a dataset that is not loaded yet (as clicking it in the result tree) and rejects unknown ids; `result_set_legend_range` takes
+  `auto_mode` (global | frame); `result_add_graph_probe` opens the graph window and refuses multi-mesh results.
+- `view_set` also centres the view on an object or box (`focus`, `focusXb`), hides / shows obstacles one by one (`hideObjects`,
+  `showObjects`) and drives the 3D smoke preview (`smokePreview`: on/off, play/pause, quality, speed, density, restart).
+- `draw_add_story` takes `below: true` (add a basement under the lowest story).
+- `place_furniture` no longer lists `as_fire_source` (the app never read it — fire items are fire sources by category); unknown
+  furniture ids, `add_raw_namelist` lines for groups the app writes itself, `merge_meshes` failures, `set_ambient` without values and
+  `add_device` particle quantities without `part_id` are reported as errors.
+- Knowledge pack: **floorIndex of `hvac_*` is the story id (1F = 1)**, like `spr_*` — the pack said HVAC used the 0-based evacuation
+  ordinal (EVAC-001, LLM-014, ontology `floor_identifiers` and `HvacNode`); the evacuation ordinal is counted from the lowest story
+  (B1 = 0 when a basement exists). `conventions.app_versions` lists the 0.103 tools. `bulc_plan_check` uses the same wording.
+
+### Added
+
+- 44 rules that the app's tool messages, `validate_project` and the ontology checks cite: evacuation units and RSET lower bound
+  (EVAC-009, -010, -012), fire ramps, fire XB and ignition faces (FIRE-015 … -019), holes, surface counts, duplicates, story heights,
+  pressure zones and door leakage, shapes outside the mesh (GEO-015 … -021, GEO-024), HVAC node floors, terminals, duct units,
+  connectivity, re-applying and localized leaks (HVAC-007 … -015), material pyrolysis and units (**MATL-001 … -011**, new prefix),
+  surface heat-flux and ignition conflicts (SURF-003 … -006), zone leakage and `&ZONE` syntax (SIM-012 … -014), pipe-node floors
+  (SPR-055) — **213 rules**.
+- Ontology classes `PressureZone`, `ZoneLeak`, `ShapeInstance`, `RawNamelist` (83 classes); `Material` links the MATL rules.
+
 ## [4.1.0] — 2026-11-02
 
 Tool snapshot and knowledge pack for **BULC 0.101.0**. Older apps keep working with their own (smaller) tool sets.

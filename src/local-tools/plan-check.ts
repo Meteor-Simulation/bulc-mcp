@@ -439,7 +439,7 @@ export const planCheck: LocalTool = {
         }
       }
       if (/^evac_/.test(s.tool) && ("floorIndex" in a || "fromFloorIndex" in a))
-        once("evac-floor", () => add("info", "EVAC-001", "EVAC floorIndex counts from 0 (1F = 0, 2F = 1), unlike story ids (1F = 1).", at));
+        once("evac-floor", () => add("info", "EVAC-001", "EVAC floorIndex is a 0-based ordinal in draw_list_stories order (lowest story = 0: 1F = 0 without a basement, 1F = 1 with B1), unlike the story ids that spr_* / hvac_* / draw_* take (1F = 1).", at));
       if (/^hvac_add_(supply_diffuser|exhaust_grille)$/.test(s.tool))
         once("hvac-cfm", () => add("info", "HVAC-001", "HVAC terminal airflow is in CFM (1 m³/h = 0.5886 CFM); size the terminal so face velocity stays realistic (HVAC-004).", at));
       if (RUN_TOOLS.has(s.tool)) {

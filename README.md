@@ -22,9 +22,9 @@
 BULC MCP 는 [Model Context Protocol](https://modelcontextprotocol.io) 서버입니다. Claude Desktop, Claude Code, Cursor, VS Code 같은 MCP 클라이언트의 AI 가
 **이 PC 에서 실행 중인 BULC 데스크톱 앱**(FDS 6.10.1 기반 GPU 화재 시뮬레이터, 2D/3D 건물 편집기)을 자연어로 조작하게 합니다.
 
-- **앱의 모든 기능**: 프로젝트 열기·저장, 도면 인식, 형상·Shape Studio, 격자, 해석 설정·사전 점검·실행·진행 확인, 출력, 화원, 재료, 감지기·제어, 스프링클러/물분무 배관망과 수리계산·펌프 사양·설계 검토, HVAC 덕트망, 피난 배치·실행·결과, 화재 결과 요약·ASET 판정, 결과 뷰어, 화면 캡처 — BULC 0.101 기준 **앱 도구 293종**(BIM 평면·IFC 가져오기/내보내기, 압력 존·누설·문 상태, FDS 전문가 키, Shape Studio CAD, 온톨로지 조회 포함)을 그대로 노출합니다. 앱을 업데이트하면 새 도구가 이 서버를 다시 설치하지 않아도 따라옵니다.
+- **앱의 모든 기능**: 프로젝트 열기·저장, 도면 인식, 형상·Shape Studio, 격자, 해석 설정·사전 점검·실행·진행 확인, 출력, 화원, 재료, 감지기·제어, 스프링클러/물분무 배관망과 수리계산·펌프 사양·설계 검토, HVAC 덕트망, 피난 배치·실행·결과, 화재 결과 요약·ASET 판정, 결과 뷰어(결과 세트 열기·데이터셋 읽기), 화면 보기(레이어·물체 숨기기·화면 가운데 맞춤·3D 연기 미리보기)·화면 캡처 — BULC 0.103 기준 **앱 도구 298종**(BIM 평면·IFC 가져오기/내보내기, 압력 존·누설·문 상태, FDS 전문가 키, Shape Studio CAD, 온톨로지 조회 포함)을 그대로 노출합니다. 앱을 업데이트하면 새 도구가 이 서버를 다시 설치하지 않아도 따라옵니다.
 - **도면 기반 작업**: 사용자가 PC 의 도면 파일(DWG, DXF, PDF, 이미지, ZIP 묶음, IFC) 경로를 알려 주면, 서버가 파일을 **로컬에서** 분류하고(`bulc_drawing_intake`) 맞는 작업 절차를 돌려줍니다. 건축 평면도는 앱이 벽·문·창·기둥·실명을 인식해 건물을 만들고(`arch_analyze_drawing` → `arch_import_building`), 스프링클러·물분무 배관 도면은 배관망을 만듭니다(`spr_analyze_drawing` → `spr_import_network`).
-- **오류를 줄이는 지식 팩**: 온톨로지(클래스 79개), 규칙 169개(조건 → 확인 → 고치는 법), 흔한 LLM 실수 38개, 단계별 플레이북 6편, 한·영·FDS·도구 용어집, FDS 6.10.1 키 참조를 MCP resources·prompts·도구로 제공합니다. 실행 전 계획 점검(`bulc_plan_check`)과 덱 점검(`bulc_check_deck`)이 들어 있습니다.
+- **오류를 줄이는 지식 팩**: 온톨로지(클래스 83개), 규칙 213개(조건 → 확인 → 고치는 법), 흔한 LLM 실수 38개, 단계별 플레이북 6편, 한·영·FDS·도구 용어집, FDS 6.10.1 키 참조를 MCP resources·prompts·도구로 제공합니다. 실행 전 계획 점검(`bulc_plan_check`)과 덱 점검(`bulc_check_deck`)이 들어 있습니다.
 
 이 저장소에는 BULC 앱이나 해석 엔진의 소스가 없습니다. 서버는 앱이 `127.0.0.1` 에서 여는 브리지에 요청을 전달하는 얇은 클라이언트입니다.
 
@@ -126,7 +126,7 @@ node build/server.js
 | `BULC_BRIDGE_TOKEN` | — | 브리지 토큰(발견 파일 없이 `BULC_BRIDGE_AUTH` 앱에 연결할 때) |
 | `BULC_BRIDGE_PORT` / `BULC_BRIDGE_HOST` | `8787` / `127.0.0.1` | 발견 파일이 없을 때 쓰는 주소 |
 | `BULC_MCP_PROFILE` | `full` | `compact`: 로컬 도구 + `bulc_find_tools`·`bulc_call` 만 노출(도구 수 상한이 있는 클라이언트용) |
-| `BULC_MCP_TOOLSETS` | — | `full` 에서 노출할 앱 도구 분류(쉼표): `project, arch, geometry, fire, ventilation, device, mesh, material, surface, output, query, evac, spr, hvac, draw, furniture, result, shape, shapeext, bim, pressure, expert, ontology` |
+| `BULC_MCP_TOOLSETS` | — | `full` 에서 노출할 앱 도구 분류(쉼표): `project, arch, geometry, fire, ventilation, device, mesh, material, surface, output, query, evac, spr, hvac, draw, furniture, result, shape, shapeext, bim, pressure, expert, view, ontology` |
 | `BULC_MCP_HIDE_TOOLS` | — | 숨길 도구(쉼표), 예: `project_new,sim_stop` |
 | `BULC_MCP_HINTS` | `1` | `0` 이면 도구 설명 끝의 규칙 id 힌트를 붙이지 않음(힌트는 설명을 1,024자 넘게 늘리지 않음) |
 | `BULC_MCP_MAX_DESCRIPTION` | — | 도구 설명 길이 상한(문자 수). 1,024자 제한이 있는 클라이언트는 `1024` |
@@ -153,7 +153,7 @@ node build/server.js
 | `get_project_summary` | | 앱 프로젝트 짧은 요약(0.90 이상은 `project_info` 가 더 자세함) |
 | `run_simulation` | | 모든 앱 버전용 실행 가드 — `validate_project` 를 먼저 돌려 오류가 있으면 실행하지 않음(0.90 이상은 `sim_preflight` → `sim_start` 권장) |
 
-**앱 도구(BULC 0.101 기준 293종)**: 프로젝트·실행·결과 24 · 건축 도면 3 · BIM 평면·IFC 10 · 형상 14 · 화재 6 · 경계 5 · 압력 존·누설·문 상태 7 · 장치·제어 14 · 격자 21 · 재료 6 · 표면 10 · 출력 10 · FDS 전문가 키 3 · 조회·점검 7 · 온톨로지 5 · 피난 20 · 스프링클러·물분무 33 · HVAC 21 · 층 7 · 가구 3 · 결과 뷰어 11 · Shape Studio 33 + 정의·배치·스케치 20.
+**앱 도구(BULC 0.103 기준 298종)**: 프로젝트·실행·결과 25 · 건축 도면 3 · BIM 평면·IFC 10 · 형상 14 · 화재 6 · 경계 5 · 압력 존·누설·문 상태 7 · 장치·제어 14 · 격자 21 · 재료 6 · 표면 10 · 출력 10 · FDS 전문가 키 3 · 조회·점검 7 · 온톨로지 5 · 피난 20 · 스프링클러·물분무 33 · HVAC 21 · 층 7 · 가구 3 · 결과 뷰어 11 · 화면 보기 4 · Shape Studio 33 + 정의·배치·스케치 20.
 도구마다 읽기 전용·파괴적·멱등 주석이 붙고, 실행 중인 앱에서만 동작하는 도구(열기·저장·실행·캡처 등)는 "Live app only" 로 표시됩니다.
 
 ### 지식 팩
@@ -226,13 +226,13 @@ FDS 6.10.1, with a 2D/3D building editor) in plain language.
 - **Every app feature**: opening and saving projects, drawing recognition, geometry, Shape Studio, meshing, run settings, pre-flight
   checks, runs and progress, outputs, fires, materials, detectors and controls, sprinkler / water-spray networks with hydraulics, pump
   sizing and design review, HVAC ducts, evacuation set-up, runs and results, fire result summaries and ASET, the result viewer and
-  screenshots, BIM floor plans with IFC import / export, pressure zones and leakage, FDS expert keys and ontology look-ups — **293 app tools** as of BULC 0.101, taken live from the app so new app versions bring new tools without reinstalling
+  screenshots, BIM floor plans with IFC import / export, pressure zones and leakage, FDS expert keys, view layers / hiding / camera focus / 3D smoke preview and ontology look-ups — **298 app tools** as of BULC 0.103, taken live from the app so new app versions bring new tools without reinstalling
   this server.
 - **Work from drawings**: give the AI the local path of a DWG, DXF, PDF, image, ZIP bundle or IFC file. `bulc_drawing_intake`
   classifies it **on your PC** and returns the playbook. The app recognises architectural floor plans (walls, doors, windows, columns,
   room names) and builds the building (`arch_analyze_drawing` → `arch_import_building`), and turns sprinkler / water-spray piping
   drawings into pipe networks (`spr_analyze_drawing` → `spr_import_network`).
-- **A knowledge pack that prevents mistakes**: an ontology (79 classes), 169 rules (condition → check → fix), 38 common LLM
+- **A knowledge pack that prevents mistakes**: an ontology (83 classes), 213 rules (condition → check → fix), 38 common LLM
   mistakes, six playbooks, a Korean–English–FDS–tool glossary and an FDS 6.10.1 key reference, served as MCP resources, prompts and
   tools. Plans and decks are checked before acting (`bulc_plan_check`, `bulc_check_deck`).
 

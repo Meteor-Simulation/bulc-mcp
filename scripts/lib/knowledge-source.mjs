@@ -8,7 +8,7 @@ import YAML from "yaml";
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 export const rel = (p) => path.relative(ROOT, p).split(path.sep).join("/");
 
-export const RULE_ID = /\b(?:GEN|GEO|MESH|VENT|FIRE|SURF|DEVC|OUT|SIM|EVAC|HVAC|SPR|ASET|DRW|TRB)-\d{3}\b/g;
+export const RULE_ID = /\b(?:GEN|GEO|MESH|VENT|FIRE|SURF|MATL|DEVC|OUT|SIM|EVAC|HVAC|SPR|ASET|DRW|TRB)-\d{3}\b/g;
 export const MISTAKE_ID = /\bLLM-\d{3}\b/g;
 
 const read = (p) => fs.readFileSync(path.join(ROOT, p), "utf8");

@@ -3,9 +3,9 @@
 이 폴더는 BULC MCP 서버(화재·연기 해석, 피난, HVAC 제연, 스프링클러·물분무 수리계산)를 조작하는 LLM 에이전트가 참고하는 자료입니다.
 도구 사용법(인자·스키마)은 서버의 `tools/list` 가 알려 주고, 이 폴더는 **무엇을 어떤 순서로, 어떤 단위와 좌표로, 무엇을 확인하며** 해야 하는지를 알려 줍니다.
 
-기준: FDS 6.10.1, BULC 도구 목록(앱 0.101, 2026-11). 0.88 이하 앱에서 달라지는 점(프로젝트 파일·실행·피난 실행·건축 도면 도구가 없음)은 각 규칙의 fix 에 대안으로 적었습니다(`ontology.yaml` `conventions.app_versions`). 엔진 지원 범위가 바뀔 수 있는 규칙은 `confidence: engine_snapshot`, 법규 힌트는 `confidence: regulatory_verify` 로 표시했습니다.
+기준: FDS 6.10.1, BULC 도구 목록(앱 0.103, 2026-11). 0.88 이하 앱에서 달라지는 점(프로젝트 파일·실행·피난 실행·건축 도면 도구가 없음)은 각 규칙의 fix 에 대안으로 적었습니다(`ontology.yaml` `conventions.app_versions`). 엔진 지원 범위가 바뀔 수 있는 규칙은 `confidence: engine_snapshot`, 법규 힌트는 `confidence: regulatory_verify` 로 표시했습니다.
 
-*English summary: this folder is the knowledge pack an LLM agent reads while driving BULC — a domain ontology, 169 machine-readable
+*English summary: this folder is the knowledge pack an LLM agent reads while driving BULC — a domain ontology, 213 machine-readable
 rules (condition → check → fix) with 38 common LLM mistakes, six step-by-step playbooks, a Korean ↔ English ↔ FDS ↔ tool glossary
 and an FDS 6.10.1 key reference. Rule and class names are English; explanations are Korean with English titles.*
 
@@ -24,7 +24,7 @@ and an FDS 6.10.1 key reference. Rule and class names are English; explanations 
 |---|---|---|
 | `ontology.yaml` | 도메인 클래스(프로젝트·층·격자·벽·화원·장치·출력·피난·HVAC·배관망·도면 …), 속성의 단위, 관계, 각 객체를 만드는 도구, 관련 규칙 | 작업 시작 시 `conventions` 부분, 객체를 다룰 때 해당 클래스 |
 | `ontology.jsonld` | 같은 온톨로지의 JSON-LD 판(`scripts/build_ontology_jsonld.py` 로 생성) | 그래프·검색 도구에 넣을 때 |
-| `rules.yaml` | 기계가 읽는 규칙 169개(id, 분야, 심각도, 적용 대상, 조건, 확인 도구, 고치는 법)와 흔한 LLM 실수 38개 | 각 단계 전후, 오류가 났을 때 |
+| `rules.yaml` | 기계가 읽는 규칙 213개(id, 분야, 심각도, 적용 대상, 조건, 확인 도구, 고치는 법)와 흔한 LLM 실수 38개 | 각 단계 전후, 오류가 났을 때 |
 | `playbooks/01-architectural-drawing-fire-aset.md` | 건축 도면 → 건물 모델 → 화재·연기 해석 → ASET | |
 | `playbooks/02-evacuation-fed-rset.md` | 피난 + FED 화재 연계 → RSET | |
 | `playbooks/03-hvac-smoke-control.md` | HVAC 제연(배출·급기) | |
