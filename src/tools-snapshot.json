@@ -2,10 +2,10 @@
   "schemaVersion": 2,
   "generatedFrom": "BULC desktop app — AI tool registry (names, descriptions and input schemas only)",
   "appVersion": "0.103.0",
-  "generatedAt": "2026-11-07T08:42:03.851Z",
+  "generatedAt": "2026-11-07T08:48:51.779Z",
   "toolCount": 298,
-  "sha256": "009e6dc801dc0d512c3371f403aa4e2f22c8e9c03b3f82e4452c796de28c9e54",
-  "toolsHash": "009e6dc801dc0d51",
+  "sha256": "5111e524871e4067b6e536c02f13438b5e1e8f1f7737c58a954f6dad2855c019",
+  "toolsHash": "5111e524871e4067",
   "tools": [
     {
       "name": "add_obstacle",
@@ -15878,7 +15878,7 @@
     },
     {
       "name": "view_set_layers",
-      "description": "Show or hide parts of the model view by display layer — e.g. \"show only sprinklers\" {only:[\"sprinkler\"]}, \"hide piping\" {hide:[\"pipe\"]}, \"walls, doors and windows only\" {preset:\"default\"}, \"show everything\" {preset:\"all\"}. Layers: wall, door, window, slab, structure, stair, finish, furniture, sprinkler, hvac, pipe, electrical, equipment, other; groups mep / architecture; Korean names work too (스프링클러, 공조, 덕트, 배관, 벽, 문, 창, 바닥, 지붕, 기둥, 보, 계단, 마감, 천장, 가구, 전기, 조명, 설비기기). Applied in order preset → only → show / hide. Also mesh (mesh outline), openBoundaries (OPEN boundary faces) and unhideObjects (objects hidden one by one). Display only: hidden layers stay in the FDS deck. Layers exist for IFC-imported elements; objects without a layer (drawn, read from .fds) always show. Returns the new visibility with counts.",
+      "description": "Show or hide parts of the model view by display layer — e.g. \"show only sprinklers\" {only:[\"sprinkler\"]}, \"hide piping\" {hide:[\"pipe\"]}, \"walls, doors and windows only\" {preset:\"default\"}, \"show everything\" {preset:\"all\"}. Layers: wall, door, window, slab, structure, stair, finish, furniture, sprinkler, hvac, pipe, electrical, equipment, other; groups mep / architecture; Korean names work too (스프링클러, 공조, 덕트, 배관, 벽, 문, 창, 바닥, 지붕, 기둥, 보, 계단, 마감, 천장, 가구, 전기, 조명, 설비기기). Applied in order preset → only → show / hide. Also mesh (mesh outline), openBoundaries (OPEN boundary faces), unhideObjects (objects hidden one by one) and colorByLayer (\"color by type\": 3D colors per layer — sprinkler red, ducts cyan, pipes green, electrical yellow; false = surface colors). Display only: hidden layers stay in the FDS deck. Layers exist for IFC-imported elements; objects without a layer (drawn, read from .fds) always show. Returns the new visibility with counts.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -15923,6 +15923,10 @@
           "unhideObjects": {
             "type": "boolean",
             "description": "true = show again the objects hidden one by one (3D right-click Hide)"
+          },
+          "colorByLayer": {
+            "type": "boolean",
+            "description": "true = color IFC elements by layer in 3D (layer bar \"Colors\"); false = surface (SURF) colors"
           }
         }
       },

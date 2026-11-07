@@ -9,7 +9,7 @@ Tool snapshot and knowledge pack for **BULC 0.103.0**. Older apps keep working w
 
 ### Changed
 
-- Tool snapshot: BULC 0.103.0, **298 tools** (293 → 298, none removed; `toolsHash` 009e6dc801dc0d51 = the app's `/health`).
+- Tool snapshot: BULC 0.103.0, **298 tools** (293 → 298, none removed; `toolsHash` 5111e524871e4067 = the app's `/health`).
   New: `results_open` (load a deck's results into the app's result viewer — live app only) and the view tools `view_get_state`,
   `view_set_layers`, `view_set`, `view_count_elements` (display layers, 2D/3D, story, render mode, element counts; new category `view`).
 - App tools that did nothing without the app now say so: the result viewer tools (`result_set_*`, `result_toggle_playback`,
@@ -20,6 +20,7 @@ Tool snapshot and knowledge pack for **BULC 0.103.0**. Older apps keep working w
   `auto_mode` (global | frame); `result_add_graph_probe` opens the graph window and refuses multi-mesh results.
 - `view_set` also centres the view on an object or box (`focus`, `focusXb`), hides / shows obstacles one by one (`hideObjects`,
   `showObjects`) and drives the 3D smoke preview (`smokePreview`: on/off, play/pause, quality, speed, density, restart).
+- `view_set_layers` takes `colorByLayer` (color IFC elements by layer in 3D — sprinklers red, ducts cyan, pipes green; false = surface colors).
 - `draw_add_story` takes `below: true` (add a basement under the lowest story).
 - `place_furniture` no longer lists `as_fire_source` (the app never read it — fire items are fire sources by category); unknown
   furniture ids, `add_raw_namelist` lines for groups the app writes itself, `merge_meshes` failures, `set_ambient` without values and
